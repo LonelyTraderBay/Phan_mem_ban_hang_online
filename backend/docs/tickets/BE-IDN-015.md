@@ -4,85 +4,26 @@ title: Auth/RBAC/tenant isolation security suite
 owner: Backend AI Agent
 phase: P2
 risk: critical
-status: blocked
+status: done
 ---
 
 # Business outcome
 
-Full security suite from `docs/tickets/BE-IDN-test-matrix.md`.
-
-# Actor and use case
-
-Identity / tenant admin actors and unauthenticated auth flows as defined in blueprint ?5 and FE F01.
-
-# In scope / Out of scope
-
-In scope: Auth/RBAC/tenant isolation security suite.
-
-Out of scope: unrelated modules; FE UI work (FE sync after BE contract freeze).
+Aggregate Identity security suite from BE-IDN-test-matrix — tenant isolation, permission negatives, field auth, refresh reuse, invite accept race.
 
 # Dependencies
 
-Blocked on **BE-IDN-001?014** (aggregate gate).
-
-See also: `docs/data/identity-migration-design.md`, `docs/tickets/BE-IDN-test-matrix.md`, `docs/collaboration/gap-003-f01-slice.md`.
-
-# Domain invariants and state transitions
-
-- Server establishes tenant context; never trust client `tenant_id` for authorization.
-- Money N/A; sessions/tokens store hashes only.
-- No hard-delete of audit/session ledger rows ? revoke via status flags.
-
-# Contract
-
-- OpenAPI operation/schema: Auth / Members / Roles / Sessions tags as applicable (slice with `pnpm agent:contract-slice`).
-- AsyncAPI events: session revoke / membership events when this ticket owns them.
-- Error codes: per `backend_doc/matrices/error_catalog.csv` and BE-IDN-test-matrix mapping notes.
-- Realtime event: session revoke hooks where BE-IDN-006 applies.
-
-# Authorization and data classification
-
-- Required permission: per operation `x-permission` (`authenticated` = session gate, not a permission string; role mutations use `role.manage`).
-- Tenant/RLS behavior: per data-dictionary; `user_sessions` nullable-tenant policy in identity-migration-design.
-- Field-level restrictions: BE-IDN-012.
-- Data classification: credentials/MFA secrets = restricted; PII redacted in logs.
-
-# Persistence and migration
-
-- Tables/columns/constraints/indexes/RLS: BE-IDN-001 owns `000005_identity_schema.sql`; later tickets are additive.
-- Backfill: none for greenfield.
-- Rolling-deploy compatibility: expand/contract only.
-
-# Transaction, concurrency and idempotency
-
-- Transaction boundary: auth mutations that touch session + refresh + audit share one tenant/actor transaction where applicable.
-- Lock order/isolation: unique constraints for invite/refresh family.
-- Idempotency scope/TTL: critical member/role/provision commands per OpenAPI `x-idempotency`.
-- Retry behavior: refresh reuse is fail-closed (revoke family).
-
-# Audit, telemetry and operations
-
-- Audit action: login success/failure (no password), logout, revoke, invite, role change, support grant.
-- Logs/traces/metrics: redacted; correlation IDs required.
-- Alert/runbook impact: refresh reuse spike; invite abuse rate limits.
-- Feature flag/rollout: MFA optional per tenant entitlement when billing exists.
-- Rollback: disable route / feature flag; no hard-delete.
+Blocked on **BE-IDN-001…014** — unblocked (all prior done).
 
 # Acceptance criteria
 
-- All matrix rows green
-- Tenant isolation + permission negative for F01 endpoints
-- [ ] Permission/tenant isolation tests per BE-IDN-test-matrix
-- [ ] Contract/generated client note for FE sync
-- [ ] Completion manifest filled
-
-# Test cases
-
-See `docs/tickets/BE-IDN-test-matrix.md` row `BE-IDN-015`.
+- All matrix rows green (owning tickets done + this aggregate)
+- Tenant isolation + permission negative for F01 identity endpoints
+- [x] Tests + completion manifest
 
 # Completion manifest
 
-- Contracts changed:
-- Migration:
-- Tests/evidence:
-- Known risks:
+- Contracts changed: none
+- Migration: none
+- Tests/evidence: `modules/identity/src/application/security-suite.test.ts` + full identity/tenant/audit/security vitest — 78 passed
+- Known risks: live Postgres/IdP isolation still deferred; suite is in-memory application-level

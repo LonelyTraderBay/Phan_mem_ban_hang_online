@@ -2,7 +2,7 @@
 
 **Ticket:** BE-IDN-001  
 **Proposed file:** `infra/migrations/000005_identity_schema.sql`  
-**Status:** Design only — do not apply until BE-IDN-001 implementation.
+**Status:** Implemented 2026-07-22 — regenerate via `node tools/generate-identity-migration.mjs` after permission matrix changes.
 
 ## Migration number
 
@@ -27,12 +27,12 @@ Create under schema `app` (same as walking skeleton):
 | `users` | GLOBAL | No tenant_id |
 | `user_credentials` | GLOBAL | Argon2id hash only; keyed by user_id |
 | `tenant_memberships` | TENANT_OWNED | Unique `(tenant_id, user_id)` |
-| `roles` | Hybrid | System template `tenant_id NULL`; custom tenant-scoped |
+| `roles` | HYBRID | System template `tenant_id NULL`; custom tenant-scoped — rls-intent-catalog §C |
 | `permissions` | GLOBAL | Seed from permission matrix |
-| `role_permissions` | Follows roles | Unique `(role_id, permission_key)` |
+| `role_permissions` | HYBRID | Same hybrid policy as `roles`; unique `(role_id, permission_key)` |
 | `membership_roles` | TENANT_OWNED | Tenant-consistent with membership |
-| `user_sessions` | TENANT_OWNED nullable tenant | See RLS below |
-| `refresh_tokens` | Follows sessions | Hash only; family/parent for reuse detection |
+| `user_sessions` | TENANT_OWNED (nullable tenant) | See RLS below / rls-intent-catalog §D |
+| `refresh_tokens` | TENANT_OWNED (nullable tenant) | Mirror session visibility; hash only; family/parent for reuse detection |
 | `devices` | GLOBAL | Belongs to user_id |
 | `invitations` | TENANT_OWNED | Token hash; unique active `(tenant_id, email)` |
 | `mfa_factors` | GLOBAL | TOTP secret encrypted at rest |
@@ -100,7 +100,7 @@ System template seed via `app_migrator` only.
 ## Seed data in same migration (or 000005b if size warrants)
 
 - Immutable `permissions` rows from `permission_matrix.csv`
-- System role templates (Owner, Admin, Staff, ReadOnly — names TBD in BE-IDN-002) with `tenant_id NULL`
+- System role templates (Owner, Admin, Staff, ReadOnly) with `tenant_id NULL` — cloned to tenant customs on provision (BE-IDN-002)
 - No demo tenants/users in this migration
 
 ## Expand/contract

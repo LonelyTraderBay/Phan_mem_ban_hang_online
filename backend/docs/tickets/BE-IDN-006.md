@@ -4,7 +4,7 @@ title: Logout/session/device revoke + SSE/session event hooks
 owner: Backend AI Agent
 phase: P2
 risk: high
-status: blocked
+status: done
 ---
 
 # Business outcome
@@ -13,77 +13,69 @@ Logout, session/device revoke, emit session events for FE realtime/poll.
 
 # Actor and use case
 
-Identity / tenant admin actors and unauthenticated auth flows as defined in blueprint ?5 and FE F01.
+Authenticated Web Admin (BFF cookie session) ending session or revoking own devices/sessions.
 
 # In scope / Out of scope
 
-In scope: Logout/session/device revoke + SSE/session event hooks.
+In scope: `POST /auth/logout`, `DELETE /sessions/{id}`, `DELETE /devices/{id}`, `GET /devices`, outbox `com.aisales.identity.session-revoked.v1` + SSE close hook docs.
 
-Out of scope: unrelated modules; FE UI work (FE sync after BE contract freeze).
+Out of scope: SSE transport implementation (later realtime ticket); FE UI; hard-delete.
 
 # Dependencies
 
-Blocked on **BE-IDN-005**.
+Blocked on **BE-IDN-005** — unblocked.
 
-See also: `docs/data/identity-migration-design.md`, `docs/tickets/BE-IDN-test-matrix.md`, `docs/collaboration/gap-003-f01-slice.md`.
+See: `docs/collaboration/idn006-session-revoked-event.md`, `docs/tickets/BE-IDN-test-matrix.md`.
 
 # Domain invariants and state transitions
 
-- Server establishes tenant context; never trust client `tenant_id` for authorization.
-- Money N/A; sessions/tokens store hashes only.
-- No hard-delete of audit/session ledger rows ? revoke via status flags.
+- Revoke via flags (`revoked` / `revoked_at`); no hard-delete.
+- Cross-user session/device → `RESOURCE_NOT_FOUND` (404).
+- Double revoke → `DEVICE_ALREADY_REVOKED` (409).
 
 # Contract
 
-- OpenAPI operation/schema: Auth / Members / Roles / Sessions tags as applicable (slice with `pnpm agent:contract-slice`).
-- AsyncAPI events: session revoke / membership events when this ticket owns them.
-- Error codes: per `backend_doc/matrices/error_catalog.csv` and BE-IDN-test-matrix mapping notes.
-- Realtime event: session revoke hooks where BE-IDN-006 applies.
+- OpenAPI ops already frozen (`logout`, `revokeSession`, `revokeDevice`, `listDevices`).
+- Event docs: `docs/collaboration/idn006-session-revoked-event.md`.
 
 # Authorization and data classification
 
-- Required permission: per operation `x-permission` (`authenticated` = session gate, not a permission string; role mutations use `role.manage`).
-- Tenant/RLS behavior: per data-dictionary; `user_sessions` nullable-tenant policy in identity-migration-design.
-- Field-level restrictions: BE-IDN-012.
-- Data classification: credentials/MFA secrets = restricted; PII redacted in logs.
+- Logout/refresh mutations: CSRF required.
+- Session/device revoke: authenticated owner + CSRF.
+- Outbox payload has ids only (no tokens).
 
 # Persistence and migration
 
-- Tables/columns/constraints/indexes/RLS: BE-IDN-001 owns `000005_identity_schema.sql`; later tickets are additive.
-- Backfill: none for greenfield.
-- Rolling-deploy compatibility: expand/contract only.
+- `infra/migrations/000008_session_device_revoke.sql`
 
 # Transaction, concurrency and idempotency
 
-- Transaction boundary: auth mutations that touch session + refresh + audit share one tenant/actor transaction where applicable.
-- Lock order/isolation: unique constraints for invite/refresh family.
-- Idempotency scope/TTL: critical member/role/provision commands per OpenAPI `x-idempotency`.
-- Retry behavior: refresh reuse is fail-closed (revoke family).
+- SECURITY DEFINER revoke helpers; logout idempotent when already revoked.
+- Device/session double-revoke → conflict error (not silent).
 
 # Audit, telemetry and operations
 
-- Audit action: login success/failure (no password), logout, revoke, invite, role change, support grant.
-- Logs/traces/metrics: redacted; correlation IDs required.
-- Alert/runbook impact: refresh reuse spike; invite abuse rate limits.
-- Feature flag/rollout: MFA optional per tenant entitlement when billing exists.
-- Rollback: disable route / feature flag; no hard-delete.
+- Audit: `auth.logout`, `auth.session.revoke`, `auth.device.revoke`
+- Outbox: `com.aisales.identity.session-revoked.v1` with `close_sse: true`
 
 # Acceptance criteria
 
 - Logout clears session
 - DEVICE_ALREADY_REVOKED on double revoke
 - Event/poll contract documented
-- [ ] Permission/tenant isolation tests per BE-IDN-test-matrix
-- [ ] Contract/generated client note for FE sync
-- [ ] Completion manifest filled
+- [x] Permission/tenant isolation tests (other user 404)
+- [x] Contract/generated client note — OpenAPI unchanged; FE sync not required
+- [x] Completion manifest filled
 
 # Test cases
 
 See `docs/tickets/BE-IDN-test-matrix.md` row `BE-IDN-006`.
 
+Evidence: `modules/identity/src/application/logout-revoke.test.ts` — identity suite 20 passed.
+
 # Completion manifest
 
-- Contracts changed:
-- Migration:
-- Tests/evidence:
-- Known risks:
+- Contracts changed: none (OpenAPI frozen); event documented in collaboration note
+- Migration: `infra/migrations/000008_session_device_revoke.sql`
+- Tests/evidence: `pnpm exec vitest run modules/identity` — 20 passed; typecheck OK
+- Known risks: live Postgres/SSE proof deferred; AsyncAPI channel entry for session-revoked still optional follow-up; device-revoke audit uses placeholder tenant when no session tenant

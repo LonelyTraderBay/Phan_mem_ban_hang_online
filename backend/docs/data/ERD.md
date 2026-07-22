@@ -6,6 +6,10 @@ that prose into diagrams + a queryable index (see [`data-dictionary.md`](data-di
 developer can see relationships at a glance instead of parsing paragraphs. **If this file and the
 blueprint ever disagree, the blueprint wins — fix this file, don't fix the blueprint from here.**
 
+**Enterprise freeze W4 (2026-07-22):** table classes + RLS intent are frozen in
+[`data-dictionary.md`](data-dictionary.md) + [`rls-intent-catalog.md`](rls-intent-catalog.md)
+(`Needs confirmation` = 0). Money/tax: [`../business/HO_DEFAULTS_v1.md`](../business/HO_DEFAULTS_v1.md).
+
 Every table also carries the standard audit columns from blueprint §7.2
 (`id, tenant_id, version, created_at, created_by, updated_at, updated_by, deleted_at?, metadata`)
 unless noted `[ledger]` (append-only, no `updated_at`/`version` update after insert per §7.2) or
@@ -19,6 +23,22 @@ column lists live in the blueprint sections cited under each diagram.
 - When a module's real migration diverges from the blueprint (schema evolves during
   implementation), update **both** this file and the blueprint section in the same PR, or flag the
   drift in `contract-gap-board.md` if the two owners disagree on which is correct.
+
+## 0. Foundation / P1 infrastructure (already migrated)
+
+Not drawn as a full ERD — classes + RLS status live in the dictionary:
+
+| Table | Class | Migration |
+|-------|-------|-----------|
+| `audit_events` | TENANT_OWNED | `000002` |
+| `outbox_events` | TENANT_OWNED | `000002` + worker policy `000004` |
+| `idempotency_records` | TENANT_OWNED | `000003` |
+| `inbox_events` | TENANT_OWNED | `000004` |
+
+Identity tables (§1) shipped in **`000005_identity_schema.sql`** (BE-IDN-001) — see data-dictionary RLS status **Done**.
+
+`audit_events` (skeleton) must converge with domain `audit_logs` (§7.12.5) via expand/contract — see
+[`rls-intent-catalog.md`](rls-intent-catalog.md).
 
 ---
 
@@ -429,6 +449,8 @@ erDiagram
     text fulfillment_status
     text return_status
     char3 currency
+    int tax_rate_bps "HO default 1000 = 10%"
+    boolean prices_tax_inclusive "HO default true"
     bigint grand_total
     bigint locked_cost_total
     uuid reservation_id "FK inventory_reservations"
@@ -478,7 +500,8 @@ erDiagram
 
 Notes: a confirmed order's items are an immutable price/cost snapshot (invariant §4.3.5) — later
 catalog changes never rewrite order history. Amendments after confirm go through an explicit P1
-amendment flow, not a direct `order_items` update (§7.11.1).
+amendment flow, not a direct `order_items` update (§7.11.1). Prices are tax-**inclusive** at 10%
+VAT unless an ADR supersedes [`HO_DEFAULTS_v1`](../business/HO_DEFAULTS_v1.md).
 
 ## 8. Analytics / Billing / Ops (blueprint §7.12)
 
@@ -489,7 +512,8 @@ erDiagram
   FEATURE_FLAGS ||--o{ FEATURE_FLAG_OVERRIDES : "overridden per tenant"
 
   EVENT_LOGS { text event_type }
-  PLANS { text name "GLOBAL, versioned" }
+  PLANS { text id UK "plan_free|plan_pro|plan_business"
+    text name "GLOBAL, versioned" }
   SUBSCRIPTIONS { text status
     text period }
   USAGE_METERS {
@@ -513,7 +537,8 @@ erDiagram
 
 Notes: `event_logs` is an immutable projection, not a replacement for the outbox (§7.12.1). Billing
 enforcement never blocks critical recovery/support flows (§4.2). `audit_logs` never contains raw
-secrets or full sensitive PII — only redacted before/after (§7.12.5).
+secrets or full sensitive PII — only redacted before/after (§7.12.5). Over-limit: soft_warn →
+hard_block (HO_DEFAULTS). Skeleton `audit_events` ↔ domain `audit_logs` convergence: see §0.
 
 ## Source-of-truth matrix (copied from blueprint §7.13 — do not fork, edit there)
 

@@ -7,7 +7,15 @@ import RouteChunkErrorBoundary from "./RouteChunkErrorBoundary";
 
 const HomePlaceholder = lazy(() => import("./HomePlaceholder"));
 const NotFoundRoute = lazy(() => import("./NotFoundRoute"));
-const AuthPlaceholder = lazy(() => import("./AuthPlaceholder"));
+const AuthCallbackRoute = lazy(() => import("./AuthCallbackRoute"));
+const LoginRoute = lazy(() => import("../features/auth/routes/LoginRoute"));
+const MfaChallengeRoute = lazy(() => import("../features/auth/routes/MfaChallengeRoute"));
+const ForgotPasswordRoute = lazy(() => import("../features/auth/routes/ForgotPasswordRoute"));
+const ResetPasswordRoute = lazy(() => import("../features/auth/routes/ResetPasswordRoute"));
+const AcceptInviteRoute = lazy(() => import("../features/auth/routes/AcceptInviteRoute"));
+const SettingsUsersRoute = lazy(() => import("../features/settings/routes/SettingsUsersRoute"));
+const SettingsRolesRoute = lazy(() => import("../features/settings/routes/SettingsRolesRoute"));
+const SettingsDevicesRoute = lazy(() => import("../features/settings/routes/SettingsDevicesRoute"));
 const ProductCatalogRoute = lazy(() => import("../features/product-catalog/routes/ProductCatalogRoute"));
 
 function withSuspense(Element: React.LazyExoticComponent<() => React.JSX.Element>) {
@@ -41,33 +49,48 @@ export const routeManifest: RouteObject[] = [
     errorElement: <RouteChunkErrorBoundary />,
   },
   {
+    path: "/settings/users",
+    element: <Protected>{withSuspense(SettingsUsersRoute)}</Protected>,
+    errorElement: <RouteChunkErrorBoundary />,
+  },
+  {
+    path: "/settings/roles",
+    element: <Protected>{withSuspense(SettingsRolesRoute)}</Protected>,
+    errorElement: <RouteChunkErrorBoundary />,
+  },
+  {
+    path: "/settings/devices",
+    element: <Protected>{withSuspense(SettingsDevicesRoute)}</Protected>,
+    errorElement: <RouteChunkErrorBoundary />,
+  },
+  {
     path: "/login",
-    element: withSuspense(AuthPlaceholder),
+    element: withSuspense(LoginRoute),
     errorElement: <RouteChunkErrorBoundary />,
   },
   {
     path: "/auth/callback",
-    element: withSuspense(AuthPlaceholder),
+    element: withSuspense(AuthCallbackRoute),
     errorElement: <RouteChunkErrorBoundary />,
   },
   {
     path: "/2fa",
-    element: withSuspense(AuthPlaceholder),
+    element: withSuspense(MfaChallengeRoute),
     errorElement: <RouteChunkErrorBoundary />,
   },
   {
     path: "/forgot-password",
-    element: withSuspense(AuthPlaceholder),
+    element: withSuspense(ForgotPasswordRoute),
     errorElement: <RouteChunkErrorBoundary />,
   },
   {
     path: "/reset-password",
-    element: withSuspense(AuthPlaceholder),
+    element: withSuspense(ResetPasswordRoute),
     errorElement: <RouteChunkErrorBoundary />,
   },
   {
     path: "/accept-invite",
-    element: withSuspense(AuthPlaceholder),
+    element: withSuspense(AcceptInviteRoute),
     errorElement: <RouteChunkErrorBoundary />,
   },
   {

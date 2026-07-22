@@ -1,6 +1,6 @@
 # F01 — Frontend ticket preflights (FE-F01-001 … FE-F01-006)
 
-**Status:** READY to start READY-MOCK implementation (MSW) — design-specs READY-MOCK (HO 2026-07-21); F01 P0 contracts Closed including GAP-009 OIDC  
+**Status:** READY-MOCK implementation landed (FE-F01-001…006) — 2026-07-22; design-specs READY-MOCK (HO 2026-07-21); F01 P0 contracts Closed including GAP-009 OIDC  
 **Author:** Frontend AI Agent (preflight sync 2026-07-21)  
 **Date:** 2026-07-21  
 **Auth:** ADR-FE-013 OIDC/BFF HttpOnly cookie — **locked**. Email/password is **not** the Web Admin primary path.
@@ -18,7 +18,7 @@ Per ticket below must satisfy before implementation starts:
 - [x] Auth/bootstrap OpenAPI frozen (SessionBootstrap, AuthResponse, MFA, CSRF, OIDC start/callback)
 - [x] F01 error codes in `contracts/errors/error-catalog.yaml` (re-sync after BE GAP-009)
 - [x] Permission keys confirmed in matrix (F01 slice)
-- [ ] MSW scenarios updated for `startOidcLogin` / `completeOidcLogin` (after `contracts:sync`)
+- [x] MSW scenarios for OIDC + refresh chain (FE-F01-001/002; contracts already synced)
 - [x] No invented permission or error codes in FE
 
 ---
@@ -33,9 +33,9 @@ Per ticket below must satisfy before implementation starts:
 | Permissions | session gate; action gates use session `permissions[]` strings |
 | Errors | `AUTH_TOKEN_EXPIRED`, `AUTH_REFRESH_REUSED`, `AUTH_SESSION_REVOKED`, `TENANT_CONTEXT_INVALID`, `TENANT_INACTIVE`, `MEMBERSHIP_INACTIVE`, `INSUFFICIENT_PERMISSION`, `CSRF_TOKEN_INVALID` — **do not refresh on 403** |
 | MSW | 200 SessionBootstrap; 401 then refresh 200 + retry; refresh reused → logged out; 403 never triggers refresh; switch-tenant returns SessionBootstrap then client may still re-GET `/me` |
-| Blockers | FE `contracts:sync` after BE GAP-009 commit |
+| Blockers | None — contracts synced; implement READY-MOCK |
 
-**DoR:** Unblocked for MSW READY-MOCK once contracts synced.
+**DoR:** Unblocked for MSW READY-MOCK.
 
 ---
 
@@ -49,7 +49,7 @@ Per ticket below must satisfy before implementation starts:
 | Permissions | public |
 | Errors | `AUTH_OIDC_*`, `AUTH_MFA_*`, `RATE_LIMITED`, `VALIDATION_FAILED`, `TENANT_INACTIVE`; map expired session to `AUTH_TOKEN_EXPIRED` |
 | MSW | IdP start → simulated callback → bootstrap; MFA required → verify success/fail; rate limit 429; forgot always 200 enumeration-safe |
-| Blockers | `contracts:sync`; MSW OIDC handlers |
+| Blockers | None — add MSW OIDC handlers with FE-F01-002 |
 
 **DoR:** Unblocked for IdP-primary READY-MOCK. Credential form on login remains **disabled / out of scope**.
 
@@ -113,6 +113,6 @@ Per ticket below must satisfy before implementation starts:
 
 ## Cross-cutting
 
-- Re-sync FE contracts after BE GAP-009 before claiming generated types match.
+- Contracts synced post GAP-009 / Identity (`contracts/BACKEND_REF.lock` matches BE HEAD). Re-sync only when BE OpenAPI changes again.
 - Non-F01 permission drift: see `backend/docs/collaboration/gap-003-remaining-ledger.md` — do not invent keys.
 - Staging/dev API: waived (MSW) until Identity E2E — `ENTERPRISE_DOC_GATE.md`.

@@ -84,8 +84,8 @@ pnpm verify                           # must pass before claiming done
 
 1. `backend_doc/START_HERE.md`
 2. `docs/enterprise-freeze/README.md` — **full-product doc freeze playbook (mandatory)**
-3. `docs/enterprise-freeze/FULL_PRODUCT_DOC_FREEZE.md` — PASS/FAIL; no feature code until PASS
-4. `docs/readiness/ENTERPRISE_DOC_GATE.md` — what AI may code after freeze
+3. `docs/enterprise-freeze/FULL_PRODUCT_DOC_FREEZE.md` — **PASS (2026-07-22)**; feature code allowed per DOC_GATE phase order
+4. `docs/readiness/ENTERPRISE_DOC_GATE.md` — kickoff **BE-IDN-001** then Identity/F01; no phase jumping
 5. `docs/ai/CONTEXT_MAP.md` or `pnpm agent:context <TASK_ID>`
 6. Relevant blueprint section via `docs/ai/blueprint-index/` (not the full 4147-line file)
 7. Contracts/matrices for the affected operation only

@@ -2,11 +2,702 @@
 # Run 'pnpm contracts:sync' to refresh.
 asyncapi: 3.1.0
 info:
-  title: Ops Events (STUB)
-  version: 0.0.0
-  description: No Super Admin/Operations-specific async events exist in the
-    backend contract yet. This file is a placeholder so packages/realtime and
-    codegen tooling have a stable two-file shape matching contracts/openapi's
-    tenant/ops split. Populate when backend ships ops-scoped events.
-channels: {}
-operations: {}
+  title: AI Sales Operating System — Ops Events
+  version: 2.0.0
+  description: Operations / Super Admin scoped events (enterprise doc-freeze W2).
+    Generated from backend asyncapi.yaml channels.opsEvents.
+servers:
+  redis:
+    host: redis.internal:6379
+    protocol: redis
+    description: Logical transport; BullMQ queues/outbox publisher are
+      implementation details.
+  sse:
+    host: api.example.com
+    pathname: /api/v1/realtime/stream
+    protocol: https
+    description: Authenticated Server-Sent Events endpoint.
+channels:
+  opsEvents:
+    address: ops.events
+    description: Super Admin / operations-scoped events (not tenant SSE by default).
+    messages:
+      opsAlertRaised:
+        $ref: "#/components/messages/opsAlertRaised"
+      opsAlertAcknowledged:
+        $ref: "#/components/messages/opsAlertAcknowledged"
+      opsSupportAccessGranted:
+        $ref: "#/components/messages/opsSupportAccessGranted"
+      opsSupportAccessRevoked:
+        $ref: "#/components/messages/opsSupportAccessRevoked"
+      opsTenantAiDisabled:
+        $ref: "#/components/messages/opsTenantAiDisabled"
+      opsFeatureFlagChanged:
+        $ref: "#/components/messages/opsFeatureFlagChanged"
+      opsDlqReprocessRequested:
+        $ref: "#/components/messages/opsDlqReprocessRequested"
+      opsAiKillSwitchActivated:
+        $ref: "#/components/messages/opsAiKillSwitchActivated"
+      opsChannelHealthCritical:
+        $ref: "#/components/messages/opsChannelHealthCritical"
+      opsEntitlementLimitExceeded:
+        $ref: "#/components/messages/opsEntitlementLimitExceeded"
+operations:
+  publishOpsEvents:
+    action: send
+    channel:
+      $ref: "#/channels/opsEvents"
+    messages:
+      - $ref: "#/channels/opsEvents/messages/opsAlertRaised"
+      - $ref: "#/channels/opsEvents/messages/opsAlertAcknowledged"
+      - $ref: "#/channels/opsEvents/messages/opsSupportAccessGranted"
+      - $ref: "#/channels/opsEvents/messages/opsSupportAccessRevoked"
+      - $ref: "#/channels/opsEvents/messages/opsTenantAiDisabled"
+      - $ref: "#/channels/opsEvents/messages/opsFeatureFlagChanged"
+      - $ref: "#/channels/opsEvents/messages/opsDlqReprocessRequested"
+      - $ref: "#/channels/opsEvents/messages/opsAiKillSwitchActivated"
+      - $ref: "#/channels/opsEvents/messages/opsChannelHealthCritical"
+      - $ref: "#/channels/opsEvents/messages/opsEntitlementLimitExceeded"
+  consumeOpsEvents:
+    action: receive
+    channel:
+      $ref: "#/channels/opsEvents"
+    messages:
+      - $ref: "#/channels/opsEvents/messages/opsAlertRaised"
+      - $ref: "#/channels/opsEvents/messages/opsAlertAcknowledged"
+      - $ref: "#/channels/opsEvents/messages/opsSupportAccessGranted"
+      - $ref: "#/channels/opsEvents/messages/opsSupportAccessRevoked"
+      - $ref: "#/channels/opsEvents/messages/opsTenantAiDisabled"
+      - $ref: "#/channels/opsEvents/messages/opsFeatureFlagChanged"
+      - $ref: "#/channels/opsEvents/messages/opsDlqReprocessRequested"
+      - $ref: "#/channels/opsEvents/messages/opsAiKillSwitchActivated"
+      - $ref: "#/channels/opsEvents/messages/opsChannelHealthCritical"
+      - $ref: "#/channels/opsEvents/messages/opsEntitlementLimitExceeded"
+components:
+  schemas:
+    Actor:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - user
+            - service
+            - ai
+            - system
+            - support
+        id:
+          type:
+            - string
+            - "null"
+    EventEnvelopeBase:
+      type: object
+      additionalProperties: false
+      required:
+        - specversion
+        - id
+        - source
+        - type
+        - time
+        - datacontenttype
+        - tenantid
+        - correlationid
+        - data
+      properties:
+        specversion:
+          type: string
+          const: "1.0"
+        id:
+          type: string
+          format: uuid
+        source:
+          type: string
+        type:
+          type: string
+        subject:
+          type:
+            - string
+            - "null"
+        time:
+          type: string
+          format: date-time
+        datacontenttype:
+          type: string
+          const: application/json
+        dataschema:
+          type:
+            - string
+            - "null"
+        tenantid:
+          type:
+            - string
+            - "null"
+          format: uuid
+          description: Null only for global ops events (e.g. global AI kill switch).
+        correlationid:
+          type: string
+        causationid:
+          type:
+            - string
+            - "null"
+        partitionkey:
+          type:
+            - string
+            - "null"
+        actor:
+          $ref: "#/components/schemas/Actor"
+        data:
+          type: object
+    OpsAlertRaisedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.alert.raised.v1
+            data:
+              $ref: "#/components/schemas/OpsAlertRaisedData"
+    OpsAlertRaisedData:
+      type: object
+      additionalProperties: false
+      required:
+        - alert_id
+        - severity
+        - title
+      properties:
+        alert_id:
+          type: string
+          format: uuid
+        tenant_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        severity:
+          type: string
+          enum:
+            - info
+            - warn
+            - error
+            - critical
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        source:
+          type: string
+          enum:
+            - channel
+            - ai
+            - billing
+            - system
+            - dlq
+      description: Minimum payload for com.aisales.ops.alert.raised.v1 (blueprint §9.8
+        / W2 freeze).
+    OpsAlertAcknowledgedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.alert.acknowledged.v1
+            data:
+              $ref: "#/components/schemas/OpsAlertAcknowledgedData"
+    OpsAlertAcknowledgedData:
+      type: object
+      additionalProperties: false
+      required:
+        - alert_id
+        - acknowledged_by
+      properties:
+        alert_id:
+          type: string
+          format: uuid
+        acknowledged_by:
+          type: string
+          format: uuid
+        acknowledged_at:
+          type: string
+          format: date-time
+      description: Minimum payload for com.aisales.ops.alert.acknowledged.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsSupportAccessGrantedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.support_access.granted.v1
+            data:
+              $ref: "#/components/schemas/OpsSupportAccessGrantedData"
+    OpsSupportAccessGrantedData:
+      type: object
+      additionalProperties: false
+      required:
+        - grant_id
+        - tenant_id
+        - expires_at
+      properties:
+        grant_id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        expires_at:
+          type: string
+          format: date-time
+        reason:
+          type:
+            - string
+            - "null"
+          maxLength: 1000
+      description: Minimum payload for com.aisales.ops.support_access.granted.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsSupportAccessRevokedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.support_access.revoked.v1
+            data:
+              $ref: "#/components/schemas/OpsSupportAccessRevokedData"
+    OpsSupportAccessRevokedData:
+      type: object
+      additionalProperties: false
+      required:
+        - grant_id
+        - tenant_id
+      properties:
+        grant_id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+      description: Minimum payload for com.aisales.ops.support_access.revoked.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsTenantAiDisabledEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.tenant_ai.disabled.v1
+            data:
+              $ref: "#/components/schemas/OpsTenantAiDisabledData"
+    OpsTenantAiDisabledData:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant_id
+        - reason
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+      description: Minimum payload for com.aisales.ops.tenant_ai.disabled.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsFeatureFlagChangedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.feature_flag.changed.v1
+            data:
+              $ref: "#/components/schemas/OpsFeatureFlagChangedData"
+    OpsFeatureFlagChangedData:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant_id
+        - flag_key
+        - enabled
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        flag_key:
+          type: string
+          minLength: 1
+          maxLength: 100
+        enabled:
+          type: boolean
+      description: Minimum payload for com.aisales.ops.feature_flag.changed.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsDlqReprocessRequestedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.dlq.reprocess_requested.v1
+            data:
+              $ref: "#/components/schemas/OpsDlqReprocessRequestedData"
+    OpsDlqReprocessRequestedData:
+      type: object
+      additionalProperties: false
+      required:
+        - reprocess_id
+        - target_type
+        - target_id
+      properties:
+        reprocess_id:
+          type: string
+          format: uuid
+        target_type:
+          type: string
+          enum:
+            - webhook
+            - outbound
+            - import
+            - ai_eval
+        target_id:
+          type: string
+          format: uuid
+        reason:
+          type:
+            - string
+            - "null"
+          maxLength: 1000
+      description: Minimum payload for com.aisales.ops.dlq.reprocess_requested.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsAiKillSwitchActivatedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.ai.kill_switch.activated.v1
+            data:
+              $ref: "#/components/schemas/OpsAiKillSwitchActivatedData"
+    OpsAiKillSwitchActivatedData:
+      type: object
+      additionalProperties: false
+      required:
+        - scope
+        - reason
+      properties:
+        scope:
+          type: string
+          enum:
+            - global
+            - tenant
+        tenant_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+      description: Minimum payload for com.aisales.ops.ai.kill_switch.activated.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsChannelHealthCriticalEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.channel.health_critical.v1
+            data:
+              $ref: "#/components/schemas/OpsChannelHealthCriticalData"
+    OpsChannelHealthCriticalData:
+      type: object
+      additionalProperties: false
+      required:
+        - account_id
+        - provider
+        - health
+      properties:
+        account_id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        provider:
+          type: string
+        health:
+          type: string
+          enum:
+            - error
+        reason:
+          type:
+            - string
+            - "null"
+          maxLength: 1000
+      description: Minimum payload for com.aisales.ops.channel.health_critical.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsEntitlementLimitExceededEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.entitlement.limit_exceeded.v1
+            data:
+              $ref: "#/components/schemas/OpsEntitlementLimitExceededData"
+    OpsEntitlementLimitExceededData:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant_id
+        - meter
+        - limit
+        - observed
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        meter:
+          type: string
+          enum:
+            - orders_created
+            - ai_suggestions
+            - channel_accounts
+        limit:
+          type: integer
+          minimum: 0
+        observed:
+          type: integer
+          minimum: 0
+        plan_id:
+          type: string
+          enum:
+            - plan_free
+            - plan_pro
+            - plan_business
+      description: Minimum payload for com.aisales.ops.entitlement.limit_exceeded.v1
+        (blueprint §9.8 / W2 freeze).
+  messages:
+    opsAlertRaised:
+      name: opsAlertRaised
+      title: com.aisales.ops.alert.raised.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.alert.raised.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsAlertRaisedEvent"
+      x-event-type: com.aisales.ops.alert.raised.v1
+      x-delivery: at-least-once
+    opsAlertAcknowledged:
+      name: opsAlertAcknowledged
+      title: com.aisales.ops.alert.acknowledged.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.alert.acknowledged.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsAlertAcknowledgedEvent"
+      x-event-type: com.aisales.ops.alert.acknowledged.v1
+      x-delivery: at-least-once
+    opsSupportAccessGranted:
+      name: opsSupportAccessGranted
+      title: com.aisales.ops.support_access.granted.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.support_access.granted.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsSupportAccessGrantedEvent"
+      x-event-type: com.aisales.ops.support_access.granted.v1
+      x-delivery: at-least-once
+    opsSupportAccessRevoked:
+      name: opsSupportAccessRevoked
+      title: com.aisales.ops.support_access.revoked.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.support_access.revoked.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsSupportAccessRevokedEvent"
+      x-event-type: com.aisales.ops.support_access.revoked.v1
+      x-delivery: at-least-once
+    opsTenantAiDisabled:
+      name: opsTenantAiDisabled
+      title: com.aisales.ops.tenant_ai.disabled.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.tenant_ai.disabled.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsTenantAiDisabledEvent"
+      x-event-type: com.aisales.ops.tenant_ai.disabled.v1
+      x-delivery: at-least-once
+    opsFeatureFlagChanged:
+      name: opsFeatureFlagChanged
+      title: com.aisales.ops.feature_flag.changed.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.feature_flag.changed.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsFeatureFlagChangedEvent"
+      x-event-type: com.aisales.ops.feature_flag.changed.v1
+      x-delivery: at-least-once
+    opsDlqReprocessRequested:
+      name: opsDlqReprocessRequested
+      title: com.aisales.ops.dlq.reprocess_requested.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.dlq.reprocess_requested.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsDlqReprocessRequestedEvent"
+      x-event-type: com.aisales.ops.dlq.reprocess_requested.v1
+      x-delivery: at-least-once
+    opsAiKillSwitchActivated:
+      name: opsAiKillSwitchActivated
+      title: com.aisales.ops.ai.kill_switch.activated.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.ai.kill_switch.activated.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsAiKillSwitchActivatedEvent"
+      x-event-type: com.aisales.ops.ai.kill_switch.activated.v1
+      x-delivery: at-least-once
+    opsChannelHealthCritical:
+      name: opsChannelHealthCritical
+      title: com.aisales.ops.channel.health_critical.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.channel.health_critical.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsChannelHealthCriticalEvent"
+      x-event-type: com.aisales.ops.channel.health_critical.v1
+      x-delivery: at-least-once
+    opsEntitlementLimitExceeded:
+      name: opsEntitlementLimitExceeded
+      title: com.aisales.ops.entitlement.limit_exceeded.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.entitlement.limit_exceeded.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsEntitlementLimitExceededEvent"
+      x-event-type: com.aisales.ops.entitlement.limit_exceeded.v1
+      x-delivery: at-least-once

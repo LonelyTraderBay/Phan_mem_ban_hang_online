@@ -1,15 +1,15 @@
-﻿phase,task_id,title,deliverable_or_details,status,primary_paths
-19.2 Phase P0,BE-P0-001,XÃ¡c nháº­n capacity/SLO/cost assumptions,NFR sign-off,Done,docs/p0/capacity-slo-cost-assumptions.md
-19.2 Phase P0,BE-P0-002,Commit ADR-001â€¦ADR-010,`docs/adr/*.md`,Done,docs/adr/
+phase,task_id,title,deliverable_or_details,status,primary_paths
+19.2 Phase P0,BE-P0-001,Xác nhận capacity/SLO/cost assumptions,NFR sign-off,Done,docs/p0/capacity-slo-cost-assumptions.md
+19.2 Phase P0,BE-P0-002,Commit ADR-001…ADR-010,`docs/adr/*.md`,Done,docs/adr/
 19.2 Phase P0,BE-P0-003,System context/data flow/trust boundary,diagrams + threat model seed,Done,docs/diagrams/;docs/threat-model/
-19.2 Phase P0,BE-P0-004,ERD v1 vÃ  table classification,ERD/data dictionary,Done,docs/data/table-classification-seed.md
-19.2 Phase P0,BE-P0-005,Permission matrix vÃ  default roles,CSV/seed plan,Done,backend_doc/matrices/permission_matrix.csv
+19.2 Phase P0,BE-P0-004,ERD v1 và table classification,ERD/data dictionary,Done,docs/data/table-classification-seed.md
+19.2 Phase P0,BE-P0-005,Permission matrix và default roles,CSV/seed plan,Done,backend_doc/matrices/permission_matrix.csv
 19.2 Phase P0,BE-P0-006,State machine transition matrices,reviewed spec/tests outline,Done,docs/domain/state-machine-transition-matrices.md
 19.2 Phase P0,BE-P0-007,OpenAPI/AsyncAPI skeleton + lint rules,contracts compile,Done,backend_doc/contracts/;packages/contracts-http/
 19.2 Phase P0,BE-P0-008,Error/idempotency/audit/event catalogs,machine-readable catalogs,Done,backend_doc/matrices/error_catalog.csv
 19.2 Phase P0,BE-P0-009,Environment/topology/release strategy,platform plan,Done,docs/release/environment-topology.md
 19.2 Phase P0,BE-P0-010,Security/AI threat model P0,risks/mitigations/tests,Done,docs/threat-model/p0-threat-model.md
-19.2 Phase P0,BE-P0-011,Epic decomposition vÃ  dependency board,implementation-ready backlog,Done,docs/p0/epic-dependency-board.md
+19.2 Phase P0,BE-P0-011,Epic decomposition và dependency board,implementation-ready backlog,Done,docs/p0/epic-dependency-board.md
 19.3 Phase P1,BE-FND-001,Monorepo/bootstrap,"pnpm workspace, apps/packages/modules, strict TS, boundary lint",Done,package.json;modules/;eslint.config.mjs
 19.3 Phase P1,BE-FND-002,Local stack,Docker Compose PostgreSQL/Redis/object emulator/OTel,Done,infra/docker/compose.yaml
 19.3 Phase P1,BE-FND-003,Config package,"typed schema, fail-fast, secret redaction",Done,packages/config/
@@ -26,9 +26,9 @@
 19.3 Phase P1,BE-FND-014,CI/CD,"PR/main/staging pipeline, scans, SBOM/image signing",In Progress,.github/workflows/ci.yml
 19.3 Phase P1,BE-FND-015,Staging infra,HA-appropriate managed dependencies baseline,Not Started,infra/;docs/release/
 19.3 Phase P1,BE-FND-016,Walking skeleton,"`/health`, temporary authenticated test flow, DB/RLS/outbox trace",Done,modules/audit/;apps/api/;infra/migrations/
-19.3 Phase P1,BE-FND-017,Audit module reference tests,"permission-negative + write-path/redaction on walking skeleton; full 5-category suite",Done,modules/audit/
-19.3 Phase P1,BE-FND-018,test-utils invariant helpers,"createTenantIsolationFixture/assertCrossTenantDenied/replayIdempotencyKey/money helpers",Done,packages/test-utils/
-19.4 Phase P2,BE-IDN-001,Create identity/tenant/membership/role/session/device schema + RLS,,Not Started,modules/identity/;modules/tenant/
+19.3 Phase P1,BE-FND-017,Audit module reference tests,permission-negative + write-path/redaction on walking skeleton; full 5-category suite,Done,modules/audit/
+19.3 Phase P1,BE-FND-018,test-utils invariant helpers,createTenantIsolationFixture/assertCrossTenantDenied/replayIdempotencyKey/money helpers,Done,packages/test-utils/
+19.4 Phase P2,BE-IDN-001,Create identity/tenant/membership/role/session/device schema + RLS,,Done,modules/identity/;modules/tenant/;infra/migrations/000005_identity_schema.sql
 19.4 Phase P2,BE-IDN-002,Tenant provisioning/default roles/owner invitation,,Not Started,modules/identity/;modules/tenant/
 19.4 Phase P2,BE-IDN-003,OIDC BFF login + session cookie + CSRF (Web Admin),,Not Started,modules/identity/;modules/tenant/;docs/collaboration/gap-009-oidc-bff-contract.md
 19.4 Phase P2,BE-IDN-004,Access JWT key rotation/validation/audience,,Not Started,modules/identity/;modules/tenant/
@@ -43,12 +43,12 @@
 19.4 Phase P2,BE-IDN-013,Audit list/export with permission/redaction,,Not Started,modules/identity/;modules/tenant/
 19.4 Phase P2,BE-IDN-014,Support access grant model/API baseline,,Not Started,modules/identity/;modules/tenant/
 19.4 Phase P2,BE-IDN-015,Auth/RBAC/tenant isolation security suite,,Not Started,modules/identity/;modules/tenant/
-19.5 Phase P3,BE-CUS-001,Customer/identity/address/tag/consent/note schema + encryption/blind index,,Not Started,modules/customer/
-19.5 Phase P3,BE-CUS-002,Customer CRUD/search/PII field masking,,Not Started,modules/customer/
+19.5 Phase P3,BE-CUS-001,Customer/identity/address/tag/consent/note schema + encryption/blind index,,Done,modules/customer/;infra/migrations/000011_customer_schema.sql
+19.5 Phase P3,BE-CUS-002,Customer CRUD/search/PII field masking,,Done,modules/customer/;modules/customer/src/application/customers.ts
 19.5 Phase P3,BE-CUS-003,Identity attach/dedupe rules,,Not Started,modules/customer/
 19.5 Phase P3,BE-CUS-004,Merge preview/merge transaction/history,,Not Started,modules/customer/
-19.5 Phase P3,BE-CAT-001,Category/product/variant/media schema + RLS/constraints,,Not Started,modules/catalog/
-19.5 Phase P3,BE-CAT-002,Product/category/variant CRUD + ETag,,Not Started,modules/catalog/
+19.5 Phase P3,BE-CAT-001,Category/product/variant/media schema + RLS/constraints,,Done,modules/catalog/;infra/migrations/000012_catalog_schema.sql
+19.5 Phase P3,BE-CAT-002,Product/category/variant CRUD + ETag,,Done,modules/catalog/
 19.5 Phase P3,BE-CAT-003,Cost/price permission + history/audit,,Not Started,modules/catalog/
 19.5 Phase P3,BE-CAT-004,Private media upload/scan/signed URL flow,,Not Started,modules/catalog/
 19.5 Phase P3,BE-IMP-001,Import upload/job/staging schema,,Not Started,modules/catalog/
@@ -117,7 +117,7 @@
 19.10 Phase P8,BE-AI-008,Draft/reservation/message mutation tools with idempotency/approval,,Not Started,modules/ai-orchestration/;apps/ai-service/
 19.10 Phase P8,BE-AI-009,Structured suggestion schema + bounded repair,,Not Started,modules/ai-orchestration/;apps/ai-service/
 19.10 Phase P8,BE-AI-010,QC/claim/source/freshness validators,,Not Started,modules/ai-orchestration/;apps/ai-service/
-19.10 Phase P8,BE-AI-011,AI-R001â€¦AI-R010 enforcement and blocked output records,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-011,AI-R001⬦AI-R010 enforcement and blocked output records,,Not Started,modules/ai-orchestration/;apps/ai-service/
 19.10 Phase P8,BE-AI-012,Suggestion/log/review/send APIs,,Not Started,modules/ai-orchestration/;apps/ai-service/
 19.10 Phase P8,BE-AI-013,Prompt lifecycle/eval runner/activation/rollback,,Not Started,modules/ai-orchestration/;apps/ai-service/
 19.10 Phase P8,BE-AI-014,P0/P1 eval sets/red-team regression,,Not Started,modules/ai-orchestration/;apps/ai-service/

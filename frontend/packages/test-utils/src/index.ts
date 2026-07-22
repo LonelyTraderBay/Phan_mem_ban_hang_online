@@ -3,7 +3,14 @@
 // Import them directly: `@ai-sales/test-utils/msw/server` (Vitest) or
 // `@ai-sales/test-utils/msw/browser` (Storybook/browser dev-without-backend).
 export { handlers } from "./msw/handlers";
-export { authHandlers } from "./msw/authHandlers";
+export {
+  authHandlers,
+  authMswScenario,
+  resetAuthMswScenario,
+  onceUnauthorizedThenOk,
+  alwaysForbidden,
+} from "./msw/authHandlers";
+export { settingsHandlers } from "./msw/settingsHandlers";
 export type { HandlerDescriptor } from "./msw/generated/handlerDescriptors";
 export { buildGenericResource, resetGenericResourceCounter } from "./factories/genericResource";
 export { buildSessionBootstrap } from "./factories/sessionBootstrap";

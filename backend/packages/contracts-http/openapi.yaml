@@ -2,7 +2,8 @@ openapi: 3.1.1
 info:
   title: AI Sales Operating System Backend API
   version: 2.0.0
-  description: Contract starter generated from Backend Enterprise Implementation Blueprint v2.0. Each sprint MUST refine operation-specific schemas/examples before freeze.
+  description: Contract starter generated from Backend Enterprise Implementation Blueprint v2.0. Each sprint MUST refine
+    operation-specific schemas/examples before freeze.
 servers:
   - url: https://api.example.com/api/v1
     description: Production
@@ -40,7 +41,9 @@ paths:
       tags:
         - Auth
       summary: Start OIDC Authorization Code via BFF (Web Admin)
-      description: Web Admin primary login (ADR-008 / ADR-FE-013). Browser navigates here (same-origin); BFF stores OIDC state, then 302-redirects to the IdP authorize endpoint. JavaScript never receives tokens. Query return_to must be a same-origin relative path.
+      description: Web Admin primary login (ADR-008 / ADR-FE-013). Browser navigates here (same-origin); BFF stores OIDC
+        state, then 302-redirects to the IdP authorize endpoint. JavaScript never receives tokens. Query return_to must
+        be a same-origin relative path.
       operationId: startOidcLogin
       x-permission: public
       x-idempotency: not-required
@@ -89,7 +92,9 @@ paths:
       tags:
         - Auth
       summary: Complete OIDC Authorization Code via BFF (Web Admin)
-      description: IdP redirects here with authorization code + state. BFF validates state, exchanges code, establishes server-side session, sets HttpOnly Secure SameSite session cookie and CSRF cookie, then 302-redirects to return_to. On MFA required, may redirect to /2fa with challenge context instead of completing session.
+      description: IdP redirects here with authorization code + state. BFF validates state, exchanges code, establishes
+        server-side session, sets HttpOnly Secure SameSite session cookie and CSRF cookie, then 302-redirects to
+        return_to. On MFA required, may redirect to /2fa with challenge context instead of completing session.
       operationId: completeOidcLogin
       x-permission: public
       x-idempotency: not-required
@@ -147,7 +152,9 @@ paths:
       tags:
         - Auth
       summary: Local-credential login (DEPRECATED for Web Admin)
-      description: DEPRECATED for Web Admin. Web Admin MUST use startOidcLogin / completeOidcLogin (GAP-009, ADR-008, ADR-FE-013). Retained only as a non-browser local-credential escape hatch if ever enabled. Windows desktop uses Authorization Code + PKCE (ADR-FE-014), not this endpoint.
+      description: DEPRECATED for Web Admin. Web Admin MUST use startOidcLogin / completeOidcLogin (GAP-009, ADR-008,
+        ADR-FE-013). Retained only as a non-browser local-credential escape hatch if ever enabled. Windows desktop uses
+        Authorization Code + PKCE (ADR-FE-014), not this endpoint.
       deprecated: true
       operationId: login
       x-permission: public
@@ -249,7 +256,8 @@ paths:
       tags:
         - Auth
       summary: Refresh cookie session (BFF)
-      description: Rotates the server-side session/refresh family for cookie-authenticated clients. Request body is empty; session comes from HttpOnly cookie. Requires X-CSRF-Token. Web Admin never receives tokens in the JSON body.
+      description: Rotates the server-side session/refresh family for cookie-authenticated clients. Request body is empty;
+        session comes from HttpOnly cookie. Requires X-CSRF-Token. Web Admin never receives tokens in the JSON body.
       operationId: refreshSession
       x-permission: session
       x-idempotency: not-required
@@ -354,7 +362,8 @@ paths:
       tags:
         - Auth
       summary: Request password reset (local-credential accounts only)
-      description: Enumeration-safe. Applies only to credential_type=password accounts. OIDC/IdP users recover via the IdP — Web Admin must not present this as the primary login recovery path (GAP-009).
+      description: Enumeration-safe. Applies only to credential_type=password accounts. OIDC/IdP users recover via the IdP —
+        Web Admin must not present this as the primary login recovery path (GAP-009).
       operationId: requestPasswordReset
       x-permission: public
       x-idempotency: not-required
@@ -405,7 +414,8 @@ paths:
       tags:
         - Auth
       summary: Reset password (local-credential accounts only)
-      description: Consumes a one-time reset token for credential_type=password accounts. Not the Web Admin OIDC recovery path (GAP-009).
+      description: Consumes a one-time reset token for credential_type=password accounts. Not the Web Admin OIDC recovery path
+        (GAP-009).
       operationId: resetPassword
       x-permission: public
       x-idempotency: not-required
@@ -584,7 +594,8 @@ paths:
       tags:
         - Auth
       summary: Switch active tenant
-      description: Switches the cookie session to another membership tenant. Client MUST re-bootstrap via GET /me afterwards — never swap tenant_id client-side only.
+      description: Switches the cookie session to another membership tenant. Client MUST re-bootstrap via GET /me afterwards —
+        never swap tenant_id client-side only.
       operationId: switchTenant
       x-permission: authenticated
       x-idempotency: not-required
@@ -631,6 +642,57 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/SwitchTenantRequest"
+  /tenants:
+    post:
+      tags:
+        - Tenant
+      summary: Provision tenant with default roles and owner invitation
+      operationId: provisionTenant
+      description: "Creates a tenant, clones system role templates to tenant-scoped roles, and issues a pending owner
+        invitation. Idempotent via Idempotency-Key. Authenticated session gate (x-permission: authenticated)."
+      x-permission: authenticated
+      x-idempotency: required
+      x-audit-action: tenant.provision
+      x-csrf-protection: cookie-session-required
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProvisionTenantRequest"
+      responses:
+        "201":
+          description: Tenant provisioned
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/XRequestId"
+            X-Correlation-Id:
+              $ref: "#/components/headers/XCorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProvisionTenantResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /tenants/current:
     get:
       tags:
@@ -2277,7 +2339,7 @@ paths:
         - Customers
       summary: Create customer privacy export
       operationId: createCustomerPrivacyExport
-      x-permission: customer.pii.read
+      x-permission: customer.export
       x-idempotency: required
       x-csrf-protection: cookie-session-required
       parameters:
@@ -3194,7 +3256,7 @@ paths:
         - Imports
       summary: Create import job
       operationId: createImportJob
-      x-permission: catalog.write
+      x-permission: catalog.import
       x-idempotency: required
       x-csrf-protection: cookie-session-required
       parameters:
@@ -3246,7 +3308,7 @@ paths:
         - Imports
       summary: Analyze import
       operationId: analyzeImport
-      x-permission: catalog.write
+      x-permission: catalog.import
       x-idempotency: required
       x-csrf-protection: cookie-session-required
       parameters:
@@ -3402,7 +3464,7 @@ paths:
         - Imports
       summary: Update import mapping
       operationId: updateImportMapping
-      x-permission: catalog.write
+      x-permission: catalog.import
       x-idempotency: not-required
       x-csrf-protection: cookie-session-required
       parameters:
@@ -3460,7 +3522,7 @@ paths:
         - Imports
       summary: Confirm import
       operationId: confirmImport
-      x-permission: catalog.write
+      x-permission: catalog.import
       x-idempotency: required
       x-csrf-protection: cookie-session-required
       parameters:
@@ -3567,7 +3629,7 @@ paths:
         - Imports
       summary: Cancel import
       operationId: cancelImport
-      x-permission: catalog.write
+      x-permission: catalog.import
       x-idempotency: required
       x-csrf-protection: cookie-session-required
       parameters:
@@ -6616,7 +6678,7 @@ paths:
         - AI
       summary: Test a i message
       operationId: testAIMessage
-      x-permission: ai.configure
+      x-permission: ai.sandbox.test
       x-idempotency: required
       x-csrf-protection: cookie-session-required
       parameters:
@@ -8343,7 +8405,7 @@ paths:
         - Shipments
       summary: Create packing slip job
       operationId: createPackingSlipJob
-      x-permission: shipment.manage
+      x-permission: packing_slip.print
       x-idempotency: required
       x-csrf-protection: cookie-session-required
       parameters:
@@ -8676,7 +8738,7 @@ paths:
         - Analytics
       summary: Get revenue report
       operationId: getRevenueReport
-      x-permission: report.read
+      x-permission: report.revenue.read
       x-idempotency: not-required
       parameters:
         - $ref: "#/components/parameters/RequestId"
@@ -8766,7 +8828,7 @@ paths:
         - Analytics
       summary: Get sla report
       operationId: getSlaReport
-      x-permission: report.read
+      x-permission: report.sla.read
       x-idempotency: not-required
       parameters:
         - $ref: "#/components/parameters/RequestId"
@@ -8811,7 +8873,7 @@ paths:
         - Analytics
       summary: Get a i quality report
       operationId: getAIQualityReport
-      x-permission: ai.review
+      x-permission: report.ai_quality.read
       x-idempotency: not-required
       parameters:
         - $ref: "#/components/parameters/RequestId"
@@ -9261,7 +9323,7 @@ paths:
         - Operations
       summary: Disable tenant a i
       operationId: disableTenantAI
-      x-permission: ai.disable
+      x-permission: ops.ai.disable
       x-idempotency: required
       x-csrf-protection: cookie-session-required
       parameters:
@@ -9566,7 +9628,9 @@ components:
       name: X-CSRF-Token
       in: header
       required: false
-      description: Required for browser requests authenticated by the BFF session cookie. The value must match the non-HttpOnly csrf_token cookie (double-submit). Not required for OAuth/PKCE bearer clients. Missing or mismatched values return 403 CSRF_TOKEN_INVALID.
+      description: Required for browser requests authenticated by the BFF session cookie. The value must match the
+        non-HttpOnly csrf_token cookie (double-submit). Not required for OAuth/PKCE bearer clients. Missing or
+        mismatched values return 403 CSRF_TOKEN_INVALID.
       schema:
         type: string
         minLength: 32
@@ -9749,7 +9813,8 @@ components:
     GenericCommandRequest:
       type: object
       additionalProperties: true
-      description: Starter placeholder. Replace with operation-specific schema before contract freeze. DEPRECATED after W1 freeze — must not be referenced by implementable operations.
+      description: Starter placeholder. Replace with operation-specific schema before contract freeze. DEPRECATED after W1
+        freeze — must not be referenced by implementable operations.
       deprecated: true
     JobResponse:
       type: object
@@ -10030,7 +10095,9 @@ components:
               type:
                 - string
                 - "null"
-              description: Populated for OAuth/PKCE-based clients only (Windows desktop client, per frontend ADR-FE-014). Web Admin never reads this field — sessions are HttpOnly-cookie-only and JavaScript never sees a token (per frontend ADR-FE-013).
+              description: Populated for OAuth/PKCE-based clients only (Windows desktop client, per frontend ADR-FE-014). Web Admin
+                never reads this field — sessions are HttpOnly-cookie-only and JavaScript never sees a token (per
+                frontend ADR-FE-013).
             expires_in:
               type:
                 - integer
@@ -11491,6 +11558,110 @@ components:
           $ref: "#/components/schemas/RoleResource"
         meta:
           $ref: "#/components/schemas/Meta"
+    SessionsResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - user_id
+        - device_id
+        - current
+        - revoked
+        - created_at
+        - absolute_expiry
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        tenant_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+          description: Nullable before tenant bind (identity nullable-tenant sessions).
+        device_id:
+          type: string
+          format: uuid
+        current:
+          type: boolean
+          description: True when this session is the caller's active session.
+        revoked:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        last_seen_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        absolute_expiry:
+          type: string
+          format: date-time
+        user_agent:
+          type:
+            - string
+            - "null"
+          maxLength: 512
+        ip_hint:
+          type:
+            - string
+            - "null"
+          maxLength: 64
+          description: Coarse / redacted client address hint — never full sensitive PII dump.
+      description: Frozen resource schema for OpenAPI tag Sessions (enterprise doc-freeze W7).
+    DevicesResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - user_id
+        - platform
+        - trusted
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        platform:
+          type: string
+          enum:
+            - web
+            - windows
+            - ios
+            - android
+            - other
+        label:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+        trusted:
+          type: boolean
+        current:
+          type: boolean
+          description: True when this device hosts the caller's active session.
+        created_at:
+          type: string
+          format: date-time
+        last_seen_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        trust_status:
+          type: string
+          enum:
+            - trusted
+            - pending
+            - revoked
+      description: Frozen resource schema for OpenAPI tag Devices (enterprise doc-freeze W7).
     ListSessionsListResponse:
       type: object
       additionalProperties: false
@@ -11518,7 +11689,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/SessionsResource"
+            $ref: "#/components/schemas/DevicesResource"
         page_info:
           $ref: "#/components/schemas/PageInfo"
         meta:
@@ -13968,6 +14139,106 @@ components:
             $ref: "#/components/schemas/OperationsResource"
         page_info:
           $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ProvisionTenantRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - name
+        - owner_email
+      properties:
+        code:
+          type: string
+          minLength: 2
+          maxLength: 100
+          pattern: ^[a-z0-9]([a-z0-9-]{0,98}[a-z0-9])?$
+          description: Immutable public slug (citext).
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        owner_email:
+          type: string
+          format: email
+          maxLength: 320
+        timezone:
+          type:
+            - string
+            - "null"
+          maxLength: 64
+        currency:
+          type:
+            - string
+            - "null"
+          minLength: 3
+          maxLength: 3
+        locale:
+          type:
+            - string
+            - "null"
+          maxLength: 35
+        plan_id:
+          type:
+            - string
+            - "null"
+          enum:
+            - plan_free
+            - plan_pro
+            - plan_business
+            - null
+          description: HO_DEFAULTS_v1; default plan_free
+      description: Request body for provisionTenant (BE-IDN-002).
+    ProvisionTenantData:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant
+        - owner_invitation_id
+        - invite_token
+        - default_role_ids
+      properties:
+        tenant:
+          $ref: "#/components/schemas/TenantResource"
+        owner_invitation_id:
+          type: string
+          format: uuid
+        invite_token:
+          type: string
+          minLength: 16
+          maxLength: 128
+          description: Opaque token returned once; only hash stored.
+        default_role_ids:
+          type: object
+          additionalProperties: false
+          required:
+            - owner
+            - admin
+            - staff
+            - readonly
+          properties:
+            owner:
+              type: string
+              format: uuid
+            admin:
+              type: string
+              format: uuid
+            staff:
+              type: string
+              format: uuid
+            readonly:
+              type: string
+              format: uuid
+    ProvisionTenantResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ProvisionTenantData"
         meta:
           $ref: "#/components/schemas/Meta"
   responses:

@@ -963,3 +963,168 @@ permissions:
       analyst: false
       support_default: false
     notes: Platform-only; support grant required
+  - permission: catalog.import
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: catalog
+      label_vi: Danh mục sản phẩm
+      display_order: 60
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Run bulk catalog import jobs (distinct from day-to-day catalog.write)
+  - permission: catalog.publish
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: catalog
+      label_vi: Danh mục sản phẩm
+      display_order: 60
+    roles:
+      admin: true
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Publish/activate catalog entities (distinct from draft catalog.write)
+  - permission: ops.alert.acknowledge
+    data_classification: Restricted
+    owner: "0"
+    group:
+      id: operations
+      label_vi: Vận hành nền tảng
+      display_order: 170
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Acknowledge/resolve platform system alerts
+  - permission: ops.ai.disable
+    data_classification: Restricted
+    owner: "0"
+    group:
+      id: operations
+      label_vi: Vận hành nền tảng
+      display_order: 170
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Platform-scoped AI kill switch (distinct from tenant ai.disable)
+  - permission: ops.channel.manage
+    data_classification: Restricted
+    owner: "0"
+    group:
+      id: operations
+      label_vi: Vận hành nền tảng
+      display_order: 170
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Platform-scoped channel force-disconnect / reprocess
+  - permission: customer.export
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: customers
+      label_vi: Khách hàng
+      display_order: 50
+    roles:
+      admin: true
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Export customer data (privacy-reviewed)
+  - permission: ai.sandbox.test
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: ai
+      label_vi: AI
+      display_order: 110
+    roles:
+      admin: true
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Run AI sandbox/test message without production send
+  - permission: report.revenue.read
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: reports
+      label_vi: Báo cáo
+      display_order: 150
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: false
+      analyst: true
+      support_default: false
+    notes: Read revenue report (subset of report.read)
+  - permission: report.sla.read
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: reports
+      label_vi: Báo cáo
+      display_order: 150
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: false
+      analyst: true
+      support_default: false
+    notes: Read SLA report
+  - permission: report.ai_quality.read
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: reports
+      label_vi: Báo cáo
+      display_order: 150
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: true
+      support_default: false
+    notes: Read AI quality report
+  - permission: packing_slip.print
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: shipments
+      label_vi: Giao vận
+      display_order: 140
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: true
+      analyst: false
+      support_default: false
+    notes: Generate/print packing slips

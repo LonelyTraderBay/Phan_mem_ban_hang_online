@@ -63,3 +63,14 @@ ops.ai_health.read,Restricted,0,0,0,0,0,0,0,Platform-only via separate role,oper
 ops.channel_health.read,Restricted,0,0,0,0,0,0,0,Platform-only via separate role,operations,Vận hành nền tảng,170
 ops.audit.read,Restricted,0,0,0,0,0,0,0,Platform-only via separate role; cross-tenant audit read for platform support/incident review,operations,Vận hành nền tảng,170
 support.access,Restricted,0,0,0,0,0,0,0,Platform-only; support grant required,support,Hỗ trợ,180
+catalog.import,Confidential,1,1,1,0,0,0,0,Run bulk catalog import jobs (distinct from day-to-day catalog.write),catalog,Danh mục sản phẩm,60
+catalog.publish,Restricted,1,1,0,0,0,0,0,Publish/activate catalog entities (distinct from draft catalog.write),catalog,Danh mục sản phẩm,60
+ops.alert.acknowledge,Restricted,0,0,0,0,0,0,0,Acknowledge/resolve platform system alerts,operations,Vận hành nền tảng,170
+ops.ai.disable,Restricted,0,0,0,0,0,0,0,Platform-scoped AI kill switch (distinct from tenant ai.disable),operations,Vận hành nền tảng,170
+ops.channel.manage,Restricted,0,0,0,0,0,0,0,Platform-scoped channel force-disconnect / reprocess,operations,Vận hành nền tảng,170
+customer.export,Restricted,1,1,0,0,0,0,0,Export customer data (privacy-reviewed),customers,Khách hàng,50
+ai.sandbox.test,Restricted,1,1,0,0,0,0,0,Run AI sandbox/test message without production send,ai,AI,110
+report.revenue.read,Confidential,1,1,1,1,0,1,0,Read revenue report (subset of report.read),reports,Báo cáo,150
+report.sla.read,Confidential,1,1,1,1,0,1,0,Read SLA report,reports,Báo cáo,150
+report.ai_quality.read,Restricted,1,1,1,0,0,1,0,Read AI quality report,reports,Báo cáo,150
+packing_slip.print,Restricted,1,1,1,0,1,0,0,Generate/print packing slips,shipments,Giao vận,140

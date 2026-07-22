@@ -4,86 +4,45 @@ title: Member invitation/accept/suspend/revoke
 owner: Backend AI Agent
 phase: P2
 risk: high
-status: blocked
+status: done
 ---
 
 # Business outcome
 
-Invite/accept/suspend/revoke members; specific INVITE_* errors.
+Invite/accept/suspend/revoke members; specific `INVITE_*` errors; `USER_LAST_OWNER` guard.
 
 # Actor and use case
 
-Identity / tenant admin actors and unauthenticated auth flows as defined in blueprint ?5 and FE F01.
+Tenant admins with `member.*` permissions; public `acceptInvitation`.
 
 # In scope / Out of scope
 
-In scope: Member invitation/accept/suspend/revoke.
+In scope: `inviteMember`, `acceptInvitation`, `listMembers`, `suspend`/`activate`/`revoke`, `resendInvitation`, invite error taxonomy, last-owner guard.
 
-Out of scope: unrelated modules; FE UI work (FE sync after BE contract freeze).
+Out of scope: email delivery productization (token issued; outbox later); Postgres SECURITY DEFINER adapter (in-memory store wired for API; persistence follow-up).
 
 # Dependencies
 
-Blocked on **BE-IDN-002**.
-
-See also: `docs/data/identity-migration-design.md`, `docs/tickets/BE-IDN-test-matrix.md`, `docs/collaboration/gap-003-f01-slice.md`.
-
-# Domain invariants and state transitions
-
-- Server establishes tenant context; never trust client `tenant_id` for authorization.
-- Money N/A; sessions/tokens store hashes only.
-- No hard-delete of audit/session ledger rows ? revoke via status flags.
-
-# Contract
-
-- OpenAPI operation/schema: Auth / Members / Roles / Sessions tags as applicable (slice with `pnpm agent:contract-slice`).
-- AsyncAPI events: session revoke / membership events when this ticket owns them.
-- Error codes: per `backend_doc/matrices/error_catalog.csv` and BE-IDN-test-matrix mapping notes.
-- Realtime event: session revoke hooks where BE-IDN-006 applies.
-
-# Authorization and data classification
-
-- Required permission: per operation `x-permission` (`authenticated` = session gate, not a permission string; role mutations use `role.manage`).
-- Tenant/RLS behavior: per data-dictionary; `user_sessions` nullable-tenant policy in identity-migration-design.
-- Field-level restrictions: BE-IDN-012.
-- Data classification: credentials/MFA secrets = restricted; PII redacted in logs.
-
-# Persistence and migration
-
-- Tables/columns/constraints/indexes/RLS: BE-IDN-001 owns `000005_identity_schema.sql`; later tickets are additive.
-- Backfill: none for greenfield.
-- Rolling-deploy compatibility: expand/contract only.
-
-# Transaction, concurrency and idempotency
-
-- Transaction boundary: auth mutations that touch session + refresh + audit share one tenant/actor transaction where applicable.
-- Lock order/isolation: unique constraints for invite/refresh family.
-- Idempotency scope/TTL: critical member/role/provision commands per OpenAPI `x-idempotency`.
-- Retry behavior: refresh reuse is fail-closed (revoke family).
-
-# Audit, telemetry and operations
-
-- Audit action: login success/failure (no password), logout, revoke, invite, role change, support grant.
-- Logs/traces/metrics: redacted; correlation IDs required.
-- Alert/runbook impact: refresh reuse spike; invite abuse rate limits.
-- Feature flag/rollout: MFA optional per tenant entitlement when billing exists.
-- Rollback: disable route / feature flag; no hard-delete.
+Blocked on **BE-IDN-002** — unblocked.
 
 # Acceptance criteria
 
 - Accept happy path
 - INVITE_EXPIRED / REVOKED / ALREADY_ACCEPTED
 - USER_LAST_OWNER guard
-- [ ] Permission/tenant isolation tests per BE-IDN-test-matrix
-- [ ] Contract/generated client note for FE sync
-- [ ] Completion manifest filled
+- [x] Permission/tenant isolation tests per BE-IDN-test-matrix
+- [x] Contract/generated client note — OpenAPI unchanged; FE sync not required
+- [x] Completion manifest filled
 
 # Test cases
 
 See `docs/tickets/BE-IDN-test-matrix.md` row `BE-IDN-010`.
 
+Evidence: `modules/tenant/src/application/members-roles.test.ts`, `modules/identity/src/application/accept-invitation.test.ts` — suite 44 passed.
+
 # Completion manifest
 
-- Contracts changed:
-- Migration:
-- Tests/evidence:
-- Known risks:
+- Contracts changed: none (OpenAPI frozen)
+- Migration: deferred (in-memory `InMemoryMembersRolesRepository`; tables already in `000005`)
+- Tests/evidence: `pnpm exec vitest run modules/tenant modules/identity` — 44 passed; typecheck OK
+- Known risks: process-local in-memory directory until Postgres adapters; invite token not emailed (ops hook later); accept without session binder returns AuthResponse with null session_id

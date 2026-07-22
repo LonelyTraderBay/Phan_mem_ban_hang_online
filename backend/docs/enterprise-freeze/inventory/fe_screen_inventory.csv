@@ -1,1 +1,31 @@
 route,app,design_spec_path,status,notes
+/login,public,docs/ux/design-specs/login.md,READY-MOCK,F01 HO approved 2026-07-21
+/auth/callback,public,,N/A,no persistent UI
+/forgot-password,public,docs/ux/design-specs/forgot-password.md,READY-MOCK,F01 HO approved 2026-07-21
+/reset-password,public,docs/ux/design-specs/reset-password.md,READY-MOCK,F01 HO approved 2026-07-21
+/2fa,public,docs/ux/design-specs/mfa-challenge.md,READY-MOCK,F01 HO approved 2026-07-21
+/accept-invite,public,docs/ux/design-specs/accept-invite.md,READY-MOCK,F01 HO approved 2026-07-21
+/settings/tenant,web-admin,docs/ux/design-specs/settings-tenant.md,READY-MOCK,F01 HO approved 2026-07-21
+/settings/users,web-admin,docs/ux/design-specs/settings-users.md,READY-MOCK,F01 HO approved 2026-07-21
+/settings/roles,web-admin,docs/ux/design-specs/settings-roles.md,READY-MOCK,F01 HO approved 2026-07-21
+/settings/devices,web-admin,docs/ux/design-specs/settings-devices.md,READY-MOCK,F01 HO approved 2026-07-21
+"/onboarding",web-admin,docs/ux/design-specs/onboarding.md,READY-MOCK,W6 policy C
+"/dashboard",web-admin,docs/ux/design-specs/dashboard.md,READY-MOCK,W6 policy C
+"/inbox, /inbox/:conversationId",web-admin,docs/ux/design-specs/inbox.md,READY-MOCK,W6 policy C
+"/orders, /orders/:orderId",web-admin,docs/ux/design-specs/orders.md,READY-MOCK,HO_DEFAULTS;W6 policy C
+"/products, /products/import, /products/:productId",web-admin,docs/ux/design-specs/products.md,READY-MOCK,HO_DEFAULTS;W6 policy C
+"/inventory, /inventory/movements",web-admin,docs/ux/design-specs/inventory.md,READY-MOCK,W6 policy C
+"/knowledge",web-admin,docs/ux/design-specs/knowledge.md,READY-MOCK,W6 policy C
+"/channels, /channels/:channelId/health",web-admin,docs/ux/design-specs/channels.md,READY-MOCK,W6 policy C
+"/ai/settings, /ai/logs, /ai/blocked",web-admin,docs/ux/design-specs/ai.md,READY-MOCK,HO_DEFAULTS;W6 policy C
+"/reports",web-admin,docs/ux/design-specs/reports.md,READY-MOCK,HO_DEFAULTS;W6 policy C
+"/settings/audit-logs",web-admin,docs/ux/design-specs/settings-audit-logs.md,READY-MOCK,W6 policy C
+"/settings/notifications",web-admin,docs/ux/design-specs/settings-notifications.md,READY-MOCK,W6 policy C
+"/billing",web-admin,docs/ux/design-specs/billing.md,READY-MOCK,HO_DEFAULTS;W6 policy C
+"/tenants, /tenants/:tenantId, /tenants/:tenantId/health",super-admin,docs/ux/design-specs/tenants.md,READY-MOCK,W6 policy C
+"/feature-flags",super-admin,docs/ux/design-specs/feature-flags.md,READY-MOCK,W6 policy C
+"/alerts",super-admin,docs/ux/design-specs/alerts.md,READY-MOCK,W6 policy C
+"/support-access",super-admin,docs/ux/design-specs/support-access.md,READY-MOCK,W6 policy C
+"/ai-health",super-admin,docs/ux/design-specs/ai-health.md,READY-MOCK,W6 policy C
+"/channel-health",super-admin,docs/ux/design-specs/channel-health.md,READY-MOCK,W6 policy C
+"/audit-logs",super-admin,docs/ux/design-specs/audit-logs.md,READY-MOCK,W6 policy C
