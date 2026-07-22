@@ -254,9 +254,12 @@ export async function createReprocessRequest(options: {
     createdAt: new Date().toISOString()
   });
   if ("trackReprocessIdempotency" in options.repo) {
-    (options.repo as { trackReprocessIdempotency: (k: string, id: string) => void }).trackReprocessIdempotency(
-      options.idempotencyKey,
-      created.id
+    await Promise.resolve(
+      (
+        options.repo as {
+          trackReprocessIdempotency: (k: string, id: string) => void | Promise<void>;
+        }
+      ).trackReprocessIdempotency(options.idempotencyKey, created.id)
     );
   }
   return { data: { job_id: created.id, status: created.status, status_url: null }, meta: {} };
