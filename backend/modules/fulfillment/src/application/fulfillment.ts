@@ -1,4 +1,6 @@
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { generateUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
+import { runFulfillmentIdempotent } from "./fulfillment-idempotency.js";
 
 /**
  * BE-FUL-001…002 + BE-RET-001 — Fulfillment/returns application layer (in-memory stub).
@@ -207,6 +209,7 @@ export async function createShipment(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly carrier?: string | null;
   readonly trackingCode?: string | null;
   readonly items: readonly { readonly order_item_id: string; readonly quantity: string }[];
@@ -216,35 +219,48 @@ export async function createShipment(options: {
     throw new FulfillmentError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentShipment(options.tenantId, key);
-  if (cached) {
-    return { data: toShipmentResponse(cached), meta: {} };
-  }
-  const confirmed = await options.orders.isOrderConfirmed({
+  return runFulfillmentIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    orderId: options.orderId
-  });
-  if (!confirmed) {
-    throw new FulfillmentError("Order must be confirmed.", "ORDER_STATE_INVALID");
-  }
-  if (!options.items?.length) {
-    throw new FulfillmentError("items are required.", "VALIDATION_FAILED");
-  }
-  const shipment = await options.repo.createShipment({
-    tenantId: options.tenantId,
-    shipmentId: generateUuidV7(),
-    orderId: options.orderId,
     actorId: options.actorId,
-    carrier: options.carrier ?? null,
-    trackingCode: options.trackingCode ?? null,
-    items: options.items.map((i) => ({
-      orderItemId: i.order_item_id,
-      quantity: i.quantity
-    })),
-    idempotencyKey: key
+    scope: "fulfillment.create_shipment",
+    key,
+    loadCached: () => options.repo.getIdempotentShipment(options.tenantId, key),
+    rememberCached: (shipment) =>
+      options.repo.rememberIdempotentShipment(options.tenantId, key, shipment),
+    loadById: (shipmentId) =>
+      options.repo.getShipment({ tenantId: options.tenantId, shipmentId }),
+    toResult: (shipment) => ({ data: toShipmentResponse(shipment), meta: {} }),
+    execute: async () => {
+      const confirmed = await options.orders.isOrderConfirmed({
+        tenantId: options.tenantId,
+        orderId: options.orderId
+      });
+      if (!confirmed) {
+        throw new FulfillmentError("Order must be confirmed.", "ORDER_STATE_INVALID");
+      }
+      if (!options.items?.length) {
+        throw new FulfillmentError("items are required.", "VALIDATION_FAILED");
+      }
+      const shipment = await options.repo.createShipment({
+        tenantId: options.tenantId,
+        shipmentId: generateUuidV7(),
+        orderId: options.orderId,
+        actorId: options.actorId,
+        carrier: options.carrier ?? null,
+        trackingCode: options.trackingCode ?? null,
+        items: options.items.map((i) => ({
+          orderItemId: i.order_item_id,
+          quantity: i.quantity
+        })),
+        idempotencyKey: key
+      });
+      return {
+        resource: shipment,
+        result: { data: toShipmentResponse(shipment), meta: {} }
+      };
+    }
   });
-  await options.repo.rememberIdempotentShipment(options.tenantId, key, shipment);
-  return { data: toShipmentResponse(shipment), meta: {} };
 }
 
 export async function updateShipment(options: {
@@ -274,41 +290,73 @@ type ShipmentCommandOptions = {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
 };
 
 async function transitionShipmentStatus(
-  options: ShipmentCommandOptions & { readonly toStatus: ShipmentStatus }
+  options: ShipmentCommandOptions & {
+    readonly toStatus: ShipmentStatus;
+    readonly scope: string;
+  }
 ) {
   requireFulfillmentPermission(options.actorPermissions, "shipment.manage");
   if (!options.idempotencyKey?.trim()) {
     throw new FulfillmentError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentCommand(options.tenantId, key);
-  if (cached && "trackingCode" in cached) {
-    return { data: toShipmentResponse(cached), meta: {} };
-  }
-  const shipment = await options.repo.transitionShipment({
+  return runFulfillmentIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    shipmentId: options.shipmentId,
     actorId: options.actorId,
-    toStatus: options.toStatus,
-    idempotencyKey: key
+    scope: options.scope,
+    key,
+    loadCached: async () => {
+      const cached = await options.repo.getIdempotentCommand(options.tenantId, key);
+      return cached && "trackingCode" in cached ? cached : null;
+    },
+    rememberCached: (shipment) =>
+      options.repo.rememberIdempotentCommand(options.tenantId, key, shipment),
+    loadById: (shipmentId) =>
+      options.repo.getShipment({ tenantId: options.tenantId, shipmentId }),
+    toResult: (shipment) => ({ data: toShipmentResponse(shipment), meta: {} }),
+    execute: async () => {
+      const shipment = await options.repo.transitionShipment({
+        tenantId: options.tenantId,
+        shipmentId: options.shipmentId,
+        actorId: options.actorId,
+        toStatus: options.toStatus,
+        idempotencyKey: key
+      });
+      return {
+        resource: shipment,
+        result: { data: toShipmentResponse(shipment), meta: {} }
+      };
+    }
   });
-  await options.repo.rememberIdempotentCommand(options.tenantId, key, shipment);
-  return { data: toShipmentResponse(shipment), meta: {} };
 }
 
 export async function markShipmentPacked(options: ShipmentCommandOptions) {
-  return transitionShipmentStatus({ ...options, toStatus: "packed" });
+  return transitionShipmentStatus({
+    ...options,
+    toStatus: "packed",
+    scope: "fulfillment.shipment.pack"
+  });
 }
 
 export async function markShipmentShipped(options: ShipmentCommandOptions) {
-  return transitionShipmentStatus({ ...options, toStatus: "shipped" });
+  return transitionShipmentStatus({
+    ...options,
+    toStatus: "shipped",
+    scope: "fulfillment.shipment.ship"
+  });
 }
 
 export async function markShipmentDelivered(options: ShipmentCommandOptions) {
-  return transitionShipmentStatus({ ...options, toStatus: "delivered" });
+  return transitionShipmentStatus({
+    ...options,
+    toStatus: "delivered",
+    scope: "fulfillment.shipment.deliver"
+  });
 }
 
 export async function createPackingSlipJob(options: {
@@ -340,6 +388,7 @@ export async function createReturn(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly reason: string;
   readonly items: readonly { readonly order_item_id: string; readonly quantity: string }[];
 }) {
@@ -348,31 +397,39 @@ export async function createReturn(options: {
     throw new FulfillmentError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentReturn(options.tenantId, key);
-  if (cached) {
-    return { data: toReturnResponse(cached), meta: {} };
-  }
-  const confirmed = await options.orders.isOrderConfirmed({
+  return runFulfillmentIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    orderId: options.orderId
-  });
-  if (!confirmed) {
-    throw new FulfillmentError("Order must be confirmed.", "ORDER_STATE_INVALID");
-  }
-  const ret = await options.repo.createReturn({
-    tenantId: options.tenantId,
-    returnId: generateUuidV7(),
-    orderId: options.orderId,
     actorId: options.actorId,
-    reason: options.reason.trim(),
-    items: options.items.map((i) => ({
-      orderItemId: i.order_item_id,
-      quantity: i.quantity
-    })),
-    idempotencyKey: key
+    scope: "fulfillment.create_return",
+    key,
+    loadCached: () => options.repo.getIdempotentReturn(options.tenantId, key),
+    rememberCached: (ret) => options.repo.rememberIdempotentReturn(options.tenantId, key, ret),
+    loadById: (returnId) => options.repo.getReturn({ tenantId: options.tenantId, returnId }),
+    toResult: (ret) => ({ data: toReturnResponse(ret), meta: {} }),
+    execute: async () => {
+      const confirmed = await options.orders.isOrderConfirmed({
+        tenantId: options.tenantId,
+        orderId: options.orderId
+      });
+      if (!confirmed) {
+        throw new FulfillmentError("Order must be confirmed.", "ORDER_STATE_INVALID");
+      }
+      const ret = await options.repo.createReturn({
+        tenantId: options.tenantId,
+        returnId: generateUuidV7(),
+        orderId: options.orderId,
+        actorId: options.actorId,
+        reason: options.reason.trim(),
+        items: options.items.map((i) => ({
+          orderItemId: i.order_item_id,
+          quantity: i.quantity
+        })),
+        idempotencyKey: key
+      });
+      return { resource: ret, result: { data: toReturnResponse(ret), meta: {} } };
+    }
   });
-  await options.repo.rememberIdempotentReturn(options.tenantId, key, ret);
-  return { data: toReturnResponse(ret), meta: {} };
 }
 
 type ReturnCommandOptions = {
@@ -383,53 +440,82 @@ type ReturnCommandOptions = {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
 };
 
 async function transitionReturnStatus(
-  options: ReturnCommandOptions & { readonly toStatus: ReturnStatus; readonly restock?: boolean }
+  options: ReturnCommandOptions & {
+    readonly toStatus: ReturnStatus;
+    readonly restock?: boolean;
+    readonly scope: string;
+  }
 ) {
   requireFulfillmentPermission(options.actorPermissions, "shipment.manage");
   if (!options.idempotencyKey?.trim()) {
     throw new FulfillmentError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentCommand(options.tenantId, key);
-  if (cached && "reason" in cached) {
-    return { data: toReturnResponse(cached), meta: {} };
-  }
-  const ret = await options.repo.transitionReturn({
+  return runFulfillmentIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    returnId: options.returnId,
     actorId: options.actorId,
-    toStatus: options.toStatus,
-    idempotencyKey: key,
-    ...(options.restock !== undefined ? { restock: options.restock } : {})
-  });
-  if (options.restock && options.inventory) {
-    for (const item of ret.items) {
-      if (item.restocked) {
-        await options.inventory.restockStub({
-          tenantId: options.tenantId,
-          actorId: options.actorId,
-          variantId: item.orderItemId,
-          quantity: item.quantity,
-          idempotencyKey: `${key}:restock:${item.orderItemId}`
-        });
+    scope: options.scope,
+    key,
+    loadCached: async () => {
+      const cached = await options.repo.getIdempotentCommand(options.tenantId, key);
+      return cached && "reason" in cached ? cached : null;
+    },
+    rememberCached: (ret) => options.repo.rememberIdempotentCommand(options.tenantId, key, ret),
+    loadById: (returnId) => options.repo.getReturn({ tenantId: options.tenantId, returnId }),
+    toResult: (ret) => ({ data: toReturnResponse(ret), meta: {} }),
+    execute: async () => {
+      const ret = await options.repo.transitionReturn({
+        tenantId: options.tenantId,
+        returnId: options.returnId,
+        actorId: options.actorId,
+        toStatus: options.toStatus,
+        idempotencyKey: key,
+        ...(options.restock !== undefined ? { restock: options.restock } : {})
+      });
+      if (options.restock && options.inventory) {
+        for (const item of ret.items) {
+          if (item.restocked) {
+            await options.inventory.restockStub({
+              tenantId: options.tenantId,
+              actorId: options.actorId,
+              variantId: item.orderItemId,
+              quantity: item.quantity,
+              idempotencyKey: `${key}:restock:${item.orderItemId}`
+            });
+          }
+        }
       }
+      return { resource: ret, result: { data: toReturnResponse(ret), meta: {} } };
     }
-  }
-  await options.repo.rememberIdempotentCommand(options.tenantId, key, ret);
-  return { data: toReturnResponse(ret), meta: {} };
+  });
 }
 
 export async function approveReturn(options: ReturnCommandOptions) {
-  return transitionReturnStatus({ ...options, toStatus: "approved" });
+  return transitionReturnStatus({
+    ...options,
+    toStatus: "approved",
+    scope: "fulfillment.return.approve"
+  });
 }
 
 export async function receiveReturn(options: ReturnCommandOptions) {
-  return transitionReturnStatus({ ...options, toStatus: "received" });
+  return transitionReturnStatus({
+    ...options,
+    toStatus: "received",
+    scope: "fulfillment.return.receive"
+  });
 }
 
 export async function completeReturn(options: ReturnCommandOptions) {
-  return transitionReturnStatus({ ...options, toStatus: "completed", restock: true });
+  return transitionReturnStatus({
+    ...options,
+    toStatus: "completed",
+    restock: true,
+    scope: "fulfillment.return.complete"
+  });
 }

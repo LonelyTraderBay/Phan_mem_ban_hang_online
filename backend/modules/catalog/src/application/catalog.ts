@@ -1,5 +1,7 @@
 import { DomainInvariantError, generateUuidV7, Money, type UuidV7 } from "@ai-sales/domain-kernel";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { applyFieldPolicies } from "@ai-sales/security";
+import { runCatalogIdempotent } from "./catalog-idempotency.js";
 
 /**
  * BE-CAT-002 — Product/category/variant CRUD + ETag.
@@ -231,21 +233,30 @@ function validateMoney(unitPriceMinor: number, currency: string): void {
 }
 
 /** create/archive ops require Idempotency-Key (OpenAPI x-idempotency: required); replay returns the same resource. */
-async function withIdempotency(
-  repo: CatalogRepository,
-  tenantId: string,
-  idempotencyKey: string | null | undefined,
-  run: () => Promise<CatalogResource>
-): Promise<CatalogResource> {
-  const key = idempotencyKey?.trim();
+async function withIdempotency(options: {
+  readonly repo: CatalogRepository;
+  readonly tenantId: string;
+  readonly actorId: string;
+  readonly scope: string;
+  readonly idempotencyKey: string | null | undefined;
+  readonly idempotency?: IdempotencyStore;
+  readonly run: () => Promise<CatalogResource>;
+}): Promise<CatalogResource> {
+  const key = options.idempotencyKey?.trim();
   if (!key) {
     throw new CatalogError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const cached = await repo.getIdempotentResult(tenantId, key);
-  if (cached) return cached;
-  const result = await run();
-  await repo.saveIdempotentResult(tenantId, key, result);
-  return result;
+  return runCatalogIdempotent({
+    idempotency: options.idempotency,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: options.scope,
+    key,
+    loadCached: () => options.repo.getIdempotentResult(options.tenantId, key),
+    rememberCached: (resource) => options.repo.saveIdempotentResult(options.tenantId, key, resource),
+    execute: options.run,
+    resourceId: (resource) => resource.id
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -269,23 +280,33 @@ export async function listCategories(options: {
 export async function createCategory(options: {
   readonly repo: CatalogRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly name: string;
   readonly parentId?: string | null;
 }): Promise<{ readonly data: CatalogResource; readonly meta: Record<string, never> }> {
   requireCatalogPermission(options.actorPermissions, "catalog.write");
-  const data = await withIdempotency(options.repo, options.tenantId, options.idempotencyKey, async () => {
-    const name = options.name?.trim() ?? "";
-    if (!name || name.length > 200) {
-      throw new CatalogError("Invalid category name.", "VALIDATION_FAILED");
+  const data = await withIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "catalog.category.create",
+    idempotencyKey: options.idempotencyKey,
+    ...(options.idempotency ? { idempotency: options.idempotency } : {}),
+    run: async () => {
+      const name = options.name?.trim() ?? "";
+      if (!name || name.length > 200) {
+        throw new CatalogError("Invalid category name.", "VALIDATION_FAILED");
+      }
+      return options.repo.createCategory({
+        tenantId: options.tenantId,
+        categoryId: generateUuidV7(),
+        name,
+        parentId: options.parentId ?? null
+      });
     }
-    return options.repo.createCategory({
-      tenantId: options.tenantId,
-      categoryId: generateUuidV7(),
-      name,
-      parentId: options.parentId ?? null
-    });
   });
   return { data, meta: {} };
 }
@@ -316,19 +337,28 @@ export async function updateCategory(options: {
 export async function archiveCategory(options: {
   readonly repo: CatalogRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly categoryId: string;
   readonly expectedVersion?: number | null;
 }): Promise<{ readonly data: CatalogResource; readonly meta: Record<string, never> }> {
   requireCatalogPermission(options.actorPermissions, "catalog.write");
-  const data = await withIdempotency(options.repo, options.tenantId, options.idempotencyKey, () =>
-    options.repo.archiveCategory({
-      tenantId: options.tenantId,
-      categoryId: options.categoryId,
-      expectedVersion: options.expectedVersion ?? null
-    })
-  );
+  const data = await withIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "catalog.category.archive",
+    idempotencyKey: options.idempotencyKey,
+    ...(options.idempotency ? { idempotency: options.idempotency } : {}),
+    run: () =>
+      options.repo.archiveCategory({
+        tenantId: options.tenantId,
+        categoryId: options.categoryId,
+        expectedVersion: options.expectedVersion ?? null
+      })
+  });
   return { data, meta: {} };
 }
 
@@ -353,8 +383,10 @@ export async function listProducts(options: {
 export async function createProduct(options: {
   readonly repo: CatalogRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly name: string;
   readonly description?: string | null;
   readonly categoryId?: string | null;
@@ -362,30 +394,38 @@ export async function createProduct(options: {
   readonly status?: "draft" | "active" | null;
 }): Promise<{ readonly data: CatalogResource; readonly meta: Record<string, never> }> {
   requireCatalogPermission(options.actorPermissions, "catalog.write");
-  const data = await withIdempotency(options.repo, options.tenantId, options.idempotencyKey, async () => {
-    const name = options.name?.trim() ?? "";
-    if (!name || name.length > 300) {
-      throw new CatalogError("Invalid product name.", "VALIDATION_FAILED");
+  const data = await withIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "catalog.product.create",
+    idempotencyKey: options.idempotencyKey,
+    ...(options.idempotency ? { idempotency: options.idempotency } : {}),
+    run: async () => {
+      const name = options.name?.trim() ?? "";
+      if (!name || name.length > 300) {
+        throw new CatalogError("Invalid product name.", "VALIDATION_FAILED");
+      }
+      if (options.description != null && options.description.length > 20000) {
+        throw new CatalogError("description too long.", "VALIDATION_FAILED");
+      }
+      if (options.brand != null && options.brand.length > 200) {
+        throw new CatalogError("brand too long.", "VALIDATION_FAILED");
+      }
+      const status = options.status ?? "draft";
+      if (status !== "draft" && status !== "active") {
+        throw new CatalogError("Invalid status.", "VALIDATION_FAILED");
+      }
+      return options.repo.createProduct({
+        tenantId: options.tenantId,
+        productId: generateUuidV7(),
+        name,
+        description: options.description ?? null,
+        categoryId: options.categoryId ?? null,
+        brand: options.brand ?? null,
+        status
+      });
     }
-    if (options.description != null && options.description.length > 20000) {
-      throw new CatalogError("description too long.", "VALIDATION_FAILED");
-    }
-    if (options.brand != null && options.brand.length > 200) {
-      throw new CatalogError("brand too long.", "VALIDATION_FAILED");
-    }
-    const status = options.status ?? "draft";
-    if (status !== "draft" && status !== "active") {
-      throw new CatalogError("Invalid status.", "VALIDATION_FAILED");
-    }
-    return options.repo.createProduct({
-      tenantId: options.tenantId,
-      productId: generateUuidV7(),
-      name,
-      description: options.description ?? null,
-      categoryId: options.categoryId ?? null,
-      brand: options.brand ?? null,
-      status
-    });
   });
   return { data, meta: {} };
 }
@@ -439,19 +479,28 @@ export async function updateProduct(options: {
 export async function archiveProduct(options: {
   readonly repo: CatalogRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly productId: string;
   readonly expectedVersion?: number | null;
 }): Promise<{ readonly data: CatalogResource; readonly meta: Record<string, never> }> {
   requireCatalogPermission(options.actorPermissions, "catalog.write");
-  const data = await withIdempotency(options.repo, options.tenantId, options.idempotencyKey, () =>
-    options.repo.archiveProduct({
-      tenantId: options.tenantId,
-      productId: options.productId,
-      expectedVersion: options.expectedVersion ?? null
-    })
-  );
+  const data = await withIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "catalog.product.archive",
+    idempotencyKey: options.idempotencyKey,
+    ...(options.idempotency ? { idempotency: options.idempotency } : {}),
+    run: () =>
+      options.repo.archiveProduct({
+        tenantId: options.tenantId,
+        productId: options.productId,
+        expectedVersion: options.expectedVersion ?? null
+      })
+  });
   return { data, meta: {} };
 }
 
@@ -476,9 +525,10 @@ export async function listVariants(options: {
 export async function createVariant(options: {
   readonly repo: CatalogRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
-  readonly actorId?: string;
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly productId: string;
   readonly sku: string;
   readonly unitPriceMinor?: number | null;
@@ -494,27 +544,33 @@ export async function createVariant(options: {
       throw new CatalogError("cost_minor must not be negative.", "VALIDATION_FAILED");
     }
   }
-  const data = await withIdempotency(options.repo, options.tenantId, options.idempotencyKey, async () => {
-    const sku = options.sku?.trim() ?? "";
-    if (!sku || sku.length > 100) {
-      throw new CatalogError("Invalid sku.", "VALIDATION_FAILED");
-    }
-    const unitPriceMinor = options.unitPriceMinor ?? 0;
-    const currency = (options.currency ?? "VND").trim().toUpperCase();
-    validateMoney(unitPriceMinor, currency);
-    const barcode = options.barcode?.trim() ? options.barcode.trim() : null;
-    const variantId = generateUuidV7();
-    const created = await options.repo.createVariant({
-      tenantId: options.tenantId,
-      productId: options.productId,
-      variantId,
-      sku,
-      unitPriceMinor,
-      currency,
-      costMinor: options.costMinor ?? null,
-      barcode
-    });
-    if (options.actorId) {
+  const data = await withIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "catalog.variant.create",
+    idempotencyKey: options.idempotencyKey,
+    ...(options.idempotency ? { idempotency: options.idempotency } : {}),
+    run: async () => {
+      const sku = options.sku?.trim() ?? "";
+      if (!sku || sku.length > 100) {
+        throw new CatalogError("Invalid sku.", "VALIDATION_FAILED");
+      }
+      const unitPriceMinor = options.unitPriceMinor ?? 0;
+      const currency = (options.currency ?? "VND").trim().toUpperCase();
+      validateMoney(unitPriceMinor, currency);
+      const barcode = options.barcode?.trim() ? options.barcode.trim() : null;
+      const variantId = generateUuidV7();
+      const created = await options.repo.createVariant({
+        tenantId: options.tenantId,
+        productId: options.productId,
+        variantId,
+        sku,
+        unitPriceMinor,
+        currency,
+        costMinor: options.costMinor ?? null,
+        barcode
+      });
       await options.repo.recordInitialPriceHistory({
         tenantId: options.tenantId,
         variantId: created.id,
@@ -523,8 +579,8 @@ export async function createVariant(options: {
         actorId: options.actorId,
         source: "create_variant"
       });
+      return created;
     }
-    return created;
   });
   return { data, meta: {} };
 }
@@ -670,18 +726,27 @@ export async function listVariantPriceHistory(options: {
 export async function archiveVariant(options: {
   readonly repo: CatalogRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly variantId: string;
   readonly expectedVersion?: number | null;
 }): Promise<{ readonly data: CatalogResource; readonly meta: Record<string, never> }> {
   requireCatalogPermission(options.actorPermissions, "catalog.write");
-  const data = await withIdempotency(options.repo, options.tenantId, options.idempotencyKey, () =>
-    options.repo.archiveVariant({
-      tenantId: options.tenantId,
-      variantId: options.variantId,
-      expectedVersion: options.expectedVersion ?? null
-    })
-  );
+  const data = await withIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "catalog.variant.archive",
+    idempotencyKey: options.idempotencyKey,
+    ...(options.idempotency ? { idempotency: options.idempotency } : {}),
+    run: () =>
+      options.repo.archiveVariant({
+        tenantId: options.tenantId,
+        variantId: options.variantId,
+        expectedVersion: options.expectedVersion ?? null
+      })
+  });
   return { data, meta: {} };
 }

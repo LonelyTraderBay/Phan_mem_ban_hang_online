@@ -349,12 +349,17 @@ function buildControllers(): Type<unknown>[] {
       createCatalogController({
         repo: catalogRepo,
         importRepo: importRepoPg,
-        importApplyPort
+        importApplyPort,
+        idempotency
       }),
-      createCustomersController({ repo: customerRepo }),
+      createCustomersController({ repo: customerRepo, idempotency }),
       createInventoryController({ repo: inventoryRepo }),
       createKnowledgeController({ repo: knowledgeRepoPg }),
-      createChannelController({ repo: channelRepoPg, adapter: stubFacebookAdapter }),
+      createChannelController({
+        repo: channelRepoPg,
+        adapter: stubFacebookAdapter,
+        idempotency
+      }),
       createConversationController({
         repo: conversationRepoPg,
         outbound: conversationOutboundPort
@@ -373,7 +378,8 @@ function buildControllers(): Type<unknown>[] {
       createFulfillmentController({
         repo: fulfillmentRepoPg,
         orders: orderEligibilityPort,
-        inventory: inventoryRestockPort
+        inventory: inventoryRestockPort,
+        idempotency
       }),
       createAiOrchestrationController({
         repo: aiOrchestrationRepoPg,

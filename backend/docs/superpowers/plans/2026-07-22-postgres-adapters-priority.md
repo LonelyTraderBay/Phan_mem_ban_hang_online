@@ -70,11 +70,12 @@ Apply at least migrations `000024`…`000027`.
 ## Gaps (v1)
 
 - **Ops:** desktop / hardening stay stub (application layer); health now DB-probed (`000027` AI snapshot)
-- Knowledge / AI / Fulfillment / …: process-local idempotency Maps (migrate `app.idempotency_records`)
+- Knowledge / AI / …: process-local idempotency Maps (migrate `app.idempotency_records`)
 - **Order / Payment HTTP idempotency:** migrated to `PostgresIdempotencyStore` (`order.*` / `payment.*` scopes); InMemory tests keep repo Maps as fallback; payment `providerEvents` Map remains for webhook event-id dedupe
+- **Fulfillment / Customer / Catalog / Channel HTTP idempotency (FUL/CUS/CAT/CHN):** migrated to `PostgresIdempotencyStore`; InMemory tests keep repo Maps as fallback
 - AI: `tenant_ai_controls` stores full switch/budget JSON in `metadata`; column fields are denormalized
 - AI eval runs: GLOBAL table + `tenant_id` column (no RLS) — filter in adapter
-- Channel: OAuth tenant lookup + webhook dedupe (null-tenant) process-local Maps; idempotency Maps
+- Channel: OAuth tenant lookup + webhook dedupe (null-tenant) process-local Maps remain (not HTTP idempotency)
 - Conversation: SSE + customer stub + idempotency process-local Maps (no SSE/customer_identities tables)
 - Idempotency adapter: process-local Map — migrate sang `app.idempotency_records`
 - Media upload intents: process-local Map (chưa có bảng upload)

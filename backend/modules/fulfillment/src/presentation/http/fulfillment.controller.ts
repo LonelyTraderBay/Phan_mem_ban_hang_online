@@ -13,6 +13,7 @@ import {
   UnprocessableEntityException
 } from "@nestjs/common";
 import { DomainInvariantError, parseUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { MissingSecurityContextError } from "@ai-sales/security";
 import {
   approveReturn,
@@ -93,6 +94,7 @@ export function createFulfillmentController(options: {
   readonly repo: FulfillmentRepository;
   readonly orders: OrderEligibilityPort;
   readonly inventory?: InventoryRestockPort;
+  readonly idempotency?: IdempotencyStore;
 }) {
   @Controller("api/v1")
   class FulfillmentController {
@@ -118,6 +120,7 @@ export function createFulfillmentController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           ...(body?.carrier !== undefined ? { carrier: body.carrier } : {}),
           ...(body?.tracking_code !== undefined ? { trackingCode: body.tracking_code } : {}),
           items: body?.items ?? []
@@ -164,7 +167,8 @@ export function createFulfillmentController(options: {
           shipmentId,
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {})
         });
       } catch (error) {
         mapFulfillmentError(error);
@@ -181,7 +185,8 @@ export function createFulfillmentController(options: {
           shipmentId,
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {})
         });
       } catch (error) {
         mapFulfillmentError(error);
@@ -201,7 +206,8 @@ export function createFulfillmentController(options: {
           shipmentId,
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {})
         });
       } catch (error) {
         mapFulfillmentError(error);
@@ -245,6 +251,7 @@ export function createFulfillmentController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           reason: body?.reason ?? "",
           items: body?.items ?? []
         });
@@ -263,7 +270,8 @@ export function createFulfillmentController(options: {
           returnId,
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {})
         });
       } catch (error) {
         mapFulfillmentError(error);
@@ -280,7 +288,8 @@ export function createFulfillmentController(options: {
           returnId,
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {})
         });
       } catch (error) {
         mapFulfillmentError(error);
@@ -298,7 +307,8 @@ export function createFulfillmentController(options: {
           returnId,
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {})
         });
       } catch (error) {
         mapFulfillmentError(error);

@@ -103,17 +103,13 @@ async function syncTags(
   }
 }
 
-/** v1 process-local idempotency — migrate to app.idempotency_records when wired. */
+/**
+ * Customer Postgres adapter.
+ * HTTP idempotency is via PostgresIdempotencyStore at application layer
+ * (get/remember below are no-ops kept for CustomerRepository interface / InMemory parity).
+ */
 export class PostgresCustomerRepository implements CustomerRepository {
-  private readonly idempotency = new Map<string, CustomerResource>();
-  private readonly identityIdempotency = new Map<string, CustomerResource>();
-  private readonly mergeIdempotency = new Map<string, CustomerResource>();
-
   constructor(private readonly db: AppDatabase) {}
-
-  private idemKey(tenantId: string, key: string): string {
-    return `${tenantId}:${key}`;
-  }
 
   async listCustomers(tenantId: string): Promise<readonly CustomerResource[]> {
     const ctx = adapterSecurityContext(tenantId);
@@ -261,19 +257,19 @@ export class PostgresCustomerRepository implements CustomerRepository {
     });
   }
 
-  async getIdempotentCreate(args: {
+  async getIdempotentCreate(_args: {
     readonly tenantId: string;
     readonly idempotencyKey: string;
   }): Promise<CustomerResource | null> {
-    return this.idempotency.get(this.idemKey(args.tenantId, args.idempotencyKey)) ?? null;
+    return null;
   }
 
-  async rememberIdempotentCreate(args: {
+  async rememberIdempotentCreate(_args: {
     readonly tenantId: string;
     readonly idempotencyKey: string;
     readonly customer: CustomerResource;
   }): Promise<void> {
-    this.idempotency.set(this.idemKey(args.tenantId, args.idempotencyKey), args.customer);
+    /* no-op — use IdempotencyStore */
   }
 
   async findIdentityByHash(args: {
@@ -370,37 +366,34 @@ export class PostgresCustomerRepository implements CustomerRepository {
     }
   }
 
-  async getIdempotentIdentityAttach(args: {
+  async getIdempotentIdentityAttach(_args: {
     readonly tenantId: string;
     readonly idempotencyKey: string;
   }): Promise<CustomerResource | null> {
-    return this.identityIdempotency.get(this.idemKey(args.tenantId, args.idempotencyKey)) ?? null;
+    return null;
   }
 
-  async rememberIdempotentIdentityAttach(args: {
+  async rememberIdempotentIdentityAttach(_args: {
     readonly tenantId: string;
     readonly idempotencyKey: string;
     readonly customer: CustomerResource;
   }): Promise<void> {
-    this.identityIdempotency.set(
-      this.idemKey(args.tenantId, args.idempotencyKey),
-      args.customer
-    );
+    /* no-op — use IdempotencyStore */
   }
 
-  async getIdempotentMerge(args: {
+  async getIdempotentMerge(_args: {
     readonly tenantId: string;
     readonly idempotencyKey: string;
   }): Promise<CustomerResource | null> {
-    return this.mergeIdempotency.get(this.idemKey(args.tenantId, args.idempotencyKey)) ?? null;
+    return null;
   }
 
-  async rememberIdempotentMerge(args: {
+  async rememberIdempotentMerge(_args: {
     readonly tenantId: string;
     readonly idempotencyKey: string;
     readonly customer: CustomerResource;
   }): Promise<void> {
-    this.mergeIdempotency.set(this.idemKey(args.tenantId, args.idempotencyKey), args.customer);
+    /* no-op — use IdempotencyStore */
   }
 
   async executeMerge(args: {

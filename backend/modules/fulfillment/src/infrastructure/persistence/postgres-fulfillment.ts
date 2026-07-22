@@ -98,17 +98,13 @@ function toReturn(row: ReturnRow, items: ReturnRecord["items"]): ReturnRecord {
   };
 }
 
-/** v1 process-local idempotency — migrate to app.idempotency_records when wired. */
+/**
+ * Fulfillment Postgres adapter.
+ * HTTP idempotency is via PostgresIdempotencyStore at application layer
+ * (get/remember below are no-ops kept for FulfillmentRepository interface / InMemory parity).
+ */
 export class PostgresFulfillmentRepository implements FulfillmentRepository {
-  private readonly idempotentShipments = new Map<string, ShipmentRecord>();
-  private readonly idempotentReturns = new Map<string, ReturnRecord>();
-  private readonly idempotentCommands = new Map<string, ShipmentRecord | ReturnRecord>();
-
   constructor(private readonly db: AppDatabase) {}
-
-  private idemKey(tenantId: string, key: string): string {
-    return `${tenantId}:${key}`;
-  }
 
   private async loadShipmentItems(
     trx: Trx,
@@ -445,38 +441,42 @@ export class PostgresFulfillmentRepository implements FulfillmentRepository {
     });
   }
 
-  async getIdempotentShipment(tenantId: string, key: string): Promise<ShipmentRecord | null> {
-    return this.idempotentShipments.get(this.idemKey(tenantId, key)) ?? null;
+  async getIdempotentShipment(_tenantId: string, _key: string): Promise<ShipmentRecord | null> {
+    return null;
   }
 
   async rememberIdempotentShipment(
-    tenantId: string,
-    key: string,
-    shipment: ShipmentRecord
+    _tenantId: string,
+    _key: string,
+    _shipment: ShipmentRecord
   ): Promise<void> {
-    this.idempotentShipments.set(this.idemKey(tenantId, key), shipment);
+    /* no-op — use IdempotencyStore */
   }
 
-  async getIdempotentReturn(tenantId: string, key: string): Promise<ReturnRecord | null> {
-    return this.idempotentReturns.get(this.idemKey(tenantId, key)) ?? null;
+  async getIdempotentReturn(_tenantId: string, _key: string): Promise<ReturnRecord | null> {
+    return null;
   }
 
-  async rememberIdempotentReturn(tenantId: string, key: string, ret: ReturnRecord): Promise<void> {
-    this.idempotentReturns.set(this.idemKey(tenantId, key), ret);
+  async rememberIdempotentReturn(
+    _tenantId: string,
+    _key: string,
+    _ret: ReturnRecord
+  ): Promise<void> {
+    /* no-op — use IdempotencyStore */
   }
 
   async getIdempotentCommand(
-    tenantId: string,
-    key: string
+    _tenantId: string,
+    _key: string
   ): Promise<ShipmentRecord | ReturnRecord | null> {
-    return this.idempotentCommands.get(this.idemKey(tenantId, key)) ?? null;
+    return null;
   }
 
   async rememberIdempotentCommand(
-    tenantId: string,
-    key: string,
-    value: ShipmentRecord | ReturnRecord
+    _tenantId: string,
+    _key: string,
+    _value: ShipmentRecord | ReturnRecord
   ): Promise<void> {
-    this.idempotentCommands.set(this.idemKey(tenantId, key), value);
+    /* no-op — use IdempotencyStore */
   }
 }

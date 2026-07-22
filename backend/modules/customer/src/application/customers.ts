@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { generateUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
 import { applyFieldPolicies } from "@ai-sales/security";
+import { runCustomerIdempotent } from "./customer-idempotency.js";
 
 /**
  * BE-CUS-002 — Customer CRUD/search/PII field masking.
@@ -232,8 +234,10 @@ export async function getCustomer(options: {
 export async function createCustomer(options: {
   readonly repo: CustomerRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly displayName?: string | null;
   readonly primaryEmail?: string | null;
   readonly primaryPhone?: string | null;
@@ -248,36 +252,49 @@ export async function createCustomer(options: {
     throw new CustomerError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const existing = await options.repo.getIdempotentCreate({
+  return runCustomerIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    idempotencyKey: key
-  });
-  if (existing) {
-    return {
-      data: toCustomerResponseData(existing, options.actorPermissions),
+    actorId: options.actorId,
+    scope: "customer.create",
+    key,
+    loadCached: () =>
+      options.repo.getIdempotentCreate({
+        tenantId: options.tenantId,
+        idempotencyKey: key
+      }),
+    rememberCached: (customer) =>
+      options.repo.rememberIdempotentCreate({
+        tenantId: options.tenantId,
+        idempotencyKey: key,
+        customer
+      }),
+    loadById: (customerId) =>
+      options.repo.getCustomer({ tenantId: options.tenantId, customerId }),
+    toResult: (customer) => ({
+      data: toCustomerResponseData(customer, options.actorPermissions),
       meta: {},
-      version: existing.version
-    };
-  }
-
-  const customer = await options.repo.createCustomer({
-    tenantId: options.tenantId,
-    customerId: generateUuidV7(),
-    displayName: normalizeDisplayName(options.displayName),
-    primaryEmail: normalizeEmail(options.primaryEmail),
-    primaryPhone: normalizePhone(options.primaryPhone),
-    tags: options.tags?.filter((t) => t.trim().length > 0) ?? []
+      version: customer.version
+    }),
+    execute: async () => {
+      const customer = await options.repo.createCustomer({
+        tenantId: options.tenantId,
+        customerId: generateUuidV7(),
+        displayName: normalizeDisplayName(options.displayName),
+        primaryEmail: normalizeEmail(options.primaryEmail),
+        primaryPhone: normalizePhone(options.primaryPhone),
+        tags: options.tags?.filter((t) => t.trim().length > 0) ?? []
+      });
+      return {
+        customer,
+        result: {
+          data: toCustomerResponseData(customer, options.actorPermissions),
+          meta: {},
+          version: customer.version
+        }
+      };
+    }
   });
-  await options.repo.rememberIdempotentCreate({
-    tenantId: options.tenantId,
-    idempotencyKey: key,
-    customer
-  });
-  return {
-    data: toCustomerResponseData(customer, options.actorPermissions),
-    meta: {},
-    version: customer.version
-  };
 }
 
 export async function updateCustomer(options: {
@@ -362,8 +379,10 @@ export async function addCustomerIdentity(options: {
   readonly repo: CustomerRepository;
   readonly tenantId: string;
   readonly customerId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly type: string;
   readonly value: string;
 }): Promise<{
@@ -376,96 +395,106 @@ export async function addCustomerIdentity(options: {
     throw new CustomerError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const replay = await options.repo.getIdempotentIdentityAttach({
+  return runCustomerIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    idempotencyKey: key
-  });
-  if (replay) {
-    return {
-      data: toCustomerResponseData(replay, options.actorPermissions),
-      meta: {},
-      version: replay.version
-    };
-  }
-
-  const customer = await options.repo.getCustomer({
-    tenantId: options.tenantId,
-    customerId: options.customerId
-  });
-  if (!customer || customer.status !== "active") {
-    throw new CustomerError("Customer not found.", "RESOURCE_NOT_FOUND");
-  }
-
-  const identityType = parseIdentityType(options.type);
-  const normalized = normalizeIdentityValue(identityType, options.value);
-  const hash = hashNormalizedIdentity(normalized);
-
-  const existing = await options.repo.findIdentityByHash({
-    tenantId: options.tenantId,
-    identityType,
-    normalizedValueHash: hash
-  });
-  if (existing) {
-    if (existing.customerId !== options.customerId) {
-      throw new CustomerError(
-        "Identity already attached to another customer.",
-        "CUSTOMER_IDENTITY_CONFLICT"
-      );
-    }
-    await options.repo.rememberIdempotentIdentityAttach({
-      tenantId: options.tenantId,
-      idempotencyKey: key,
-      customer
-    });
-    return {
+    actorId: options.actorId,
+    scope: "customer.identity.attach",
+    key,
+    loadCached: () =>
+      options.repo.getIdempotentIdentityAttach({
+        tenantId: options.tenantId,
+        idempotencyKey: key
+      }),
+    rememberCached: (customer) =>
+      options.repo.rememberIdempotentIdentityAttach({
+        tenantId: options.tenantId,
+        idempotencyKey: key,
+        customer
+      }),
+    loadById: (customerId) =>
+      options.repo.getCustomer({ tenantId: options.tenantId, customerId }),
+    toResult: (customer) => ({
       data: toCustomerResponseData(customer, options.actorPermissions),
       meta: {},
       version: customer.version
-    };
-  }
+    }),
+    execute: async () => {
+      const customer = await options.repo.getCustomer({
+        tenantId: options.tenantId,
+        customerId: options.customerId
+      });
+      if (!customer || customer.status !== "active") {
+        throw new CustomerError("Customer not found.", "RESOURCE_NOT_FOUND");
+      }
 
-  await options.repo.addIdentity({
-    tenantId: options.tenantId,
-    customerId: options.customerId,
-    identityId: generateUuidV7(),
-    identityType,
-    normalizedValueHash: hash,
-    externalId: identityType === "external" ? normalized : null,
-    isPrimary: true
+      const identityType = parseIdentityType(options.type);
+      const normalized = normalizeIdentityValue(identityType, options.value);
+      const hash = hashNormalizedIdentity(normalized);
+
+      const existing = await options.repo.findIdentityByHash({
+        tenantId: options.tenantId,
+        identityType,
+        normalizedValueHash: hash
+      });
+      if (existing) {
+        if (existing.customerId !== options.customerId) {
+          throw new CustomerError(
+            "Identity already attached to another customer.",
+            "CUSTOMER_IDENTITY_CONFLICT"
+          );
+        }
+        return {
+          customer,
+          result: {
+            data: toCustomerResponseData(customer, options.actorPermissions),
+            meta: {},
+            version: customer.version
+          }
+        };
+      }
+
+      await options.repo.addIdentity({
+        tenantId: options.tenantId,
+        customerId: options.customerId,
+        identityId: generateUuidV7(),
+        identityType,
+        normalizedValueHash: hash,
+        externalId: identityType === "external" ? normalized : null,
+        isPrimary: true
+      });
+
+      let updated = customer;
+      if (identityType === "email" && !customer.primary_email) {
+        updated = await options.repo.updateCustomer({
+          tenantId: options.tenantId,
+          customerId: options.customerId,
+          expectedVersion: customer.version,
+          displayName: undefined,
+          primaryEmail: normalized,
+          primaryPhone: undefined
+        });
+      } else if (identityType === "phone" && !customer.primary_phone) {
+        updated = await options.repo.updateCustomer({
+          tenantId: options.tenantId,
+          customerId: options.customerId,
+          expectedVersion: customer.version,
+          displayName: undefined,
+          primaryEmail: undefined,
+          primaryPhone: normalized
+        });
+      }
+
+      return {
+        customer: updated,
+        result: {
+          data: toCustomerResponseData(updated, options.actorPermissions),
+          meta: {},
+          version: updated.version
+        }
+      };
+    }
   });
-
-  let updated = customer;
-  if (identityType === "email" && !customer.primary_email) {
-    updated = await options.repo.updateCustomer({
-      tenantId: options.tenantId,
-      customerId: options.customerId,
-      expectedVersion: customer.version,
-      displayName: undefined,
-      primaryEmail: normalized,
-      primaryPhone: undefined
-    });
-  } else if (identityType === "phone" && !customer.primary_phone) {
-    updated = await options.repo.updateCustomer({
-      tenantId: options.tenantId,
-      customerId: options.customerId,
-      expectedVersion: customer.version,
-      displayName: undefined,
-      primaryEmail: undefined,
-      primaryPhone: normalized
-    });
-  }
-
-  await options.repo.rememberIdempotentIdentityAttach({
-    tenantId: options.tenantId,
-    idempotencyKey: key,
-    customer: updated
-  });
-
-  return {
-    data: toCustomerResponseData(updated, options.actorPermissions),
-    meta: {},
-    version: updated.version
-  };
 }
 
 /** Deterministic preview checksum — client must send the same token on merge. */
@@ -596,6 +625,7 @@ export async function mergeCustomers(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly survivorId: string;
   readonly mergeIds: readonly string[];
   readonly confirmationToken: string;
@@ -610,52 +640,64 @@ export async function mergeCustomers(options: {
     throw new CustomerError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const replay = await options.repo.getIdempotentMerge({
+  return runCustomerIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    idempotencyKey: key
-  });
-  if (replay) {
-    return {
-      data: toCustomerResponseData(replay, options.actorPermissions),
-      meta: {},
-      version: replay.version
-    };
-  }
-
-  const mergeIds = normalizeMergeIds(options.survivorId, options.mergeIds);
-  const expectedToken = computeMergeConfirmationToken(options.survivorId, mergeIds);
-  if (!options.confirmationToken?.trim() || options.confirmationToken.trim() !== expectedToken) {
-    throw new CustomerError(
-      "confirmation_token does not match merge preview checksum.",
-      "VALIDATION_FAILED"
-    );
-  }
-
-  const { survivor, sources } = await loadActiveMergeSet({
-    repo: options.repo,
-    tenantId: options.tenantId,
-    survivorId: options.survivorId,
-    mergeIds
-  });
-  const fieldResolution = buildFieldResolution(survivor, sources);
-  const merged = await options.repo.executeMerge({
-    tenantId: options.tenantId,
-    survivorId: options.survivorId,
-    mergeIds,
     actorId: options.actorId,
-    correlationId: options.correlationId?.trim() || key,
-    fieldResolution
-  });
+    scope: "customer.merge",
+    key,
+    loadCached: () =>
+      options.repo.getIdempotentMerge({
+        tenantId: options.tenantId,
+        idempotencyKey: key
+      }),
+    rememberCached: (customer) =>
+      options.repo.rememberIdempotentMerge({
+        tenantId: options.tenantId,
+        idempotencyKey: key,
+        customer
+      }),
+    loadById: (customerId) =>
+      options.repo.getCustomer({ tenantId: options.tenantId, customerId }),
+    toResult: (customer) => ({
+      data: toCustomerResponseData(customer, options.actorPermissions),
+      meta: {},
+      version: customer.version
+    }),
+    execute: async () => {
+      const mergeIds = normalizeMergeIds(options.survivorId, options.mergeIds);
+      const expectedToken = computeMergeConfirmationToken(options.survivorId, mergeIds);
+      if (!options.confirmationToken?.trim() || options.confirmationToken.trim() !== expectedToken) {
+        throw new CustomerError(
+          "confirmation_token does not match merge preview checksum.",
+          "VALIDATION_FAILED"
+        );
+      }
 
-  await options.repo.rememberIdempotentMerge({
-    tenantId: options.tenantId,
-    idempotencyKey: key,
-    customer: merged
-  });
+      const { survivor, sources } = await loadActiveMergeSet({
+        repo: options.repo,
+        tenantId: options.tenantId,
+        survivorId: options.survivorId,
+        mergeIds
+      });
+      const fieldResolution = buildFieldResolution(survivor, sources);
+      const merged = await options.repo.executeMerge({
+        tenantId: options.tenantId,
+        survivorId: options.survivorId,
+        mergeIds,
+        actorId: options.actorId,
+        correlationId: options.correlationId?.trim() || key,
+        fieldResolution
+      });
 
-  return {
-    data: toCustomerResponseData(merged, options.actorPermissions),
-    meta: {},
-    version: merged.version
-  };
+      return {
+        customer: merged,
+        result: {
+          data: toCustomerResponseData(merged, options.actorPermissions),
+          meta: {},
+          version: merged.version
+        }
+      };
+    }
+  });
 }

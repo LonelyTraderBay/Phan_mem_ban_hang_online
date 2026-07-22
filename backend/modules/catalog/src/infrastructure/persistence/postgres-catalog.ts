@@ -109,32 +109,27 @@ function toVariantResource(v: VariantRow): CatalogResource {
   };
 }
 
-/** v1 process-local stores for idempotency and media uploads — no DB tables yet. */
+/**
+ * Catalog Postgres adapter.
+ * HTTP idempotency is via PostgresIdempotencyStore at application layer
+ * (get/save below are no-ops kept for CatalogRepository interface / InMemory parity).
+ * Media upload intents remain process-local until an uploads table exists.
+ */
 export class PostgresCatalogRepository implements CatalogRepository, MediaRepository {
-  private readonly idempotency = new Map<string, CatalogResource>();
-  private readonly mediaJobIdempotency = new Map<
-    string,
-    {
-      job_id: string;
-      status: "queued" | "running" | "completed" | "failed" | "cancelled";
-      status_url: string | null;
-    }
-  >();
-  private readonly mediaAttachIdempotency = new Map<string, CatalogResource>();
   private readonly uploads = new Map<string, MediaUploadRecord & { bytesReceived: boolean }>();
 
   constructor(private readonly db: AppDatabase) {}
 
-  private idemKey(tenantId: string, key: string): string {
-    return `${tenantId}:${key}`;
+  async getIdempotentResult(_tenantId: string, _key: string): Promise<CatalogResource | null> {
+    return null;
   }
 
-  async getIdempotentResult(tenantId: string, key: string): Promise<CatalogResource | null> {
-    return this.idempotency.get(this.idemKey(tenantId, key)) ?? null;
-  }
-
-  async saveIdempotentResult(tenantId: string, key: string, resource: CatalogResource): Promise<void> {
-    this.idempotency.set(this.idemKey(tenantId, key), resource);
+  async saveIdempotentResult(
+    _tenantId: string,
+    _key: string,
+    _resource: CatalogResource
+  ): Promise<void> {
+    /* no-op — use IdempotencyStore */
   }
 
   private async resolveCategoryPath(
@@ -968,38 +963,41 @@ export class PostgresCatalogRepository implements CatalogRepository, MediaReposi
   }
 
   async getIdempotentMediaJob(
-    tenantId: string,
-    key: string
+    _tenantId: string,
+    _key: string
   ): Promise<{
     readonly job_id: string;
     readonly status: "queued" | "running" | "completed" | "failed" | "cancelled";
     readonly status_url: string | null;
   } | null> {
-    return this.mediaJobIdempotency.get(`${tenantId}:${key}`) ?? null;
+    return null;
   }
 
   async saveIdempotentMediaJob(
-    tenantId: string,
-    key: string,
-    job: {
+    _tenantId: string,
+    _key: string,
+    _job: {
       readonly job_id: string;
       readonly status: "queued" | "running" | "completed" | "failed" | "cancelled";
       readonly status_url: string | null;
     }
   ): Promise<void> {
-    this.mediaJobIdempotency.set(`${tenantId}:${key}`, job);
+    /* no-op — use IdempotencyStore */
   }
 
-  async getIdempotentMediaAttach(tenantId: string, key: string): Promise<CatalogResource | null> {
-    return this.mediaAttachIdempotency.get(`${tenantId}:${key}`) ?? null;
+  async getIdempotentMediaAttach(
+    _tenantId: string,
+    _key: string
+  ): Promise<CatalogResource | null> {
+    return null;
   }
 
   async saveIdempotentMediaAttach(
-    tenantId: string,
-    key: string,
-    resource: CatalogResource
+    _tenantId: string,
+    _key: string,
+    _resource: CatalogResource
   ): Promise<void> {
-    this.mediaAttachIdempotency.set(`${tenantId}:${key}`, resource);
+    /* no-op — use IdempotencyStore */
   }
 
   async signDownloadUrl(args: {
