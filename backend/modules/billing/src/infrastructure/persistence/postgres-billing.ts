@@ -111,19 +111,24 @@ export class PostgresBillingRepository implements BillingRepository {
       }
 
       const id = subscription.id || generateUuidV7();
-      await sql`
-        insert into app.subscriptions (
-          id, tenant_id, plan_id, status, period_start, period_end, seats_used
-        ) values (
-          ${id}::uuid,
-          ${subscription.tenantId}::uuid,
-          ${subscription.planId},
-          ${subscription.status},
-          ${subscription.periodStart}::timestamptz,
-          ${subscription.periodEnd}::timestamptz,
-          ${subscription.seatsUsed}
-        )
-      `.execute(trx);
+      try {
+        await sql`
+          insert into app.subscriptions (
+            id, tenant_id, plan_id, status, period_start, period_end, seats_used
+          ) values (
+            ${id}::uuid,
+            ${subscription.tenantId}::uuid,
+            ${subscription.planId},
+            ${subscription.status},
+            ${subscription.periodStart}::timestamptz,
+            ${subscription.periodEnd}::timestamptz,
+            ${subscription.seatsUsed}
+          )
+        `.execute(trx);
+      } catch (error) {
+        // Concurrent ensureSubscription hit uq_subscriptions_tenant_active.
+        if (!isUniqueViolation(error)) throw error;
+      }
     });
   }
 
@@ -143,7 +148,7 @@ export class PostgresBillingRepository implements BillingRepository {
     });
   }
 
-  async saveMeter(meter: UsageMeterRecord): Promise<void> {
+  async saveMeter(meter: UsageMeterRecord): Promise<UsageMeterRecord> {
     const ctx = adapterSecurityContext(meter.tenantId);
     try {
       await withTenantTransaction(this.db, ctx, async (trx) => {
@@ -167,10 +172,12 @@ export class PostgresBillingRepository implements BillingRepository {
             updated_at = now()
         `.execute(trx);
       });
+      return meter;
     } catch (error) {
       if (!isUniqueViolation(error) || !meter.idempotencyKey) throw error;
       const existing = await this.findMeterByIdempotency(meter.tenantId, meter.idempotencyKey);
       if (!existing) throw error;
+      return existing;
     }
   }
 

@@ -47,7 +47,8 @@ export interface BillingRepository {
   getSubscription(tenantId: string): Promise<SubscriptionRecord | null>;
   saveSubscription(subscription: SubscriptionRecord): Promise<void>;
   getMeter(tenantId: string, meterKey: MeterKey): Promise<UsageMeterRecord | null>;
-  saveMeter(meter: UsageMeterRecord): Promise<void>;
+  /** Returns persisted meter (existing row on idempotency conflict). */
+  saveMeter(meter: UsageMeterRecord): Promise<UsageMeterRecord>;
   findMeterByIdempotency(tenantId: string, key: string): Promise<UsageMeterRecord | null>;
 }
 
@@ -105,7 +106,8 @@ async function ensureSubscription(repo: BillingRepository, tenantId: string): Pr
     seatsUsed: 1
   };
   await repo.saveSubscription(subscription);
-  return subscription;
+  // Reload after race on uq_subscriptions_tenant_active.
+  return (await repo.getSubscription(tenantId)) ?? subscription;
 }
 
 export async function getBillingPlan(options: {
@@ -202,8 +204,19 @@ export async function recordUsageEvent(options: {
     periodEnd: period.end.toISOString(),
     idempotencyKey: options.idempotencyKey
   };
-  await options.repo.saveMeter(meter);
-  return { meter, entitlement };
+  const saved = await options.repo.saveMeter(meter);
+  // Idempotency conflict: surface persisted meter + entitlement for that count.
+  if (saved.usedCount !== meter.usedCount) {
+    return {
+      meter: saved,
+      entitlement: checkEntitlement({
+        planId: subscription.planId,
+        meterKey: options.meterKey,
+        used: saved.usedCount
+      })
+    };
+  }
+  return { meter: saved, entitlement };
 }
 
 export async function getEntitlementPolicy(options: {

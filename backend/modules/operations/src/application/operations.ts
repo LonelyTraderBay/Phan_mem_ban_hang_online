@@ -62,6 +62,8 @@ export interface ReprocessRequestRecord {
   readonly reason: string | null;
   readonly status: "queued" | "running" | "completed" | "failed" | "cancelled";
   readonly createdAt: string;
+  /** Set on insert so unique index applies atomically (avoids null-key race). */
+  readonly idempotencyKey?: string | null;
 }
 
 export interface OperationsRepository {
@@ -251,7 +253,8 @@ export async function createReprocessRequest(options: {
     targetTenantId: options.targetTenantId ?? null,
     reason: options.reason ?? null,
     status: "queued",
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    idempotencyKey: options.idempotencyKey
   });
   if ("trackReprocessIdempotency" in options.repo) {
     await Promise.resolve(

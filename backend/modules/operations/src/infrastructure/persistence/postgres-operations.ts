@@ -2,12 +2,13 @@ import { sql } from "kysely";
 import type { AppDatabase } from "@ai-sales/database";
 import { adapterSecurityContext, withTenantTransaction } from "@ai-sales/database";
 import { generateUuidV7 } from "@ai-sales/domain-kernel";
-import type {
-  FeatureFlagOverride,
-  OperationsRepository,
-  ReprocessRequestRecord,
-  SystemAlertRecord,
-  TenantHealthRecord
+import {
+  OperationsError,
+  type FeatureFlagOverride,
+  type OperationsRepository,
+  type ReprocessRequestRecord,
+  type SystemAlertRecord,
+  type TenantHealthRecord
 } from "../../application/operations.js";
 
 /**
@@ -51,6 +52,15 @@ function isUniqueViolation(error: unknown): boolean {
     error !== null &&
     "code" in error &&
     String((error as { code: unknown }).code) === "23505"
+  );
+}
+
+function isForeignKeyViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    String((error as { code: unknown }).code) === "23503"
   );
 }
 
@@ -152,27 +162,37 @@ export class PostgresOperationsRepository implements OperationsRepository {
   async setFeatureFlag(override: FeatureFlagOverride): Promise<FeatureFlagOverride> {
     // Parent rows must be seeded in migration 000025 — runtime cannot INSERT feature_flags.
     const ctx = adapterSecurityContext(override.tenantId);
-    return withTenantTransaction(this.db, ctx, async (trx) => {
-      const id = generateUuidV7();
-      const result = await sql<FlagRow>`
-        insert into app.feature_flag_overrides (
-          id, tenant_id, flag_key, enabled, expires_at, reason
-        ) values (
-          ${id}::uuid,
-          ${override.tenantId}::uuid,
-          ${override.flagKey},
-          ${override.enabled},
-          ${override.expiresAt}::timestamptz,
-          ${override.reason}
-        )
-        on conflict (tenant_id, flag_key) do update set
-          enabled = excluded.enabled,
-          expires_at = excluded.expires_at,
-          reason = excluded.reason
-        returning tenant_id, flag_key, enabled, expires_at, reason
-      `.execute(trx);
-      return toFlag(result.rows[0]!);
-    });
+    try {
+      return await withTenantTransaction(this.db, ctx, async (trx) => {
+        const id = generateUuidV7();
+        const result = await sql<FlagRow>`
+          insert into app.feature_flag_overrides (
+            id, tenant_id, flag_key, enabled, expires_at, reason
+          ) values (
+            ${id}::uuid,
+            ${override.tenantId}::uuid,
+            ${override.flagKey},
+            ${override.enabled},
+            ${override.expiresAt}::timestamptz,
+            ${override.reason}
+          )
+          on conflict (tenant_id, flag_key) do update set
+            enabled = excluded.enabled,
+            expires_at = excluded.expires_at,
+            reason = excluded.reason
+          returning tenant_id, flag_key, enabled, expires_at, reason
+        `.execute(trx);
+        return toFlag(result.rows[0]!);
+      });
+    } catch (error) {
+      if (isForeignKeyViolation(error)) {
+        throw new OperationsError(
+          `Unknown feature flag key: ${override.flagKey}`,
+          "VALIDATION_FAILED"
+        );
+      }
+      throw error;
+    }
   }
 
   async getFeatureFlag(
@@ -197,6 +217,14 @@ export class PostgresOperationsRepository implements OperationsRepository {
     tenantId: string
   ): Promise<{ readonly tenantId: string; readonly aiEnabled: boolean }> {
     const ctx = adapterSecurityContext(tenantId);
+    const disabledAt = new Date().toISOString();
+    // AI getTenantSwitch prefers metadata.switch over switch_enabled columns.
+    const switchState = {
+      disabled: true,
+      disabledAt,
+      disabledBy: "ops.disable_ai",
+      fallbackMode: "deterministic"
+    };
     await withTenantTransaction(this.db, ctx, async (trx) => {
       await sql`
         insert into app.tenant_ai_controls (
@@ -209,12 +237,17 @@ export class PostgresOperationsRepository implements OperationsRepository {
           1000000,
           'daily',
           now(),
-          '{}'::jsonb
+          ${JSON.stringify({ switch: switchState })}::jsonb
         )
         on conflict (tenant_id) do update set
           switch_enabled = false,
-          switch_reason = coalesce(excluded.switch_reason, app.tenant_ai_controls.switch_reason),
-          updated_at = now()
+          switch_reason = 'ops.disable_ai',
+          updated_at = now(),
+          metadata = jsonb_set(
+            coalesce(app.tenant_ai_controls.metadata, '{}'::jsonb),
+            '{switch}',
+            ${JSON.stringify(switchState)}::jsonb
+          )
       `.execute(trx);
     });
     return { tenantId, aiEnabled: false };
@@ -258,23 +291,37 @@ export class PostgresOperationsRepository implements OperationsRepository {
   async createReprocess(request: ReprocessRequestRecord): Promise<ReprocessRequestRecord> {
     const tenantCtx = request.targetTenantId ?? PLATFORM_OPS_TENANT;
     const ctx = adapterSecurityContext(tenantCtx);
-    return withTenantTransaction(this.db, ctx, async (trx) => {
-      const result = await sql<ReprocessRow>`
-        insert into app.reprocess_requests (
-          id, target_type, target_id, target_tenant_id, reason, status, created_at
-        ) values (
-          ${request.id}::uuid,
-          ${request.targetType},
-          ${request.targetId}::uuid,
-          ${request.targetTenantId}::uuid,
-          ${request.reason},
-          ${request.status},
-          ${request.createdAt}::timestamptz
-        )
-        returning id, target_type, target_id, target_tenant_id, reason, status, created_at
-      `.execute(trx);
-      return toReprocess(result.rows[0]!);
-    });
+    const idempotencyKey = request.idempotencyKey?.trim() || null;
+    if (idempotencyKey) {
+      this.idempotency.set(idempotencyKey, request.id);
+    }
+    try {
+      return await withTenantTransaction(this.db, ctx, async (trx) => {
+        const result = await sql<ReprocessRow>`
+          insert into app.reprocess_requests (
+            id, target_type, target_id, target_tenant_id, reason, status,
+            created_at, idempotency_key
+          ) values (
+            ${request.id}::uuid,
+            ${request.targetType},
+            ${request.targetId}::uuid,
+            ${request.targetTenantId}::uuid,
+            ${request.reason},
+            ${request.status},
+            ${request.createdAt}::timestamptz,
+            ${idempotencyKey}
+          )
+          returning id, target_type, target_id, target_tenant_id, reason, status, created_at
+        `.execute(trx);
+        return toReprocess(result.rows[0]!);
+      });
+    } catch (error) {
+      if (!isUniqueViolation(error) || !idempotencyKey) throw error;
+      const existing = await this.findReprocessByIdempotency(idempotencyKey);
+      if (!existing) throw error;
+      this.idempotency.set(idempotencyKey, existing.id);
+      return existing;
+    }
   }
 
   async findReprocessByIdempotency(key: string): Promise<ReprocessRequestRecord | null> {
