@@ -530,6 +530,13 @@ export class PostgresInventoryRepository implements InventoryRepository {
   }): Promise<AdjustmentRecord> {
     const ctx = adapterSecurityContext(args.tenantId, args.actorId);
     return withTenantTransaction(this.db, ctx, async (trx) => {
+      const replay = await this.findAdjustmentByIdempotencyKey(
+        trx,
+        args.tenantId,
+        args.idempotencyKey
+      );
+      if (replay) return replay;
+
       const wh = await sql<{ id: string }>`
         select id from app.warehouses where id = ${args.warehouseId}::uuid
       `.execute(trx);
@@ -668,6 +675,17 @@ export class PostgresInventoryRepository implements InventoryRepository {
   }): Promise<ReservationRecord> {
     const ctx = adapterSecurityContext(args.tenantId, args.actorId);
     return withTenantTransaction(this.db, ctx, async (trx) => {
+      const existingId = await sql<{ id: string }>`
+        select id from app.inventory_reservations
+        where tenant_id = ${args.tenantId}::uuid
+          and idempotency_key = ${args.idempotencyKey}
+        limit 1
+      `.execute(trx);
+      if (existingId.rows[0]) {
+        const loaded = await this.loadReservation(trx, args.tenantId, existingId.rows[0].id);
+        if (loaded) return this.toReservationRecord(loaded);
+      }
+
       const sortedItems = [...args.items].sort((a, b) => {
         const whA = a.preferredWarehouseId ?? "";
         const whB = b.preferredWarehouseId ?? "";
@@ -1102,8 +1120,53 @@ export class PostgresInventoryRepository implements InventoryRepository {
     this.warehouseIdempotency.set(this.idemKey(tenantId, key), warehouse);
   }
 
+  private async findAdjustmentByIdempotencyKey(
+    trx: Parameters<Parameters<typeof withTenantTransaction>[2]>[0],
+    tenantId: string,
+    key: string
+  ): Promise<AdjustmentRecord | null> {
+    const result = await sql<{
+      id: string;
+      tenant_id: string;
+      warehouse_id: string;
+      variant_id: string;
+      quantity_delta: string;
+      reason: string;
+      version: number;
+      created_at: Date;
+      updated_at: Date;
+    }>`
+      select id, tenant_id, warehouse_id, variant_id, quantity_delta, reason,
+             version, created_at, updated_at
+      from app.inventory_adjustments
+      where tenant_id = ${tenantId}::uuid and idempotency_key = ${key}
+      limit 1
+    `.execute(trx);
+    const row = result.rows[0];
+    if (!row) return null;
+    return {
+      id: row.id,
+      tenant_id: row.tenant_id,
+      status: "posted",
+      version: Number(row.version),
+      created_at: row.created_at.toISOString(),
+      updated_at: row.updated_at.toISOString(),
+      warehouse_id: row.warehouse_id,
+      variant_id: row.variant_id,
+      quantity_delta: formatQuantity(Number(row.quantity_delta)),
+      reason: row.reason
+    };
+  }
+
   async getIdempotentAdjustment(tenantId: string, key: string): Promise<AdjustmentRecord | null> {
-    return this.adjustmentIdempotency.get(this.idemKey(tenantId, key)) ?? null;
+    const cached = this.adjustmentIdempotency.get(this.idemKey(tenantId, key));
+    if (cached) return cached;
+    const ctx = adapterSecurityContext(tenantId);
+    return withTenantTransaction(this.db, ctx, async (trx) => {
+      const found = await this.findAdjustmentByIdempotencyKey(trx, tenantId, key);
+      if (found) this.adjustmentIdempotency.set(this.idemKey(tenantId, key), found);
+      return found;
+    });
   }
 
   async rememberIdempotentAdjustment(
@@ -1115,7 +1178,22 @@ export class PostgresInventoryRepository implements InventoryRepository {
   }
 
   async getIdempotentReservation(tenantId: string, key: string): Promise<ReservationRecord | null> {
-    return this.reservationIdempotency.get(this.idemKey(tenantId, key)) ?? null;
+    const cached = this.reservationIdempotency.get(this.idemKey(tenantId, key));
+    if (cached) return cached;
+    const ctx = adapterSecurityContext(tenantId);
+    return withTenantTransaction(this.db, ctx, async (trx) => {
+      const existingId = await sql<{ id: string }>`
+        select id from app.inventory_reservations
+        where tenant_id = ${tenantId}::uuid and idempotency_key = ${key}
+        limit 1
+      `.execute(trx);
+      if (!existingId.rows[0]) return null;
+      const loaded = await this.loadReservation(trx, tenantId, existingId.rows[0].id);
+      if (!loaded) return null;
+      const record = this.toReservationRecord(loaded);
+      this.reservationIdempotency.set(this.idemKey(tenantId, key), record);
+      return record;
+    });
   }
 
   async rememberIdempotentReservation(

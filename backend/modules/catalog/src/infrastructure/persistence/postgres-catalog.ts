@@ -271,6 +271,12 @@ export class PostgresCatalogRepository implements CatalogRepository, MediaReposi
         path = await this.resolveCategoryPath(trx, args.tenantId, parentId, slug);
       }
 
+      const oldPathRow = await sql<{ path: string }>`
+        select path from app.categories
+        where id = ${args.categoryId}::uuid and tenant_id = ${args.tenantId}::uuid
+      `.execute(trx);
+      const oldPath = oldPathRow.rows[0]?.path;
+
       const updated = await sql<CategoryRow>`
         update app.categories
         set name = ${name},
@@ -287,6 +293,16 @@ export class PostgresCatalogRepository implements CatalogRepository, MediaReposi
       const row = updated.rows[0];
       if (!row) {
         throw new CatalogError("Category version conflict.", "RESOURCE_VERSION_MISMATCH");
+      }
+      // Keep descendant materialized paths consistent after rename/reparent.
+      if (oldPath && oldPath !== path) {
+        await sql`
+          update app.categories
+          set path = ${path} || substring(path from ${oldPath.length + 1}),
+              updated_at = now()
+          where tenant_id = ${args.tenantId}::uuid
+            and path like ${`${oldPath}/%`}
+        `.execute(trx);
       }
       return toCategoryResource(row);
     });
@@ -431,13 +447,22 @@ export class PostgresCatalogRepository implements CatalogRepository, MediaReposi
         }
       }
 
+      // Explicit null clears nullable fields; undefined means "leave unchanged".
+      const nextName = args.name !== undefined ? (args.name?.trim() ?? product.name) : product.name;
+      const nextDescription =
+        args.description !== undefined ? args.description : product.description;
+      const nextCategoryId =
+        args.categoryId !== undefined ? args.categoryId : product.category_id;
+      const nextBrand = args.brand !== undefined ? args.brand : product.brand;
+      const nextStatus = args.status !== undefined && args.status != null ? args.status : product.status;
+
       const updated = await sql<ProductRow>`
         update app.products
-        set name = coalesce(${args.name != null ? args.name.trim() : null}, name),
-            description = coalesce(${args.description ?? null}, description),
-            category_id = coalesce(${args.categoryId ?? null}::uuid, category_id),
-            brand = coalesce(${args.brand ?? null}, brand),
-            status = coalesce(${args.status ?? null}, status),
+        set name = ${nextName},
+            description = ${nextDescription},
+            category_id = ${nextCategoryId}::uuid,
+            brand = ${nextBrand},
+            status = ${nextStatus},
             version = version + 1,
             updated_at = now()
         where id = ${args.productId}::uuid
