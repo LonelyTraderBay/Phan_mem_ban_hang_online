@@ -107,22 +107,22 @@ phase,task_id,title,deliverable_or_details,status,primary_paths
 19.9 Phase P7,BE-FUL-002,Pack/ship/deliver transitions,,Done,modules/fulfillment/
 19.9 Phase P7,BE-RET-001,Return/receive/inspect/restock/refund flow,,Done,modules/fulfillment/
 19.9 Phase P7,BE-ORD-008,Concurrency/property/reconciliation test suites,,Done,modules/order/
-19.10 Phase P8,BE-AI-001,"FastAPI skeleton, model gateway, OTel, health/timeouts",,Not Started,modules/ai-orchestration/;apps/ai-service/
-19.10 Phase P8,BE-AI-002,Prompt/model/tool/retrieval config version model,,Not Started,modules/ai-orchestration/;apps/ai-service/
-19.10 Phase P8,BE-AI-003,Context builder/minimization/untrusted-content separation,,Not Started,modules/ai-orchestration/;apps/ai-service/
-19.10 Phase P8,BE-AI-004,Intent/risk classifier interface and deterministic fallback,,Not Started,modules/ai-orchestration/;apps/ai-service/
-19.10 Phase P8,BE-AI-005,Tenant-filtered knowledge retrieval client,,Not Started,modules/ai-orchestration/;apps/ai-service/
-19.10 Phase P8,BE-AI-006,Tool registry/policy gateway/R0â€“R5 enforcement,,Not Started,modules/ai-orchestration/;apps/ai-service/
-19.10 Phase P8,BE-AI-007,Catalog/inventory/policy/customer/order read tools,,Not Started,modules/ai-orchestration/;apps/ai-service/
-19.10 Phase P8,BE-AI-008,Draft/reservation/message mutation tools with idempotency/approval,,Not Started,modules/ai-orchestration/;apps/ai-service/
-19.10 Phase P8,BE-AI-009,Structured suggestion schema + bounded repair,,Not Started,modules/ai-orchestration/;apps/ai-service/
-19.10 Phase P8,BE-AI-010,QC/claim/source/freshness validators,,Not Started,modules/ai-orchestration/;apps/ai-service/
-19.10 Phase P8,BE-AI-011,AI-R001⬦AI-R010 enforcement and blocked output records,,Not Started,modules/ai-orchestration/;apps/ai-service/
-19.10 Phase P8,BE-AI-012,Suggestion/log/review/send APIs,,Not Started,modules/ai-orchestration/;apps/ai-service/
-19.10 Phase P8,BE-AI-013,Prompt lifecycle/eval runner/activation/rollback,,Not Started,modules/ai-orchestration/;apps/ai-service/
-19.10 Phase P8,BE-AI-014,P0/P1 eval sets/red-team regression,,Not Started,modules/ai-orchestration/;apps/ai-service/
-19.10 Phase P8,BE-AI-015,Budget/rate/concurrency/fallback/kill switches,,Not Started,modules/ai-orchestration/;apps/ai-service/
-19.10 Phase P8,BE-AI-016,Online quality/cost/safety dashboards,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-001,"FastAPI skeleton, model gateway, OTel, health/timeouts",,Done,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-002,Prompt/model/tool/retrieval config version model,,Done,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-003,Context builder/minimization/untrusted-content separation,,Done,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-004,Intent/risk classifier interface and deterministic fallback,,Done,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-005,Tenant-filtered knowledge retrieval client,,Done,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-006,Tool registry/policy gateway/R0–R5 enforcement,,Done,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-007,Catalog/inventory/policy/customer/order read tools,,Done,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-008,Draft/reservation/message mutation tools with idempotency/approval,,Done,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-009,Structured suggestion schema + bounded repair,,Done,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-010,QC/claim/source/freshness validators,,Done,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-011,AI-R001⬦AI-R010 enforcement and blocked output records,,Done,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-012,Suggestion/log/review/send APIs,,Done,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-013,Prompt lifecycle/eval runner/activation/rollback,,Done,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-014,P0/P1 eval sets/red-team regression,,Done,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-015,Budget/rate/concurrency/fallback/kill switches,,Done,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-016,Online quality/cost/safety dashboards,,Done,modules/ai-orchestration/;apps/ai-service/
 19.11 Phase P9,BE-DAT-001,Business event schema/taxonomy completeness review,,Not Started,modules/analytics/
 19.11 Phase P9,BE-DAT-002,Event log/projection consumer/inbox/watermark,,Not Started,modules/analytics/
 19.11 Phase P9,BE-DAT-003,Order/revenue/profit facts,,Not Started,modules/analytics/

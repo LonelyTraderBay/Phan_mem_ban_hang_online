@@ -4,7 +4,7 @@ title: Tool registry/policy gateway/R0â€“R5 enforcement
 owner: Backend AI Agent
 phase: P8
 risk: high
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

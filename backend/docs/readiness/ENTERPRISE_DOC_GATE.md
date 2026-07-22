@@ -45,7 +45,8 @@
 | **BE-PAY-001…003** | **GREEN (done)** | Payment schema (`000020`) + manual payment + provider callback stub — `docs/tickets/BE-PAY-*.md` (`done`) |
 | **BE-FUL-001…002** | **GREEN (done)** | Shipment/pack/ship/deliver (`000020`) — `docs/tickets/BE-FUL-*.md` (`done`) |
 | **BE-RET-001** | **GREEN (done)** | Return/receive/inspect/restock/refund flow stub (`000020`) — `docs/tickets/BE-RET-001.md` (`done`) |
-| **P8 AI / F02+** | **RED until phase** | Chỉ khi phase hiện tại Done + artefacts còn consistent |
+| **BE-AI-001…016** | **GREEN (done)** | AI orchestration schema (`000021`) + in-memory application + HTTP controller + ai-service stub — `docs/tickets/BE-AI-*.md` (`done`) |
+| **P9 Analytics / F02+** | **RED until phase** | Chỉ khi phase hiện tại Done + artefacts còn consistent |
 
 ## Kickoff order (bắt buộc)
 
@@ -83,7 +84,8 @@
 31. BE-ORD-001…008 order schema + money calc + in-memory application — Done (`000019`)
 32. BE-PAY-001…003 payment schema + manual payment + callback stub — Done (`000020`)
 33. BE-FUL-001…002 + BE-RET-001 fulfillment/returns — Done (`000020`)
-34. P8 AI → per phase order
+34. BE-AI-001…016 AI orchestration — Done (`000021`)
+35. P9 Analytics → per phase order
 ```
 
 Money/tax/billing: luôn cite [`../business/HO_DEFAULTS_v1.md`](../business/HO_DEFAULTS_v1.md).

@@ -4,7 +4,7 @@ title: Draft/reservation/message mutation tools with idempotency/approval
 owner: Backend AI Agent
 phase: P8
 risk: high
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

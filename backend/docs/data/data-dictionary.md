@@ -90,14 +90,14 @@ authoritative for AI coding agents — do not re-open without ADR.
 | `knowledge_sources` | TENANT_OWNED | Done (`000016`) | |
 | `knowledge_source_versions` | TENANT_OWNED | Done (`000016`) | Only one published version effective at a time (unless scoped otherwise) |
 | `knowledge_chunks` | TENANT_OWNED | Done (`000016`) | Retrieval query MUST filter tenant + published version (§4.3.7) |
-| `prompt_versions` | TENANT_OWNED | Not started | Technical default (not HO business decision): consistent with sibling AI tables + per-tenant `ai.configure`/`ai.activate`. Platform-wide-only prompts → override via ADR. |
-| `ai_logs` | TENANT_OWNED | Not started | |
-| `ai_tool_calls` | TENANT_OWNED | Not started | |
-| `ai_evaluation_sets` | GLOBAL | Not started | Platform-owned eval harness (blueprint §13.13) — not tenant data |
-| `ai_evaluation_cases` | GLOBAL | Not started | Child of `ai_evaluation_sets`; no `tenant_id` |
-| `ai_evaluation_runs` | GLOBAL | Not started | Child of `ai_evaluation_sets`; no `tenant_id` |
-| `ai_evaluation_results` | GLOBAL | Not started | Child of `ai_evaluation_sets`; no `tenant_id` |
-| `ai_blocked_outputs` | TENANT_OWNED | Not started | Per-tenant incident record |
+| `prompt_versions` | TENANT_OWNED | Done (`000021`) | Technical default (not HO business decision): consistent with sibling AI tables + per-tenant `ai.configure`/`ai.activate`. Platform-wide-only prompts → override via ADR. |
+| `ai_logs` | TENANT_OWNED | Done (`000021`) | |
+| `ai_tool_calls` | TENANT_OWNED | Done (`000021`) | |
+| `ai_evaluation_sets` | GLOBAL | Done (`000021`) | Platform-owned eval harness (blueprint §13.13) — not tenant data |
+| `ai_evaluation_cases` | GLOBAL | Done (`000021`) | Child of `ai_evaluation_sets`; no `tenant_id` |
+| `ai_evaluation_runs` | GLOBAL | Done (`000021`) | Child of `ai_evaluation_sets`; no `tenant_id` |
+| `ai_evaluation_results` | GLOBAL | Done (`000021`) | Child of `ai_evaluation_sets`; no `tenant_id` |
+| `ai_blocked_outputs` | TENANT_OWNED | Done (`000021`) | Per-tenant incident record |
 
 ## Channel / Conversation (blueprint §7.10)
 
@@ -141,7 +141,7 @@ authoritative for AI coding agents — do not re-open without ADR.
 | `daily_product_metrics` | TENANT_OWNED | Not started | Fact table |
 | `conversation_conversion_facts` | TENANT_OWNED | Not started | Fact table |
 | `order_profit_facts` | TENANT_OWNED | Not started | Fact table |
-| `ai_quality_facts` | TENANT_OWNED | Not started | Fact table |
+| `ai_quality_facts` | TENANT_OWNED | Done (`000021`) | Fact table |
 | `plans` | GLOBAL | Not started | Seed ids: `plan_free` \| `plan_pro` \| `plan_business` (HO_DEFAULTS_v1) |
 | `subscriptions` | TENANT_OWNED | Not started | Over-limit: soft_warn → hard_block, no auto-upgrade (HO_DEFAULTS) |
 | `usage_meters` | TENANT_OWNED | Not started | |

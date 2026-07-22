@@ -41,6 +41,16 @@ import {
   type OutboundQueuePort
 } from "@ai-sales/module-conversation";
 import {
+  createAiOrchestrationController,
+  createKnowledgeRetrievalClient,
+  InMemoryAiOrchestrationRepository,
+  type ConversationLookupPort,
+  type OutboundSendPort
+} from "@ai-sales/module-ai-orchestration";
+import {
+  searchPublishedKnowledge
+} from "@ai-sales/module-knowledge";
+import {
   createFulfillmentController,
   InMemoryFulfillmentRepository,
   type InventoryRestockPort,
@@ -104,6 +114,7 @@ const conversationRepo = new InMemoryConversationRepository();
 const orderRepo = new InMemoryOrderRepository();
 const paymentRepo = new InMemoryPaymentRepository();
 const fulfillmentRepo = new InMemoryFulfillmentRepository();
+const aiOrchestrationRepo = new InMemoryAiOrchestrationRepository();
 
 const catalogPricingPort: CatalogPricingPort = {
   async getVariantPricing(args) {
@@ -207,6 +218,49 @@ const conversationOutboundPort: OutboundQueuePort = {
   }
 };
 
+const conversationLookupPort: ConversationLookupPort = {
+  async conversationExists(args) {
+    const conv = await conversationRepo.getConversation({
+      tenantId: args.tenantId,
+      conversationId: args.conversationId
+    });
+    return conv !== null;
+  }
+};
+
+const aiKnowledgePort = createKnowledgeRetrievalClient({
+  async search(args) {
+    return searchPublishedKnowledge({
+      repo: knowledgeRepo,
+      tenantId: args.tenantId,
+      query: args.query,
+      ...(args.topK !== undefined ? { topK: args.topK } : {})
+    });
+  }
+});
+
+const aiOutboundPort: OutboundSendPort = {
+  async queueSuggestionSend(args) {
+    const conv = await conversationRepo.getConversation({
+      tenantId: args.tenantId,
+      conversationId: args.conversationId
+    });
+    if (!conv?.channelAccountId) {
+      return { jobId: args.suggestionId, status: "queued" };
+    }
+    const queued = await queueOutboundMessage({
+      repo: channelRepo,
+      tenantId: args.tenantId,
+      actorId: args.actorId,
+      channelAccountId: conv.channelAccountId,
+      idempotencyKey: args.idempotencyKey,
+      contentType: "text",
+      text: args.text
+    });
+    return { jobId: queued.id, status: "queued" };
+  }
+};
+
 function buildOidcConfig(): OidcClientConfig | null {
   const config = loadConfig(process.env);
   if (!isOidcConfigured(config)) return null;
@@ -271,6 +325,12 @@ function buildControllers(): Type<unknown>[] {
         repo: fulfillmentRepo,
         orders: orderEligibilityPort,
         inventory: inventoryRestockPort
+      }),
+      createAiOrchestrationController({
+        repo: aiOrchestrationRepo,
+        conversations: conversationLookupPort,
+        knowledge: aiKnowledgePort,
+        outbound: aiOutboundPort
       })
     );
 
