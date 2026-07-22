@@ -1,0 +1,10 @@
+export { createApiClient } from "./transport";
+export type { ApiClient, ApiResult, RequestOptions, CreateApiClientOptions } from "./transport";
+export { isProblemDetails, parseProblemDetails, fieldErrorsByPath } from "./problemDetails";
+export type { ProblemDetails, FieldError } from "./problemDetails";
+export type { ErrorCode } from "./generated/errorCodes";
+export { createIdempotencyKeyStore } from "./idempotency";
+export type { IdempotencyKeyStore } from "./idempotency";
+export { ifMatchHeaders, isConcurrencyConflictStatus } from "./concurrency";
+export type { TenantApiPaths, TenantApiComponents, TenantApiOperations } from "@ai-sales/api-generated";
+export type { OpsApiPaths, OpsApiComponents, OpsApiOperations } from "@ai-sales/api-generated";

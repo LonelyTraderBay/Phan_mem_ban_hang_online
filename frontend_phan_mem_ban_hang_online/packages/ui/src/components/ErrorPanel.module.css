@@ -1,0 +1,25 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ai-sales-spacing-2);
+  align-items: flex-start;
+  padding: var(--ai-sales-spacing-4);
+  border-radius: var(--ai-sales-radius-md);
+  background-color: var(--ai-sales-color-danger-subtle);
+  color: var(--ai-sales-color-danger-text);
+}
+
+.title {
+  font-weight: var(--ai-sales-font-weight-semibold);
+  margin: 0;
+}
+
+.detail {
+  font-size: var(--ai-sales-font-size-sm);
+  margin: 0;
+}
+
+.meta {
+  font-size: var(--ai-sales-font-size-xs);
+  color: var(--ai-sales-color-text-muted);
+}

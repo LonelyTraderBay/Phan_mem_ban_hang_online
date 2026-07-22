@@ -1,0 +1,7 @@
+{
+  "app.loading": "Đang tải...",
+  "app.error.generic": "Đã có lỗi xảy ra. Vui lòng thử lại.",
+  "app.error.forbidden": "Bạn không có quyền truy cập mục này.",
+  "app.error.offline": "Mất kết nối mạng.",
+  "app.empty.generic": "Không có dữ liệu để hiển thị."
+}

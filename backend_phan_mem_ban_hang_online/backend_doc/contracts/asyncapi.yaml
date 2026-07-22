@@ -1,0 +1,864 @@
+asyncapi: 3.1.0
+info:
+  title: AI Sales Operating System Events
+  version: 2.0.0
+  description: Starter AsyncAPI contract for internal domain events and realtime notifications.
+servers:
+  redis:
+    host: redis.internal:6379
+    protocol: redis
+    description: Logical transport; BullMQ queues/outbox publisher are implementation details.
+  sse:
+    host: api.example.com
+    pathname: /api/v1/realtime/stream
+    protocol: https
+    description: Authenticated Server-Sent Events endpoint.
+channels:
+  domainEvents:
+    address: domain.events
+    messages:
+      tenantActivated:
+        $ref: '#/components/messages/tenantActivated'
+      tenantSuspended:
+        $ref: '#/components/messages/tenantSuspended'
+      membershipChanged:
+        $ref: '#/components/messages/membershipChanged'
+      customerUpdated:
+        $ref: '#/components/messages/customerUpdated'
+      customerMerged:
+        $ref: '#/components/messages/customerMerged'
+      catalogVariantUpdated:
+        $ref: '#/components/messages/catalogVariantUpdated'
+      inventoryAdjusted:
+        $ref: '#/components/messages/inventoryAdjusted'
+      inventoryReserved:
+        $ref: '#/components/messages/inventoryReserved'
+      inventoryReservationReleased:
+        $ref: '#/components/messages/inventoryReservationReleased'
+      inventoryReservationExpired:
+        $ref: '#/components/messages/inventoryReservationExpired'
+      knowledgePublished:
+        $ref: '#/components/messages/knowledgePublished'
+      knowledgeIngestionCompleted:
+        $ref: '#/components/messages/knowledgeIngestionCompleted'
+      channelAccountConnected:
+        $ref: '#/components/messages/channelAccountConnected'
+      channelHealthChanged:
+        $ref: '#/components/messages/channelHealthChanged'
+      webhookReceived:
+        $ref: '#/components/messages/webhookReceived'
+      messageInboundNormalized:
+        $ref: '#/components/messages/messageInboundNormalized'
+      messageOutboundQueued:
+        $ref: '#/components/messages/messageOutboundQueued'
+      messageOutboundSent:
+        $ref: '#/components/messages/messageOutboundSent'
+      messageOutboundFailed:
+        $ref: '#/components/messages/messageOutboundFailed'
+      conversationCreated:
+        $ref: '#/components/messages/conversationCreated'
+      conversationUpdated:
+        $ref: '#/components/messages/conversationUpdated'
+      conversationSlaBreached:
+        $ref: '#/components/messages/conversationSlaBreached'
+      aiSuggestionCreated:
+        $ref: '#/components/messages/aiSuggestionCreated'
+      aiOutputBlocked:
+        $ref: '#/components/messages/aiOutputBlocked'
+      orderDraftCreated:
+        $ref: '#/components/messages/orderDraftCreated'
+      orderConfirmed:
+        $ref: '#/components/messages/orderConfirmed'
+      orderCancelled:
+        $ref: '#/components/messages/orderCancelled'
+      paymentRecorded:
+        $ref: '#/components/messages/paymentRecorded'
+      paymentRefunded:
+        $ref: '#/components/messages/paymentRefunded'
+      shipmentCreated:
+        $ref: '#/components/messages/shipmentCreated'
+      shipmentStatusChanged:
+        $ref: '#/components/messages/shipmentStatusChanged'
+      returnCompleted:
+        $ref: '#/components/messages/returnCompleted'
+      billingUsageRecorded:
+        $ref: '#/components/messages/billingUsageRecorded'
+      auditRecorded:
+        $ref: '#/components/messages/auditRecorded'
+  realtimeEvents:
+    address: /api/v1/realtime/stream
+    messages:
+      realtimeNotification:
+        $ref: '#/components/messages/realtimeNotification'
+operations:
+  publishDomainEvents:
+    action: send
+    channel:
+      $ref: '#/channels/domainEvents'
+    messages:
+    - $ref: '#/channels/domainEvents/messages/tenantActivated'
+    - $ref: '#/channels/domainEvents/messages/tenantSuspended'
+    - $ref: '#/channels/domainEvents/messages/membershipChanged'
+    - $ref: '#/channels/domainEvents/messages/customerUpdated'
+    - $ref: '#/channels/domainEvents/messages/customerMerged'
+    - $ref: '#/channels/domainEvents/messages/catalogVariantUpdated'
+    - $ref: '#/channels/domainEvents/messages/inventoryAdjusted'
+    - $ref: '#/channels/domainEvents/messages/inventoryReserved'
+    - $ref: '#/channels/domainEvents/messages/inventoryReservationReleased'
+    - $ref: '#/channels/domainEvents/messages/inventoryReservationExpired'
+    - $ref: '#/channels/domainEvents/messages/knowledgePublished'
+    - $ref: '#/channels/domainEvents/messages/knowledgeIngestionCompleted'
+    - $ref: '#/channels/domainEvents/messages/channelAccountConnected'
+    - $ref: '#/channels/domainEvents/messages/channelHealthChanged'
+    - $ref: '#/channels/domainEvents/messages/webhookReceived'
+    - $ref: '#/channels/domainEvents/messages/messageInboundNormalized'
+    - $ref: '#/channels/domainEvents/messages/messageOutboundQueued'
+    - $ref: '#/channels/domainEvents/messages/messageOutboundSent'
+    - $ref: '#/channels/domainEvents/messages/messageOutboundFailed'
+    - $ref: '#/channels/domainEvents/messages/conversationCreated'
+    - $ref: '#/channels/domainEvents/messages/conversationUpdated'
+    - $ref: '#/channels/domainEvents/messages/conversationSlaBreached'
+    - $ref: '#/channels/domainEvents/messages/aiSuggestionCreated'
+    - $ref: '#/channels/domainEvents/messages/aiOutputBlocked'
+    - $ref: '#/channels/domainEvents/messages/orderDraftCreated'
+    - $ref: '#/channels/domainEvents/messages/orderConfirmed'
+    - $ref: '#/channels/domainEvents/messages/orderCancelled'
+    - $ref: '#/channels/domainEvents/messages/paymentRecorded'
+    - $ref: '#/channels/domainEvents/messages/paymentRefunded'
+    - $ref: '#/channels/domainEvents/messages/shipmentCreated'
+    - $ref: '#/channels/domainEvents/messages/shipmentStatusChanged'
+    - $ref: '#/channels/domainEvents/messages/returnCompleted'
+    - $ref: '#/channels/domainEvents/messages/billingUsageRecorded'
+    - $ref: '#/channels/domainEvents/messages/auditRecorded'
+  consumeDomainEvents:
+    action: receive
+    channel:
+      $ref: '#/channels/domainEvents'
+    messages:
+    - $ref: '#/channels/domainEvents/messages/tenantActivated'
+    - $ref: '#/channels/domainEvents/messages/tenantSuspended'
+    - $ref: '#/channels/domainEvents/messages/membershipChanged'
+    - $ref: '#/channels/domainEvents/messages/customerUpdated'
+    - $ref: '#/channels/domainEvents/messages/customerMerged'
+    - $ref: '#/channels/domainEvents/messages/catalogVariantUpdated'
+    - $ref: '#/channels/domainEvents/messages/inventoryAdjusted'
+    - $ref: '#/channels/domainEvents/messages/inventoryReserved'
+    - $ref: '#/channels/domainEvents/messages/inventoryReservationReleased'
+    - $ref: '#/channels/domainEvents/messages/inventoryReservationExpired'
+    - $ref: '#/channels/domainEvents/messages/knowledgePublished'
+    - $ref: '#/channels/domainEvents/messages/knowledgeIngestionCompleted'
+    - $ref: '#/channels/domainEvents/messages/channelAccountConnected'
+    - $ref: '#/channels/domainEvents/messages/channelHealthChanged'
+    - $ref: '#/channels/domainEvents/messages/webhookReceived'
+    - $ref: '#/channels/domainEvents/messages/messageInboundNormalized'
+    - $ref: '#/channels/domainEvents/messages/messageOutboundQueued'
+    - $ref: '#/channels/domainEvents/messages/messageOutboundSent'
+    - $ref: '#/channels/domainEvents/messages/messageOutboundFailed'
+    - $ref: '#/channels/domainEvents/messages/conversationCreated'
+    - $ref: '#/channels/domainEvents/messages/conversationUpdated'
+    - $ref: '#/channels/domainEvents/messages/conversationSlaBreached'
+    - $ref: '#/channels/domainEvents/messages/aiSuggestionCreated'
+    - $ref: '#/channels/domainEvents/messages/aiOutputBlocked'
+    - $ref: '#/channels/domainEvents/messages/orderDraftCreated'
+    - $ref: '#/channels/domainEvents/messages/orderConfirmed'
+    - $ref: '#/channels/domainEvents/messages/orderCancelled'
+    - $ref: '#/channels/domainEvents/messages/paymentRecorded'
+    - $ref: '#/channels/domainEvents/messages/paymentRefunded'
+    - $ref: '#/channels/domainEvents/messages/shipmentCreated'
+    - $ref: '#/channels/domainEvents/messages/shipmentStatusChanged'
+    - $ref: '#/channels/domainEvents/messages/returnCompleted'
+    - $ref: '#/channels/domainEvents/messages/billingUsageRecorded'
+    - $ref: '#/channels/domainEvents/messages/auditRecorded'
+  sendRealtimeEvents:
+    action: send
+    channel:
+      $ref: '#/channels/realtimeEvents'
+    messages:
+    - $ref: '#/channels/realtimeEvents/messages/realtimeNotification'
+components:
+  schemas:
+    Actor:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          enum:
+          - user
+          - service
+          - ai
+          - system
+          - support
+        id:
+          type:
+          - string
+          - 'null'
+    EventEnvelope:
+      type: object
+      additionalProperties: false
+      required:
+      - specversion
+      - id
+      - source
+      - type
+      - time
+      - datacontenttype
+      - tenantid
+      - correlationid
+      - data
+      properties:
+        specversion:
+          type: string
+          const: '1.0'
+        id:
+          type: string
+          format: uuid
+        source:
+          type: string
+        type:
+          type: string
+        subject:
+          type:
+          - string
+          - 'null'
+        time:
+          type: string
+          format: date-time
+        datacontenttype:
+          type: string
+          const: application/json
+        dataschema:
+          type:
+          - string
+          - 'null'
+        tenantid:
+          type: string
+          format: uuid
+        correlationid:
+          type: string
+        causationid:
+          type:
+          - string
+          - 'null'
+        partitionkey:
+          type:
+          - string
+          - 'null'
+        actor:
+          $ref: '#/components/schemas/Actor'
+        data:
+          type: object
+          additionalProperties: true
+    RealtimeNotification:
+      type: object
+      additionalProperties: false
+      required:
+      - schema_version
+      - tenant_id
+      - resource_id
+      - resource_version
+      - occurred_at
+      properties:
+        schema_version:
+          type: integer
+          minimum: 1
+        tenant_id:
+          type: string
+          format: uuid
+        resource_id:
+          type: string
+          format: uuid
+        resource_version:
+          type: integer
+        occurred_at:
+          type: string
+          format: date-time
+        summary:
+          type: object
+          additionalProperties: true
+  messages:
+    tenantActivated:
+      name: tenantActivated
+      title: com.aisales.tenant.activated.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.tenant.activated.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.tenant.activated.v1
+      x-delivery: at-least-once
+    tenantSuspended:
+      name: tenantSuspended
+      title: com.aisales.tenant.suspended.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.tenant.suspended.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.tenant.suspended.v1
+      x-delivery: at-least-once
+    membershipChanged:
+      name: membershipChanged
+      title: com.aisales.membership.changed.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.membership.changed.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.membership.changed.v1
+      x-delivery: at-least-once
+    customerUpdated:
+      name: customerUpdated
+      title: com.aisales.customer.updated.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.customer.updated.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.customer.updated.v1
+      x-delivery: at-least-once
+    customerMerged:
+      name: customerMerged
+      title: com.aisales.customer.merged.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.customer.merged.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.customer.merged.v1
+      x-delivery: at-least-once
+    catalogVariantUpdated:
+      name: catalogVariantUpdated
+      title: com.aisales.catalog.variant.updated.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.catalog.variant.updated.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.catalog.variant.updated.v1
+      x-delivery: at-least-once
+    inventoryAdjusted:
+      name: inventoryAdjusted
+      title: com.aisales.inventory.adjusted.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.inventory.adjusted.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.inventory.adjusted.v1
+      x-delivery: at-least-once
+    inventoryReserved:
+      name: inventoryReserved
+      title: com.aisales.inventory.reserved.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.inventory.reserved.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.inventory.reserved.v1
+      x-delivery: at-least-once
+    inventoryReservationReleased:
+      name: inventoryReservationReleased
+      title: com.aisales.inventory.reservation-released.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.inventory.reservation-released.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.inventory.reservation-released.v1
+      x-delivery: at-least-once
+    inventoryReservationExpired:
+      name: inventoryReservationExpired
+      title: com.aisales.inventory.reservation-expired.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.inventory.reservation-expired.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.inventory.reservation-expired.v1
+      x-delivery: at-least-once
+    knowledgePublished:
+      name: knowledgePublished
+      title: com.aisales.knowledge.published.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.knowledge.published.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.knowledge.published.v1
+      x-delivery: at-least-once
+    knowledgeIngestionCompleted:
+      name: knowledgeIngestionCompleted
+      title: com.aisales.knowledge.ingestion-completed.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.knowledge.ingestion-completed.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.knowledge.ingestion-completed.v1
+      x-delivery: at-least-once
+    channelAccountConnected:
+      name: channelAccountConnected
+      title: com.aisales.channel.account-connected.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.channel.account-connected.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.channel.account-connected.v1
+      x-delivery: at-least-once
+    channelHealthChanged:
+      name: channelHealthChanged
+      title: com.aisales.channel.health-changed.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.channel.health-changed.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.channel.health-changed.v1
+      x-delivery: at-least-once
+    webhookReceived:
+      name: webhookReceived
+      title: com.aisales.webhook.received.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.webhook.received.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.webhook.received.v1
+      x-delivery: at-least-once
+    messageInboundNormalized:
+      name: messageInboundNormalized
+      title: com.aisales.message.inbound-normalized.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.message.inbound-normalized.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.message.inbound-normalized.v1
+      x-delivery: at-least-once
+    messageOutboundQueued:
+      name: messageOutboundQueued
+      title: com.aisales.message.outbound-queued.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.message.outbound-queued.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.message.outbound-queued.v1
+      x-delivery: at-least-once
+    messageOutboundSent:
+      name: messageOutboundSent
+      title: com.aisales.message.outbound-sent.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.message.outbound-sent.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.message.outbound-sent.v1
+      x-delivery: at-least-once
+    messageOutboundFailed:
+      name: messageOutboundFailed
+      title: com.aisales.message.outbound-failed.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.message.outbound-failed.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.message.outbound-failed.v1
+      x-delivery: at-least-once
+    conversationCreated:
+      name: conversationCreated
+      title: com.aisales.conversation.created.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.conversation.created.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.conversation.created.v1
+      x-delivery: at-least-once
+    conversationUpdated:
+      name: conversationUpdated
+      title: com.aisales.conversation.updated.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.conversation.updated.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.conversation.updated.v1
+      x-delivery: at-least-once
+    conversationSlaBreached:
+      name: conversationSlaBreached
+      title: com.aisales.conversation.sla-breached.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.conversation.sla-breached.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.conversation.sla-breached.v1
+      x-delivery: at-least-once
+    aiSuggestionCreated:
+      name: aiSuggestionCreated
+      title: com.aisales.ai.suggestion-created.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ai.suggestion-created.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.ai.suggestion-created.v1
+      x-delivery: at-least-once
+    aiOutputBlocked:
+      name: aiOutputBlocked
+      title: com.aisales.ai.output-blocked.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ai.output-blocked.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.ai.output-blocked.v1
+      x-delivery: at-least-once
+    orderDraftCreated:
+      name: orderDraftCreated
+      title: com.aisales.order.draft-created.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.order.draft-created.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.order.draft-created.v1
+      x-delivery: at-least-once
+    orderConfirmed:
+      name: orderConfirmed
+      title: com.aisales.order.confirmed.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.order.confirmed.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.order.confirmed.v1
+      x-delivery: at-least-once
+    orderCancelled:
+      name: orderCancelled
+      title: com.aisales.order.cancelled.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.order.cancelled.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.order.cancelled.v1
+      x-delivery: at-least-once
+    paymentRecorded:
+      name: paymentRecorded
+      title: com.aisales.payment.recorded.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.payment.recorded.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.payment.recorded.v1
+      x-delivery: at-least-once
+    paymentRefunded:
+      name: paymentRefunded
+      title: com.aisales.payment.refunded.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.payment.refunded.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.payment.refunded.v1
+      x-delivery: at-least-once
+    shipmentCreated:
+      name: shipmentCreated
+      title: com.aisales.shipment.created.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.shipment.created.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.shipment.created.v1
+      x-delivery: at-least-once
+    shipmentStatusChanged:
+      name: shipmentStatusChanged
+      title: com.aisales.shipment.status-changed.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.shipment.status-changed.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.shipment.status-changed.v1
+      x-delivery: at-least-once
+    returnCompleted:
+      name: returnCompleted
+      title: com.aisales.return.completed.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.return.completed.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.return.completed.v1
+      x-delivery: at-least-once
+    billingUsageRecorded:
+      name: billingUsageRecorded
+      title: com.aisales.billing.usage-recorded.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.billing.usage-recorded.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.billing.usage-recorded.v1
+      x-delivery: at-least-once
+    auditRecorded:
+      name: auditRecorded
+      title: com.aisales.audit.recorded.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.audit.recorded.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: '#/components/schemas/EventEnvelope'
+      x-event-type: com.aisales.audit.recorded.v1
+      x-delivery: at-least-once
+    realtimeNotification:
+      name: realtimeNotification
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/RealtimeNotification'

@@ -1,0 +1,37 @@
+---
+description: Non-negotiable invariants for all backend work
+alwaysApply: true
+---
+
+# Global Invariants
+
+Blueprint: `backend_doc/01_BACKEND_ENTERPRISE_IMPLEMENTATION_BLUEPRINT_v2.0.md` is the constitution.
+
+## Read order
+
+1. `backend_doc/START_HERE.md`
+2. `docs/ai/CONTEXT_MAP.md` or `pnpm agent:context <TASK_ID>`
+3. Relevant blueprint section via `docs/ai/blueprint-index/`
+4. Contracts/matrices only for the affected operation — use `pnpm agent:contract-slice`, not full OpenAPI
+
+## Non-negotiables
+
+- Server establishes tenant context; never trust client `tenant_id` for authorization.
+- Tenant-owned data: `tenant_id`, RLS, tenant-scoped indexes, composite tenant FKs.
+- Domain code must not import NestJS, DB clients, queue SDKs, HTTP clients, or provider SDKs.
+- Cross-module commands via application ports; cross-module events via outbox/inbox.
+- Critical ops: idempotency, transaction safety, audit, telemetry, reconciliation.
+- Money: integer minor units only; never floating point.
+- No hard-delete of ledger, order, payment, audit, or business event records.
+- Redact PII and secrets in logs, traces, metrics, errors, AI records.
+- AI zero-trust: no direct business DB access; no bypassing authorization.
+
+## Ticket workflow
+
+1. Preflight — domain, phase, contracts, tenant class, permissions, idempotency, audit, events, telemetry, rollback.
+2. Contract first — OpenAPI/AsyncAPI/schema/error/permission catalogs before code.
+3. Test design — tenant isolation, permission negative, idempotency, concurrency, contract, observability.
+4. Migration/data — immutable SQL, constraints, indexes, RLS, expand/contract.
+5. Implementation — pure domain; repository/infrastructure adapters at the edge.
+6. Verification — run `pnpm verify` (and `pnpm test:py` if ai-service touched).
+7. Completion manifest — contracts, migrations, tests, security, observability, rollback, open questions.

@@ -1,0 +1,15 @@
+---
+description: NestJS API and HTTP presentation layer conventions
+globs: apps/api/**,modules/**/presentation/**
+alwaysApply: false
+---
+
+# NestJS API Layer
+
+- Use global `ValidationPipe` with whitelist and forbidNonWhitelisted.
+- Map domain errors to RFC 9457 problem details with stable error codes from `backend_doc/matrices/error_catalog.csv`.
+- Propagate correlation ID from incoming header to `RequestSecurityContext` and logs.
+- Controllers delegate to application handlers; no business calculations in controllers.
+- Check permissions via `requirePermission` before mutations.
+- DTOs come from contract schemas; never expose DB entities as responses.
+- Register module controllers in `apps/api` composition root, not cross-module deep imports.

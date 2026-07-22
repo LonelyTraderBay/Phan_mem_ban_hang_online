@@ -1,0 +1,55 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ai-sales-spacing-2);
+  border-radius: var(--ai-sales-radius-md);
+  border: 1px solid transparent;
+  font-family: var(--ai-sales-font-base);
+  font-size: var(--ai-sales-font-size-base);
+  font-weight: var(--ai-sales-font-weight-medium);
+  padding: var(--ai-sales-spacing-2) var(--ai-sales-spacing-4);
+  cursor: pointer;
+  transition: background-color var(--ai-sales-motion-durationFast) var(--ai-sales-motion-easingStandard);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--ai-sales-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.primary {
+  background-color: var(--ai-sales-color-action-primary);
+  color: var(--ai-sales-color-text-inverse);
+}
+.primary:not(:disabled):hover {
+  background-color: var(--ai-sales-color-action-primaryHover);
+}
+.primary:not(:disabled):active {
+  background-color: var(--ai-sales-color-action-primaryActive);
+}
+
+.secondary {
+  background-color: transparent;
+  border-color: var(--ai-sales-color-border-default);
+  color: var(--ai-sales-color-text-primary);
+}
+.secondary:not(:disabled):hover {
+  background-color: var(--ai-sales-color-background-subtle);
+}
+
+.danger {
+  background-color: var(--ai-sales-color-danger-base);
+  color: var(--ai-sales-color-text-inverse);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+}

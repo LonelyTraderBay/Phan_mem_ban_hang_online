@@ -1,0 +1,13 @@
+{
+  "name": "@ai-sales/worker",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/main.ts",
+  "dependencies": {
+    "@ai-sales/config": "workspace:*",
+    "@ai-sales/database": "workspace:*",
+    "@ai-sales/observability": "workspace:*",
+    "@ai-sales/outbox": "workspace:*",
+    "bullmq": "5.80.9"
+  }
+}

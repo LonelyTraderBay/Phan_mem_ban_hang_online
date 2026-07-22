@@ -1,0 +1,1 @@
+"""AI Sales FastAPI service."""

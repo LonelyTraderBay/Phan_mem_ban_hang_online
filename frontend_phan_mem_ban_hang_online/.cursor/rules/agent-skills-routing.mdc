@@ -1,0 +1,41 @@
+---
+description: Route to the right project skill; never load the whole skill pack into context
+alwaysApply: true
+---
+
+# Agent skills routing (token-aware)
+
+This repo has many optional skills under `.cursor/skills/` and `.agents/skills/`.
+**Do not open or summarize the whole catalog.** Load at most 1–2 skills per task.
+
+## Always-on (already rules — do not re-read as skills)
+
+- **Ponytail** (`.cursor/rules/ponytail.mdc`): default coding style — YAGNI, shortest correct diff.
+- **Headroom** (`.cursor/rules/headroom-compression.mdc`): compress tool output >500 lines before analysis.
+
+## Pick by task (read that skill’s `SKILL.md` only when needed)
+
+| Task | Skill / tool |
+|------|----------------|
+| Ambiguous feature request | `grill-me`, then `to-spec` / `spec-driven-development` |
+| Align with existing ADRs/spec docs | `grill-with-docs` |
+| Domain / Money / permissions modeling | `domain-modeling` |
+| Implement with tests | `tdd` + `implement` |
+| Bug | `diagnosing-bugs` / `debugging-and-error-recovery` |
+| Blast radius / rename / “what calls X” | **GitNexus MCP** (`impact`, `context`, `query`) — prefer over multi-grep |
+| Large logs / long files / dumps | **Headroom MCP** `headroom_compress` |
+| UI / visual polish (provisional F00) | `frontend-design` or `ui-ux-pro-max` / `frontend-ui-engineering` |
+| Playwright smoke | `webapp-testing` |
+| DESIGN.md / token export | `design-md` |
+| Pre-PR quality | `ponytail-review` + `code-review` |
+| Ship / release checklist | `shipping-and-launch` |
+| Security-sensitive change | `security-and-hardening` |
+
+## Hard skips (installed elsewhere or rejected)
+
+- Do **not** install/activate ECC, Superpowers, Understand-Anything, graphify, or gstack here — they overlap with GitNexus/ponytail or inflate context.
+- Karpathy guidelines: **not** installed — ponytail already covers simplicity.
+
+## Output discipline
+
+After coding: skipped abstractions / deps in ≤3 short lines (ponytail). Prefer one runnable check for non-trivial logic.

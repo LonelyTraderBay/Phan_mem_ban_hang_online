@@ -1,0 +1,15 @@
+---
+description: Pure domain layer rules — no framework or infrastructure imports
+globs: modules/**/domain/**,packages/domain-kernel/**
+alwaysApply: false
+---
+
+# TypeScript Domain Layer
+
+- No NestJS, Kysely, pg, BullMQ, Fastify, axios, or provider SDK imports.
+- Use `Money.fromMinorUnits` for amounts; never `number` for money.
+- Use `parseUuidV7` for IDs; throw `DomainInvariantError` for invalid invariants.
+- Domain errors are typed classes; never throw strings.
+- Return `Result<T, E>` where failure is expected business outcome.
+- Domain events: immutable payloads, versioned types, no side effects in entities.
+- No logging, HTTP, or DB access in domain layer.

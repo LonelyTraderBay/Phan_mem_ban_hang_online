@@ -1,0 +1,509 @@
+# GENERATED — do not hand-edit. Source: backend openapi.yaml (split by path prefix).
+# Run 'pnpm contracts:sync' to refresh.
+errors:
+  - code: AUTH_INVALID_CREDENTIALS
+    http_status: 401
+    category: auth
+    retryable: false
+    user_message_vi: Thông tin đăng nhập không hợp lệ.
+    description: Enumeration-safe login failure
+  - code: AUTH_MFA_REQUIRED
+    http_status: 401
+    category: auth
+    retryable: false
+    user_message_vi: Cần xác thực hai lớp.
+    description: MFA challenge required
+  - code: AUTH_MFA_INVALID
+    http_status: 401
+    category: auth
+    retryable: false
+    user_message_vi: Mã xác thực không hợp lệ.
+    description: Invalid/replayed MFA code
+  - code: AUTH_TOKEN_EXPIRED
+    http_status: 401
+    category: auth
+    retryable: true
+    user_message_vi: Phiên truy cập đã hết hạn.
+    description: Access token expired; refresh may be possible. Spec alias
+      AUTH_SESSION_EXPIRED maps to this code.
+  - code: AUTH_REFRESH_REUSED
+    http_status: 401
+    category: auth
+    retryable: false
+    user_message_vi: Phiên đăng nhập đã bị thu hồi vì lý do bảo mật.
+    description: Refresh token reuse detected
+  - code: AUTH_SESSION_REVOKED
+    http_status: 401
+    category: auth
+    retryable: false
+    user_message_vi: Phiên đăng nhập đã bị thu hồi.
+    description: Session/device revoked
+  - code: AUTH_RECENT_AUTH_REQUIRED
+    http_status: 403
+    category: auth
+    retryable: false
+    user_message_vi: Vui lòng xác thực lại để tiếp tục.
+    description: Step-up/recent auth required
+  - code: AUTH_OIDC_STATE_INVALID
+    http_status: 401
+    category: auth
+    retryable: false
+    user_message_vi: Phiên đăng nhập IdP không hợp lệ. Vui lòng thử lại.
+    description: OIDC state/nonce mismatch or missing (GAP-009)
+  - code: AUTH_OIDC_EXCHANGE_FAILED
+    http_status: 401
+    category: auth
+    retryable: false
+    user_message_vi: Không thể hoàn tất đăng nhập IdP. Vui lòng thử lại.
+    description: Authorization code exchange failed at BFF (GAP-009)
+  - code: AUTH_OIDC_PROVIDER_ERROR
+    http_status: 401
+    category: auth
+    retryable: false
+    user_message_vi: Nhà cung cấp đăng nhập từ chối hoặc báo lỗi.
+    description: IdP returned error= on callback (GAP-009)
+  - code: CSRF_TOKEN_INVALID
+    http_status: 403
+    category: auth
+    retryable: false
+    user_message_vi: Yêu cầu bị từ chối vì thiếu hoặc sai mã bảo vệ CSRF.
+    description: Missing/mismatched X-CSRF-Token for cookie-session mutations
+  - code: TENANT_INACTIVE
+    http_status: 403
+    category: tenant
+    retryable: false
+    user_message_vi: Không gian làm việc hiện không hoạt động.
+    description: Tenant suspended/closed
+  - code: TENANT_CONTEXT_INVALID
+    http_status: 401
+    category: tenant
+    retryable: false
+    user_message_vi: Ngữ cảnh không gian làm việc không hợp lệ.
+    description: Token/session tenant mismatch
+  - code: MEMBERSHIP_INACTIVE
+    http_status: 403
+    category: tenant
+    retryable: false
+    user_message_vi: Tài khoản không còn hoạt động trong không gian này.
+    description: Membership inactive
+  - code: INVITATION_TOKEN_INVALID
+    http_status: 409
+    category: tenant
+    retryable: false
+    user_message_vi: Lời mời không hợp lệ hoặc đã hết hạn.
+    description: Invitation token missing/already accepted/revoked/expired —
+      umbrella; prefer specific INVITE_* when known
+  - code: INVITE_EXPIRED
+    http_status: 409
+    category: tenant
+    retryable: false
+    user_message_vi: Lời mời đã hết hạn.
+    description: Invitation past expires_at
+  - code: INVITE_REVOKED
+    http_status: 409
+    category: tenant
+    retryable: false
+    user_message_vi: Lời mời đã bị thu hồi.
+    description: Invitation revoked by admin
+  - code: INVITE_ALREADY_ACCEPTED
+    http_status: 409
+    category: tenant
+    retryable: false
+    user_message_vi: Lời mời đã được chấp nhận.
+    description: Invitation already consumed
+  - code: USER_LAST_OWNER
+    http_status: 409
+    category: tenant
+    retryable: false
+    user_message_vi: Không thể gỡ hoặc thu hồi chủ sở hữu cuối cùng.
+    description: Would leave tenant with zero owners
+  - code: ROLE_WOULD_REMOVE_LAST_ADMIN
+    http_status: 409
+    category: authorization
+    retryable: false
+    user_message_vi: Không thể gỡ quyền quản trị cuối cùng.
+    description: Role change would remove last admin-capable membership
+  - code: DEVICE_ALREADY_REVOKED
+    http_status: 409
+    category: auth
+    retryable: false
+    user_message_vi: Thiết bị/phiên này đã bị thu hồi.
+    description: Idempotent revoke of already-revoked device/session
+  - code: INSUFFICIENT_PERMISSION
+    http_status: 403
+    category: authorization
+    retryable: false
+    user_message_vi: Bạn không có quyền thực hiện thao tác này.
+    description: Required permission missing
+  - code: RESOURCE_NOT_FOUND
+    http_status: 404
+    category: resource
+    retryable: false
+    user_message_vi: Không tìm thấy dữ liệu yêu cầu.
+    description: Missing or not visible under tenant context
+  - code: RESOURCE_VERSION_MISMATCH
+    http_status: 412
+    category: concurrency
+    retryable: true
+    user_message_vi: Dữ liệu đã thay đổi. Vui lòng tải lại.
+    description: ETag/version mismatch. Spec alias ROLE_VERSION_CONFLICT maps to this code.
+  - code: VALIDATION_FAILED
+    http_status: 422
+    category: validation
+    retryable: false
+    user_message_vi: Dữ liệu không hợp lệ.
+    description: Field/business validation errors
+  - code: REQUEST_TOO_LARGE
+    http_status: 413
+    category: validation
+    retryable: false
+    user_message_vi: Dữ liệu gửi lên quá lớn.
+    description: Request/file size limit
+  - code: UNSUPPORTED_MEDIA_TYPE
+    http_status: 415
+    category: validation
+    retryable: false
+    user_message_vi: Định dạng dữ liệu không được hỗ trợ.
+    description: Unsupported content type
+  - code: IDEMPOTENCY_KEY_REQUIRED
+    http_status: 400
+    category: idempotency
+    retryable: false
+    user_message_vi: Thiếu mã chống gửi trùng.
+    description: Critical endpoint requires key
+  - code: IDEMPOTENCY_KEY_REUSED
+    http_status: 409
+    category: idempotency
+    retryable: false
+    user_message_vi: Mã chống gửi trùng đã được dùng cho nội dung khác.
+    description: Same key, different request hash
+  - code: IDEMPOTENCY_IN_PROGRESS
+    http_status: 409
+    category: idempotency
+    retryable: true
+    user_message_vi: Yêu cầu tương tự đang được xử lý.
+    description: Existing key still processing
+  - code: RATE_LIMITED
+    http_status: 429
+    category: rate_limit
+    retryable: true
+    user_message_vi: Bạn thao tác quá nhanh. Vui lòng thử lại sau.
+    description: Rate limit exceeded
+  - code: QUOTA_EXCEEDED
+    http_status: 429
+    category: billing
+    retryable: false
+    user_message_vi: Đã vượt giới hạn sử dụng.
+    description: Plan/usage quota exceeded
+  - code: FEATURE_DISABLED
+    http_status: 409
+    category: feature
+    retryable: false
+    user_message_vi: Tính năng hiện chưa được bật.
+    description: Feature flag/entitlement disabled
+  - code: SKU_DUPLICATE
+    http_status: 409
+    category: catalog
+    retryable: false
+    user_message_vi: Mã SKU đã tồn tại.
+    description: Tenant-scoped canonical SKU duplicate
+  - code: BARCODE_DUPLICATE
+    http_status: 409
+    category: catalog
+    retryable: false
+    user_message_vi: Mã vạch đã tồn tại.
+    description: Barcode duplicate
+  - code: CATEGORY_CYCLE
+    http_status: 422
+    category: catalog
+    retryable: false
+    user_message_vi: Cấu trúc danh mục tạo vòng lặp.
+    description: Category parent cycle
+  - code: PRODUCT_ARCHIVED
+    http_status: 409
+    category: catalog
+    retryable: false
+    user_message_vi: Sản phẩm đã được lưu trữ.
+    description: Mutation/use not allowed
+  - code: COST_PERMISSION_REQUIRED
+    http_status: 403
+    category: catalog
+    retryable: false
+    user_message_vi: Bạn không có quyền xem hoặc sửa giá vốn.
+    description: Field-level cost permission
+  - code: IMPORT_FILE_INVALID
+    http_status: 422
+    category: import
+    retryable: false
+    user_message_vi: Tệp nhập không hợp lệ.
+    description: Invalid type/content/encoding
+  - code: IMPORT_MAPPING_INVALID
+    http_status: 422
+    category: import
+    retryable: false
+    user_message_vi: Ánh xạ cột không hợp lệ.
+    description: Mapping validation failed
+  - code: IMPORT_PREVIEW_STALE
+    http_status: 409
+    category: import
+    retryable: true
+    user_message_vi: Bản xem trước đã thay đổi. Vui lòng kiểm tra lại.
+    description: Checksum/version mismatch
+  - code: IMPORT_JOB_STATE_INVALID
+    http_status: 409
+    category: import
+    retryable: false
+    user_message_vi: Trạng thái tác vụ nhập không cho phép thao tác này.
+    description: Invalid transition
+  - code: IMPORT_APPLY_FAILED
+    http_status: 500
+    category: import
+    retryable: true
+    user_message_vi: Không thể áp dụng dữ liệu nhập.
+    description: Apply failed; inspect job report
+  - code: INVENTORY_BALANCE_NOT_FOUND
+    http_status: 404
+    category: inventory
+    retryable: false
+    user_message_vi: Không tìm thấy tồn kho cho sản phẩm này.
+    description: Balance row missing
+  - code: INVENTORY_INSUFFICIENT
+    http_status: 409
+    category: inventory
+    retryable: false
+    user_message_vi: Không đủ tồn kho khả dụng.
+    description: Reservation/confirm quantity exceeds available
+  - code: INVENTORY_RESERVATION_EXPIRED
+    http_status: 409
+    category: inventory
+    retryable: false
+    user_message_vi: Phiếu giữ hàng đã hết hạn.
+    description: Reservation no longer active
+  - code: INVENTORY_RESERVATION_STATE_INVALID
+    http_status: 409
+    category: inventory
+    retryable: false
+    user_message_vi: Trạng thái giữ hàng không hợp lệ.
+    description: Invalid reservation transition
+  - code: INVENTORY_RESERVATION_OWNER_MISMATCH
+    http_status: 409
+    category: inventory
+    retryable: false
+    user_message_vi: Phiếu giữ hàng không thuộc đối tượng yêu cầu.
+    description: Owner mismatch
+  - code: ORDER_STATE_INVALID
+    http_status: 409
+    category: order
+    retryable: false
+    user_message_vi: Trạng thái đơn hàng không cho phép thao tác này.
+    description: Invalid order transition
+  - code: ORDER_QUOTE_STALE
+    http_status: 409
+    category: order
+    retryable: true
+    user_message_vi: Báo giá đã cũ. Vui lòng tính lại đơn hàng.
+    description: Quote/resource versions changed
+  - code: ORDER_TOTAL_CHANGED
+    http_status: 409
+    category: order
+    retryable: true
+    user_message_vi: Tổng tiền đã thay đổi. Vui lòng xác nhận lại.
+    description: Authoritative recalculation differs
+  - code: ORDER_DUPLICATE_SUSPECTED
+    http_status: 409
+    category: order
+    retryable: false
+    user_message_vi: Đơn hàng có khả năng bị trùng.
+    description: Duplicate fingerprint warning/policy
+  - code: ORDER_CANCELLATION_NOT_ALLOWED
+    http_status: 409
+    category: order
+    retryable: false
+    user_message_vi: Đơn hàng hiện không thể hủy.
+    description: Payment/fulfillment policy blocks cancellation
+  - code: PAYMENT_AMOUNT_MISMATCH
+    http_status: 409
+    category: payment
+    retryable: false
+    user_message_vi: Số tiền thanh toán không khớp.
+    description: Reconciliation required
+  - code: PAYMENT_STATE_INVALID
+    http_status: 409
+    category: payment
+    retryable: false
+    user_message_vi: Trạng thái thanh toán không hợp lệ.
+    description: Invalid payment transition
+  - code: REFUND_APPROVAL_REQUIRED
+    http_status: 409
+    category: payment
+    retryable: false
+    user_message_vi: Yêu cầu hoàn tiền cần được phê duyệt.
+    description: Human approval required
+  - code: SHIPMENT_STATE_INVALID
+    http_status: 409
+    category: shipment
+    retryable: false
+    user_message_vi: Trạng thái giao hàng không hợp lệ.
+    description: Invalid fulfillment transition
+  - code: RETURN_STATE_INVALID
+    http_status: 409
+    category: return
+    retryable: false
+    user_message_vi: Trạng thái trả hàng không hợp lệ.
+    description: Invalid return transition
+  - code: CHANNEL_NOT_CONNECTED
+    http_status: 409
+    category: channel
+    retryable: false
+    user_message_vi: Kênh chưa được kết nối.
+    description: No active channel account
+  - code: CHANNEL_TOKEN_EXPIRED
+    http_status: 409
+    category: channel
+    retryable: false
+    user_message_vi: Kết nối kênh đã hết hạn. Vui lòng kết nối lại.
+    description: Token expired/revoked
+  - code: CHANNEL_PERMISSION_MISSING
+    http_status: 409
+    category: channel
+    retryable: false
+    user_message_vi: Kết nối kênh thiếu quyền cần thiết.
+    description: Provider scope missing
+  - code: WEBHOOK_SIGNATURE_INVALID
+    http_status: 401
+    category: webhook
+    retryable: false
+    user_message_vi: Chữ ký webhook không hợp lệ.
+    description: Reject before processing
+  - code: WEBHOOK_DUPLICATE
+    http_status: 200
+    category: webhook
+    retryable: false
+    user_message_vi: Sự kiện đã được ghi nhận.
+    description: Duplicate provider event, no duplicate effect
+  - code: PROVIDER_RATE_LIMITED
+    http_status: 429
+    category: provider
+    retryable: true
+    user_message_vi: Nhà cung cấp đang giới hạn tốc độ.
+    description: Honor Retry-After/backoff
+  - code: PROVIDER_UNAVAILABLE
+    http_status: 503
+    category: provider
+    retryable: true
+    user_message_vi: Dịch vụ kết nối tạm thời không khả dụng.
+    description: Timeout/5xx/circuit open
+  - code: MESSAGE_SEND_BLOCKED
+    http_status: 409
+    category: message
+    retryable: false
+    user_message_vi: Tin nhắn bị chặn bởi chính sách.
+    description: Policy/QC/channel block
+  - code: MESSAGE_SEND_AMBIGUOUS
+    http_status: 503
+    category: message
+    retryable: true
+    user_message_vi: Chưa xác định được trạng thái gửi tin.
+    description: Provider timeout with unknown outcome
+  - code: CONVERSATION_STATE_INVALID
+    http_status: 409
+    category: conversation
+    retryable: false
+    user_message_vi: Trạng thái hội thoại không cho phép thao tác này.
+    description: Invalid transition/version
+  - code: HUMAN_TAKEOVER_ACTIVE
+    http_status: 409
+    category: conversation
+    retryable: false
+    user_message_vi: Hội thoại đang do nhân viên tiếp quản.
+    description: AI auto action blocked
+  - code: SSE_RESYNC_REQUIRED
+    http_status: 409
+    category: realtime
+    retryable: true
+    user_message_vi: Cần tải lại dữ liệu để đồng bộ.
+    description: Replay window exceeded
+  - code: AI_DISABLED
+    http_status: 409
+    category: ai
+    retryable: false
+    user_message_vi: AI hiện đang tắt.
+    description: Tenant/global kill switch
+  - code: AI_BUDGET_EXCEEDED
+    http_status: 429
+    category: ai
+    retryable: false
+    user_message_vi: Đã vượt ngân sách AI.
+    description: Tenant/global cost/token budget
+  - code: AI_PROVIDER_UNAVAILABLE
+    http_status: 503
+    category: ai
+    retryable: true
+    user_message_vi: Dịch vụ AI tạm thời không khả dụng.
+    description: Provider timeout/outage
+  - code: AI_OUTPUT_INVALID
+    http_status: 502
+    category: ai
+    retryable: true
+    user_message_vi: Kết quả AI không đúng định dạng.
+    description: Structured output failed validation
+  - code: AI_OUTPUT_BLOCKED
+    http_status: 409
+    category: ai
+    retryable: false
+    user_message_vi: Kết quả AI bị chặn bởi quy tắc an toàn.
+    description: AI-R rule violation
+  - code: AI_APPROVAL_REQUIRED
+    http_status: 409
+    category: ai
+    retryable: false
+    user_message_vi: Hành động AI cần người phê duyệt.
+    description: Risk class requires approval
+  - code: AI_APPROVAL_EXPIRED
+    http_status: 409
+    category: ai
+    retryable: false
+    user_message_vi: Phê duyệt đã hết hạn.
+    description: Approval TTL expired
+  - code: AI_APPROVAL_PAYLOAD_CHANGED
+    http_status: 409
+    category: ai
+    retryable: false
+    user_message_vi: Nội dung hành động đã thay đổi sau phê duyệt.
+    description: Payload hash mismatch
+  - code: AI_TOOL_NOT_ALLOWED
+    http_status: 403
+    category: ai
+    retryable: false
+    user_message_vi: Công cụ AI không được phép.
+    description: Tool allowlist/permission/mode denial
+  - code: AI_TOOL_FAILED
+    http_status: 503
+    category: ai
+    retryable: true
+    user_message_vi: Công cụ AI tạm thời thất bại.
+    description: Tool/provider/domain transient failure
+  - code: AI_SOURCE_REQUIRED
+    http_status: 409
+    category: ai
+    retryable: false
+    user_message_vi: Không có nguồn đủ tin cậy để trả lời.
+    description: Published evidence required
+  - code: AI_SOURCE_STALE
+    http_status: 409
+    category: ai
+    retryable: true
+    user_message_vi: Nguồn dữ liệu đã cũ.
+    description: Freshness window exceeded
+  - code: AI_PROMPT_VERSION_NOT_APPROVED
+    http_status: 409
+    category: ai
+    retryable: false
+    user_message_vi: Phiên bản AI chưa được phê duyệt.
+    description: Prompt/model config lifecycle gate
+  - code: AI_EVALUATION_FAILED
+    http_status: 409
+    category: ai
+    retryable: false
+    user_message_vi: Phiên bản AI chưa đạt đánh giá bắt buộc.
+    description: Release thresholds failed

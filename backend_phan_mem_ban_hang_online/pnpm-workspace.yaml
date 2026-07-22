@@ -1,0 +1,23 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "modules/*"
+allowBuilds:
+  esbuild: true
+  msgpackr-extract: true
+  # protobufjs postinstall only builds optional protobuf CLI artifacts; OTLP/HTTP export works without it
+  protobufjs: false
+minimumReleaseAgeExclude:
+  - eslint@10.6.0
+  - prettier@3.8.5
+  - typescript-eslint@8.65.0
+  - "@typescript-eslint/eslint-plugin@8.65.0"
+  - "@typescript-eslint/parser@8.65.0"
+  - "@typescript-eslint/project-service@8.65.0"
+  - "@typescript-eslint/scope-manager@8.65.0"
+  - "@typescript-eslint/tsconfig-utils@8.65.0"
+  - "@typescript-eslint/type-utils@8.65.0"
+  - "@typescript-eslint/types@8.65.0"
+  - "@typescript-eslint/typescript-estree@8.65.0"
+  - "@typescript-eslint/utils@8.65.0"
+  - "@typescript-eslint/visitor-keys@8.65.0"

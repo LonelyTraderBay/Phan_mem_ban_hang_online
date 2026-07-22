@@ -1,0 +1,11 @@
+{
+  "name": "@ai-sales/scheduler",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/main.ts",
+  "dependencies": {
+    "@ai-sales/config": "workspace:*",
+    "@ai-sales/observability": "workspace:*",
+    "bullmq": "5.80.9"
+  }
+}

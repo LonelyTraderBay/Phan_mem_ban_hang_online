@@ -1,0 +1,14 @@
+---
+description: FastAPI AI service — zero-trust, tool-mediated access
+globs: apps/ai-service/**
+alwaysApply: false
+---
+
+# Python AI Service
+
+- FastAPI with health/ready endpoints; structured logging with PII redaction.
+- No direct connection to business PostgreSQL tables.
+- All business mutations go through typed tool calls to the NestJS API with authorization.
+- No production prompt/model activation without eval, approval, rollback, and kill switch.
+- Timeouts and cancellation on all external/model calls.
+- Redact raw prompts, provider tokens, and full request bodies from logs.

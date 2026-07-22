@@ -1,0 +1,34 @@
+{
+  "name": "@ai-sales/windows-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Windows desktop shell (Tauri 2 + React). Thin wrapper reusing web-admin's packages — desktop-specific behavior is confined to @ai-sales/platform adapters and desktop auth (ADR-FE-014).",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5175",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@ai-sales/config": "workspace:*",
+    "@ai-sales/i18n": "workspace:*",
+    "@ai-sales/platform": "workspace:*",
+    "@ai-sales/telemetry": "workspace:*",
+    "@ai-sales/ui": "workspace:*",
+    "@tauri-apps/api": "2.1.1",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@ai-sales/eslint-config": "workspace:*",
+    "@ai-sales/tsconfig": "workspace:*",
+    "@tauri-apps/cli": "2.1.0",
+    "@types/react": "19.0.7",
+    "@types/react-dom": "19.0.3",
+    "@vitejs/plugin-react": "4.3.4",
+    "typescript": "6.0.3",
+    "vite": "6.0.7"
+  }
+}

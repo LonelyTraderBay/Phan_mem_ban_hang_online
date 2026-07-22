@@ -1,0 +1,21 @@
+.skeleton {
+  background-color: var(--ai-sales-color-background-muted);
+  border-radius: var(--ai-sales-radius-sm);
+  animation: pulse var(--ai-sales-motion-durationSlow) ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}

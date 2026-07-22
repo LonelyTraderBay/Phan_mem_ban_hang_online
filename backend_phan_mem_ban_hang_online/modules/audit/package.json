@@ -1,0 +1,20 @@
+{
+  "name": "@ai-sales/module-audit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@ai-sales/auth-context": "workspace:*",
+    "@ai-sales/database": "workspace:*",
+    "@ai-sales/domain-kernel": "workspace:*",
+    "@ai-sales/observability": "workspace:*",
+    "@ai-sales/outbox": "workspace:*",
+    "@ai-sales/security": "workspace:*",
+    "@nestjs/common": "11.1.28",
+    "reflect-metadata": "0.2.2"
+  },
+  "devDependencies": {
+    "kysely": "0.29.4"
+  }
+}

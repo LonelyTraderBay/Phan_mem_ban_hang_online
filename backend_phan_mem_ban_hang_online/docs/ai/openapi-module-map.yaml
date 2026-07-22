@@ -1,0 +1,81 @@
+modules:
+  identity:
+    path: modules/identity
+    tags: [Auth, Sessions]
+    path_prefixes: [/auth, /sessions]
+    task_prefixes: [BE-IDN-]
+  tenant:
+    path: modules/tenant
+    tags: [Tenant, Members, Roles]
+    path_prefixes: [/tenants, /members, /roles]
+    task_prefixes: [BE-IDN-]
+  customer:
+    path: modules/customer
+    tags: [Customers]
+    path_prefixes: [/customers]
+    task_prefixes: [BE-CUS-]
+  catalog:
+    path: modules/catalog
+    tags: [Catalog, Imports]
+    path_prefixes: [/categories, /products, /imports]
+    task_prefixes: [BE-CAT-, BE-IMP-]
+  inventory:
+    path: modules/inventory
+    tags: [Inventory]
+    path_prefixes: [/inventory, /warehouses, /reservations]
+    task_prefixes: [BE-INV-]
+  knowledge:
+    path: modules/knowledge
+    tags: [Knowledge]
+    path_prefixes: [/knowledge]
+    task_prefixes: [BE-KNW-]
+  channel:
+    path: modules/channel
+    tags: [Channels, Webhooks]
+    path_prefixes: [/channels, /webhooks]
+    task_prefixes: [BE-CHN-]
+  conversation:
+    path: modules/conversation
+    tags: [Conversations, Realtime]
+    path_prefixes: [/conversations, /realtime]
+    task_prefixes: [BE-CON-]
+  ai-orchestration:
+    path: modules/ai-orchestration
+    tags: [AI]
+    path_prefixes: [/ai]
+    task_prefixes: [BE-AI-]
+  order:
+    path: modules/order
+    tags: [Orders]
+    path_prefixes: [/orders]
+    task_prefixes: [BE-ORD-]
+  payment:
+    path: modules/payment
+    tags: [Payments]
+    path_prefixes: [/payments]
+    task_prefixes: [BE-PAY-]
+  fulfillment:
+    path: modules/fulfillment
+    tags: [Shipments, Returns]
+    path_prefixes: [/shipments, /returns]
+    task_prefixes: [BE-FUL-, BE-RET-]
+  analytics:
+    path: modules/analytics
+    tags: [Analytics]
+    path_prefixes: [/analytics, /reports]
+    task_prefixes: [BE-DAT-]
+  billing:
+    path: modules/billing
+    tags: [Billing]
+    path_prefixes: [/billing]
+    task_prefixes: [BE-BIL-]
+  audit:
+    path: modules/audit
+    tags: [Audit]
+    path_prefixes: [/audit-logs, /_internal/walking-skeleton]
+    task_prefixes: [BE-FND-012, BE-FND-016, BE-IDN-013]
+  operations:
+    path: modules/operations
+    tags: [Operations]
+    path_prefixes: [/operations, /feature-flags]
+    task_prefixes: [BE-OPS-]

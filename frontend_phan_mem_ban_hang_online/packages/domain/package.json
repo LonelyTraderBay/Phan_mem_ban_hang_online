@@ -1,0 +1,21 @@
+{
+  "name": "@ai-sales/domain",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure, framework-free domain primitives (Money, ISO datetime). No runtime dependencies (spec 4.3).",
+  "type": "module",
+  "sideEffects": false,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@ai-sales/eslint-config": "workspace:*",
+    "@ai-sales/tsconfig": "workspace:*",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}

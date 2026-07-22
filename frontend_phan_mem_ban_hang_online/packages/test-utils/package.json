@@ -1,0 +1,30 @@
+{
+  "name": "@ai-sales/test-utils",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MSW handlers generated from the OpenAPI contract, node/browser MSW setup, and test data factories (FE-F00-009).",
+  "type": "module",
+  "sideEffects": false,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./msw/server": "./src/msw/server.ts",
+    "./msw/browser": "./src/msw/browser.ts"
+  },
+  "scripts": {
+    "codegen": "node ../../tooling/scripts/generate-msw-fixtures.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "msw": "2.7.0"
+  },
+  "devDependencies": {
+    "@ai-sales/eslint-config": "workspace:*",
+    "@ai-sales/tsconfig": "workspace:*",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}

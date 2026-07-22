@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "command": ".cursor/hooks/validate-contracts.sh",
+        "matcher": "openapi.yaml|asyncapi.yaml"
+      }
+    ],
+    "postToolUse": [
+      {
+        "matcher": "Shell|Read|Grep",
+        "command": "node ./hooks/gitnexus-hook.cjs",
+        "timeout": 10
+      }
+    ]
+  }
+}

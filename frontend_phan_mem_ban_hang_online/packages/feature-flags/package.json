@@ -1,0 +1,33 @@
+{
+  "name": "@ai-sales/feature-flags",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Typed feature flag registry and evaluation hook, generated from contracts/feature-flags.yaml (ADR-FE-017, FE-F00-007).",
+  "type": "module",
+  "sideEffects": false,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "codegen": "node ../../tooling/scripts/generate-feature-flags.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ai-sales/telemetry": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@ai-sales/eslint-config": "workspace:*",
+    "@ai-sales/tsconfig": "workspace:*",
+    "@testing-library/react": "16.1.0",
+    "@types/react": "19.0.7",
+    "jsdom": "25.0.1",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}

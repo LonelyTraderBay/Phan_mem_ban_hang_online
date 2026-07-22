@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/tooling/scripts/guard-generated-edit.mjs"],
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "deny": [
+      "Read(./**/dist/**)",
+      "Read(./**/build/**)",
+      "Read(./**/storybook-static/**)",
+      "Read(./**/coverage/**)",
+      "Read(./**/playwright-report/**)",
+      "Read(./**/.turbo/**)",
+      "Read(./apps/windows-client/src-tauri/target/**)",
+      "Read(./apps/windows-client/src-tauri/gen/**)",
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./**/.env)",
+      "Read(./**/.env.local)"
+    ]
+  },
+  "extraKnownMarketplaces": [
+    { "source": "github", "repo": "anthropics/claude-plugins-official" },
+    { "source": "github", "repo": "DietrichGebert/ponytail" }
+  ],
+  "enabledPlugins": [
+    { "marketplace": "claude-plugins-official", "plugin": "typescript-lsp" },
+    { "marketplace": "ponytail", "plugin": "ponytail" }
+  ]
+}

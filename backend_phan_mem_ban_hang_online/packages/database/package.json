@@ -1,0 +1,12 @@
+{
+  "name": "@ai-sales/database",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@ai-sales/auth-context": "workspace:*",
+    "kysely": "0.29.4",
+    "pg": "8.22.0"
+  }
+}

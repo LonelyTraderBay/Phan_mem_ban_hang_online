@@ -1,0 +1,32 @@
+{
+  "name": "@ai-sales/state",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TanStack Query foundation: client factory, query key conventions, persistence, cache reset (spec 13.x, FE-F00-005).",
+  "type": "module",
+  "sideEffects": false,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ai-sales/config": "workspace:*",
+    "@ai-sales/platform": "workspace:*",
+    "@tanstack/react-query": "5.62.7",
+    "@tanstack/react-query-devtools": "5.62.7"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@ai-sales/eslint-config": "workspace:*",
+    "@ai-sales/tsconfig": "workspace:*",
+    "@types/react": "19.0.7",
+    "react": "19.0.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}

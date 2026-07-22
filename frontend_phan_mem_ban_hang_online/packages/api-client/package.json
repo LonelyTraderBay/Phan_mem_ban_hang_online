@@ -1,0 +1,26 @@
+{
+  "name": "@ai-sales/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Typed transport, Problem Details parsing, idempotency/concurrency helpers (spec 11.2-11.8, FE-F00-004). No React, no UI.",
+  "type": "module",
+  "sideEffects": false,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ai-sales/api-generated": "workspace:*",
+    "@ai-sales/config": "workspace:*",
+    "@ai-sales/telemetry": "workspace:*"
+  },
+  "devDependencies": {
+    "@ai-sales/eslint-config": "workspace:*",
+    "@ai-sales/tsconfig": "workspace:*",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}

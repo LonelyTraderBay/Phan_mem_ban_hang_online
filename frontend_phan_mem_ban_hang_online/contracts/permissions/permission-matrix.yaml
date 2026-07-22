@@ -1,0 +1,965 @@
+# GENERATED — do not hand-edit. Source: backend openapi.yaml (split by path prefix).
+# Run 'pnpm contracts:sync' to refresh.
+permissions:
+  - permission: tenant.read
+    data_classification: Internal
+    owner: "1"
+    group:
+      id: tenant
+      label_vi: Không gian làm việc
+      display_order: 10
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: true
+      analyst: true
+      support_default: false
+    notes: Read tenant profile
+  - permission: tenant.update
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: tenant
+      label_vi: Không gian làm việc
+      display_order: 10
+    roles:
+      admin: true
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Update tenant settings
+  - permission: member.read
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: members
+      label_vi: Thành viên
+      display_order: 20
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: List tenant members
+  - permission: member.invite
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: members
+      label_vi: Thành viên
+      display_order: 20
+    roles:
+      admin: true
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Invite members
+  - permission: member.update
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: members
+      label_vi: Thành viên
+      display_order: 20
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Suspend/reactivate member by policy
+  - permission: member.revoke
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: members
+      label_vi: Thành viên
+      display_order: 20
+    roles:
+      admin: true
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Revoke membership
+  - permission: role.read
+    data_classification: Internal
+    owner: "1"
+    group:
+      id: roles
+      label_vi: Vai trò và quyền
+      display_order: 30
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Read role catalog
+  - permission: role.manage
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: roles
+      label_vi: Vai trò và quyền
+      display_order: 30
+    roles:
+      admin: true
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Create/change roles
+  - permission: audit.read
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: audit
+      label_vi: Nhật ký kiểm toán
+      display_order: 40
+    roles:
+      admin: true
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Read audit records
+  - permission: audit.export
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: audit
+      label_vi: Nhật ký kiểm toán
+      display_order: 40
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Export audit data
+  - permission: customer.read
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: customers
+      label_vi: Khách hàng
+      display_order: 50
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: false
+      analyst: true
+      support_default: false
+    notes: Read customer with masked PII
+  - permission: customer.write
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: customers
+      label_vi: Khách hàng
+      display_order: 50
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Create/update customer
+  - permission: customer.merge
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: customers
+      label_vi: Khách hàng
+      display_order: 50
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Merge customer records
+  - permission: customer.pii.read
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: customers
+      label_vi: Khách hàng
+      display_order: 50
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Read unmasked PII by policy
+  - permission: customer.privacy.delete
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: customers
+      label_vi: Khách hàng
+      display_order: 50
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Anonymize/delete subject data
+  - permission: catalog.read
+    data_classification: Internal
+    owner: "1"
+    group:
+      id: catalog
+      label_vi: Danh mục sản phẩm
+      display_order: 60
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: true
+      analyst: true
+      support_default: false
+    notes: Read catalog
+  - permission: catalog.write
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: catalog
+      label_vi: Danh mục sản phẩm
+      display_order: 60
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Mutate catalog
+  - permission: catalog.cost.read
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: catalog
+      label_vi: Danh mục sản phẩm
+      display_order: 60
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: true
+      support_default: false
+    notes: Read cost
+  - permission: catalog.cost.write
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: catalog
+      label_vi: Danh mục sản phẩm
+      display_order: 60
+    roles:
+      admin: true
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Change cost
+  - permission: inventory.read
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: inventory
+      label_vi: Kho hàng
+      display_order: 70
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: true
+      analyst: true
+      support_default: false
+    notes: Read balances/movements
+  - permission: inventory.adjust
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: inventory
+      label_vi: Kho hàng
+      display_order: 70
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: true
+      analyst: false
+      support_default: false
+    notes: Adjust stock
+  - permission: inventory.reserve
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: inventory
+      label_vi: Kho hàng
+      display_order: 70
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: true
+      analyst: false
+      support_default: false
+    notes: Create/release reservation
+  - permission: inventory.transfer
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: inventory
+      label_vi: Kho hàng
+      display_order: 70
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: true
+      analyst: false
+      support_default: false
+    notes: Transfer stock
+  - permission: knowledge.read
+    data_classification: Internal
+    owner: "1"
+    group:
+      id: knowledge
+      label_vi: Kho tri thức
+      display_order: 80
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: false
+      analyst: true
+      support_default: false
+    notes: Read knowledge
+  - permission: knowledge.write
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: knowledge
+      label_vi: Kho tri thức
+      display_order: 80
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Create/edit drafts
+  - permission: knowledge.approve
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: knowledge
+      label_vi: Kho tri thức
+      display_order: 80
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Approve version
+  - permission: knowledge.publish
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: knowledge
+      label_vi: Kho tri thức
+      display_order: 80
+    roles:
+      admin: true
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Publish/archive version
+  - permission: channel.read
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: channels
+      label_vi: Kênh bán hàng
+      display_order: 90
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: false
+      analyst: true
+      support_default: false
+    notes: Read channel health
+  - permission: channel.connect
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: channels
+      label_vi: Kênh bán hàng
+      display_order: 90
+    roles:
+      admin: true
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: OAuth/connect channel
+  - permission: channel.manage
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: channels
+      label_vi: Kênh bán hàng
+      display_order: 90
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Disconnect/reprocess diagnostics
+  - permission: channel.send
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: channels
+      label_vi: Kênh bán hàng
+      display_order: 90
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Send/retry message
+  - permission: conversation.read
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: conversations
+      label_vi: Hội thoại
+      display_order: 100
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: false
+      analyst: true
+      support_default: false
+    notes: Read conversations/messages
+  - permission: conversation.reply
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: conversations
+      label_vi: Hội thoại
+      display_order: 100
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Reply/resolve/note
+  - permission: conversation.assign
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: conversations
+      label_vi: Hội thoại
+      display_order: 100
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Assign/escalate
+  - permission: conversation.takeover
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: conversations
+      label_vi: Hội thoại
+      display_order: 100
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Human takeover/release
+  - permission: ai.use
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: ai
+      label_vi: AI
+      display_order: 110
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Create/read own suggestions
+  - permission: ai.review
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: ai
+      label_vi: AI
+      display_order: 110
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: true
+      support_default: false
+    notes: Review logs/blocked outputs
+  - permission: ai.configure
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: ai
+      label_vi: AI
+      display_order: 110
+    roles:
+      admin: true
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Create prompt/eval config
+  - permission: ai.activate
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: ai
+      label_vi: AI
+      display_order: 110
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Approve/activate/rollback prompt
+  - permission: ai.disable
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: ai
+      label_vi: AI
+      display_order: 110
+    roles:
+      admin: true
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Tenant AI kill switch
+  - permission: order.read
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: orders
+      label_vi: Đơn hàng
+      display_order: 120
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: true
+      analyst: true
+      support_default: false
+    notes: Read orders
+  - permission: order.create
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: orders
+      label_vi: Đơn hàng
+      display_order: 120
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Create/edit draft
+  - permission: order.confirm
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: orders
+      label_vi: Đơn hàng
+      display_order: 120
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Confirm order
+  - permission: order.cancel
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: orders
+      label_vi: Đơn hàng
+      display_order: 120
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Cancel order
+  - permission: order.price.override
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: orders
+      label_vi: Đơn hàng
+      display_order: 120
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Override price/discount
+  - permission: payment.read
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: payments
+      label_vi: Thanh toán
+      display_order: 130
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: true
+      support_default: false
+    notes: Read payment records
+  - permission: payment.record
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: payments
+      label_vi: Thanh toán
+      display_order: 130
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Record/confirm payment
+  - permission: payment.refund
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: payments
+      label_vi: Thanh toán
+      display_order: 130
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Create refund
+  - permission: shipment.read
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: shipments
+      label_vi: Giao vận
+      display_order: 140
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: true
+      analyst: true
+      support_default: false
+    notes: Read shipments
+  - permission: shipment.manage
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: shipments
+      label_vi: Giao vận
+      display_order: 140
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: true
+      analyst: false
+      support_default: false
+    notes: Pack/ship/deliver/returns
+  - permission: report.read
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: reports
+      label_vi: Báo cáo
+      display_order: 150
+    roles:
+      admin: true
+      manager: true
+      sales: true
+      warehouse: true
+      analyst: true
+      support_default: false
+    notes: Read standard reports
+  - permission: report.profit.read
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: reports
+      label_vi: Báo cáo
+      display_order: 150
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: true
+      support_default: false
+    notes: Read profit/cost reports
+  - permission: report.export
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: reports
+      label_vi: Báo cáo
+      display_order: 150
+    roles:
+      admin: true
+      manager: true
+      sales: false
+      warehouse: false
+      analyst: true
+      support_default: false
+    notes: Export reports
+  - permission: billing.read
+    data_classification: Confidential
+    owner: "1"
+    group:
+      id: billing
+      label_vi: Thanh toán dịch vụ
+      display_order: 160
+    roles:
+      admin: true
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Read plan/usage
+  - permission: billing.manage
+    data_classification: Restricted
+    owner: "1"
+    group:
+      id: billing
+      label_vi: Thanh toán dịch vụ
+      display_order: 160
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Change subscription/billing
+  - permission: ops.tenant.read
+    data_classification: Restricted
+    owner: "0"
+    group:
+      id: operations
+      label_vi: Vận hành nền tảng
+      display_order: 170
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Platform-only via separate role; list/read tenant records (distinct from
+      ops.tenant_health)
+  - permission: ops.tenant_health
+    data_classification: Restricted
+    owner: "0"
+    group:
+      id: operations
+      label_vi: Vận hành nền tảng
+      display_order: 170
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Platform-only via separate role
+  - permission: ops.reprocess
+    data_classification: Restricted
+    owner: "0"
+    group:
+      id: operations
+      label_vi: Vận hành nền tảng
+      display_order: 170
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Platform-only via separate role
+  - permission: ops.feature_flag
+    data_classification: Restricted
+    owner: "0"
+    group:
+      id: operations
+      label_vi: Vận hành nền tảng
+      display_order: 170
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Platform-only via separate role
+  - permission: ops.alert.read
+    data_classification: Restricted
+    owner: "0"
+    group:
+      id: operations
+      label_vi: Vận hành nền tảng
+      display_order: 170
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Platform-only via separate role
+  - permission: ops.ai_health.read
+    data_classification: Restricted
+    owner: "0"
+    group:
+      id: operations
+      label_vi: Vận hành nền tảng
+      display_order: 170
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Platform-only via separate role
+  - permission: ops.channel_health.read
+    data_classification: Restricted
+    owner: "0"
+    group:
+      id: operations
+      label_vi: Vận hành nền tảng
+      display_order: 170
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Platform-only via separate role
+  - permission: ops.audit.read
+    data_classification: Restricted
+    owner: "0"
+    group:
+      id: operations
+      label_vi: Vận hành nền tảng
+      display_order: 170
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Platform-only via separate role; cross-tenant audit read for platform
+      support/incident review
+  - permission: support.access
+    data_classification: Restricted
+    owner: "0"
+    group:
+      id: support
+      label_vi: Hỗ trợ
+      display_order: 180
+    roles:
+      admin: false
+      manager: false
+      sales: false
+      warehouse: false
+      analyst: false
+      support_default: false
+    notes: Platform-only; support grant required

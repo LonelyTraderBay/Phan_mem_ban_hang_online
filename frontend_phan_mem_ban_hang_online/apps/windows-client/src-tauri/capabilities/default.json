@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "F00 baseline: only Tauri's core window-management permissions. No filesystem, shell, or network-beyond-webview capability is enabled — see CAPABILITY_POLICY.md. The `shell:allow-open` (system-browser OIDC redirect, ADR-FE-014) and Stronghold (secure credential vault) capabilities are added only when desktop auth (F01) is implemented, not before.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default"
+  ]
+}

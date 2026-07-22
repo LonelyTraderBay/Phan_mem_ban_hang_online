@@ -1,0 +1,7 @@
+{
+  "extends": "@ai-sales/tsconfig/base.json",
+  "compilerOptions": {
+    "rootDir": "src"
+  },
+  "include": ["src"]
+}

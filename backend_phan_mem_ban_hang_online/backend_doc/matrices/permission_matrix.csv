@@ -1,0 +1,65 @@
+permission,data_classification,owner,admin,manager,sales,warehouse,analyst,support_default,notes,group_id,group_label_vi,display_order
+tenant.read,Internal,1,1,1,1,1,1,0,Read tenant profile,tenant,Không gian làm việc,10
+tenant.update,Confidential,1,1,0,0,0,0,0,Update tenant settings,tenant,Không gian làm việc,10
+member.read,Confidential,1,1,1,0,0,0,0,List tenant members,members,Thành viên,20
+member.invite,Confidential,1,1,0,0,0,0,0,Invite members,members,Thành viên,20
+member.update,Confidential,1,1,1,0,0,0,0,Suspend/reactivate member by policy,members,Thành viên,20
+member.revoke,Confidential,1,1,0,0,0,0,0,Revoke membership,members,Thành viên,20
+role.read,Internal,1,1,1,0,0,0,0,Read role catalog,roles,Vai trò và quyền,30
+role.manage,Restricted,1,1,0,0,0,0,0,Create/change roles,roles,Vai trò và quyền,30
+audit.read,Confidential,1,1,0,0,0,0,0,Read audit records,audit,Nhật ký kiểm toán,40
+audit.export,Restricted,1,0,0,0,0,0,0,Export audit data,audit,Nhật ký kiểm toán,40
+customer.read,Confidential,1,1,1,1,0,1,0,Read customer with masked PII,customers,Khách hàng,50
+customer.write,Confidential,1,1,1,1,0,0,0,Create/update customer,customers,Khách hàng,50
+customer.merge,Restricted,1,1,1,0,0,0,0,Merge customer records,customers,Khách hàng,50
+customer.pii.read,Restricted,1,1,1,1,0,0,0,Read unmasked PII by policy,customers,Khách hàng,50
+customer.privacy.delete,Restricted,1,0,0,0,0,0,0,Anonymize/delete subject data,customers,Khách hàng,50
+catalog.read,Internal,1,1,1,1,1,1,0,Read catalog,catalog,Danh mục sản phẩm,60
+catalog.write,Confidential,1,1,1,0,0,0,0,Mutate catalog,catalog,Danh mục sản phẩm,60
+catalog.cost.read,Restricted,1,1,1,0,0,1,0,Read cost,catalog,Danh mục sản phẩm,60
+catalog.cost.write,Restricted,1,1,0,0,0,0,0,Change cost,catalog,Danh mục sản phẩm,60
+inventory.read,Confidential,1,1,1,1,1,1,0,Read balances/movements,inventory,Kho hàng,70
+inventory.adjust,Restricted,1,1,1,0,1,0,0,Adjust stock,inventory,Kho hàng,70
+inventory.reserve,Confidential,1,1,1,1,1,0,0,Create/release reservation,inventory,Kho hàng,70
+inventory.transfer,Restricted,1,1,1,0,1,0,0,Transfer stock,inventory,Kho hàng,70
+knowledge.read,Internal,1,1,1,1,0,1,0,Read knowledge,knowledge,Kho tri thức,80
+knowledge.write,Confidential,1,1,1,0,0,0,0,Create/edit drafts,knowledge,Kho tri thức,80
+knowledge.approve,Restricted,1,1,1,0,0,0,0,Approve version,knowledge,Kho tri thức,80
+knowledge.publish,Restricted,1,1,0,0,0,0,0,Publish/archive version,knowledge,Kho tri thức,80
+channel.read,Confidential,1,1,1,1,0,1,0,Read channel health,channels,Kênh bán hàng,90
+channel.connect,Restricted,1,1,0,0,0,0,0,OAuth/connect channel,channels,Kênh bán hàng,90
+channel.manage,Restricted,1,1,1,0,0,0,0,Disconnect/reprocess diagnostics,channels,Kênh bán hàng,90
+channel.send,Confidential,1,1,1,1,0,0,0,Send/retry message,channels,Kênh bán hàng,90
+conversation.read,Confidential,1,1,1,1,0,1,0,Read conversations/messages,conversations,Hội thoại,100
+conversation.reply,Confidential,1,1,1,1,0,0,0,Reply/resolve/note,conversations,Hội thoại,100
+conversation.assign,Confidential,1,1,1,0,0,0,0,Assign/escalate,conversations,Hội thoại,100
+conversation.takeover,Restricted,1,1,1,1,0,0,0,Human takeover/release,conversations,Hội thoại,100
+ai.use,Confidential,1,1,1,1,0,0,0,Create/read own suggestions,ai,AI,110
+ai.review,Restricted,1,1,1,0,0,1,0,Review logs/blocked outputs,ai,AI,110
+ai.configure,Restricted,1,1,0,0,0,0,0,Create prompt/eval config,ai,AI,110
+ai.activate,Restricted,1,0,0,0,0,0,0,Approve/activate/rollback prompt,ai,AI,110
+ai.disable,Restricted,1,1,0,0,0,0,0,Tenant AI kill switch,ai,AI,110
+order.read,Confidential,1,1,1,1,1,1,0,Read orders,orders,Đơn hàng,120
+order.create,Confidential,1,1,1,1,0,0,0,Create/edit draft,orders,Đơn hàng,120
+order.confirm,Restricted,1,1,1,1,0,0,0,Confirm order,orders,Đơn hàng,120
+order.cancel,Restricted,1,1,1,0,0,0,0,Cancel order,orders,Đơn hàng,120
+order.price.override,Restricted,1,1,1,0,0,0,0,Override price/discount,orders,Đơn hàng,120
+payment.read,Restricted,1,1,1,0,0,1,0,Read payment records,payments,Thanh toán,130
+payment.record,Restricted,1,1,1,0,0,0,0,Record/confirm payment,payments,Thanh toán,130
+payment.refund,Restricted,1,0,0,0,0,0,0,Create refund,payments,Thanh toán,130
+shipment.read,Confidential,1,1,1,1,1,1,0,Read shipments,shipments,Giao vận,140
+shipment.manage,Restricted,1,1,1,0,1,0,0,Pack/ship/deliver/returns,shipments,Giao vận,140
+report.read,Confidential,1,1,1,1,1,1,0,Read standard reports,reports,Báo cáo,150
+report.profit.read,Restricted,1,1,1,0,0,1,0,Read profit/cost reports,reports,Báo cáo,150
+report.export,Restricted,1,1,1,0,0,1,0,Export reports,reports,Báo cáo,150
+billing.read,Confidential,1,1,0,0,0,0,0,Read plan/usage,billing,Thanh toán dịch vụ,160
+billing.manage,Restricted,1,0,0,0,0,0,0,Change subscription/billing,billing,Thanh toán dịch vụ,160
+ops.tenant.read,Restricted,0,0,0,0,0,0,0,Platform-only via separate role; list/read tenant records (distinct from ops.tenant_health),operations,Vận hành nền tảng,170
+ops.tenant_health,Restricted,0,0,0,0,0,0,0,Platform-only via separate role,operations,Vận hành nền tảng,170
+ops.reprocess,Restricted,0,0,0,0,0,0,0,Platform-only via separate role,operations,Vận hành nền tảng,170
+ops.feature_flag,Restricted,0,0,0,0,0,0,0,Platform-only via separate role,operations,Vận hành nền tảng,170
+ops.alert.read,Restricted,0,0,0,0,0,0,0,Platform-only via separate role,operations,Vận hành nền tảng,170
+ops.ai_health.read,Restricted,0,0,0,0,0,0,0,Platform-only via separate role,operations,Vận hành nền tảng,170
+ops.channel_health.read,Restricted,0,0,0,0,0,0,0,Platform-only via separate role,operations,Vận hành nền tảng,170
+ops.audit.read,Restricted,0,0,0,0,0,0,0,Platform-only via separate role; cross-tenant audit read for platform support/incident review,operations,Vận hành nền tảng,170
+support.access,Restricted,0,0,0,0,0,0,0,Platform-only; support grant required,support,Hỗ trợ,180

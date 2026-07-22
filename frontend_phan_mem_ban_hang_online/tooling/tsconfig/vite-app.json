@@ -1,0 +1,7 @@
+{
+  "extends": "./react-library.json",
+  "compilerOptions": {
+    "types": ["vite/client"],
+    "moduleDetection": "force"
+  }
+}

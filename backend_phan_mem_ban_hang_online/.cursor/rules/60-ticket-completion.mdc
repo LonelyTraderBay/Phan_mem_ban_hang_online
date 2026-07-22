@@ -1,0 +1,21 @@
+---
+description: Ticket completion manifest and acceptance criteria
+globs: docs/tickets/**
+alwaysApply: false
+---
+
+# Ticket Completion
+
+Follow `backend_doc/templates/backend_ticket_template.md`.
+
+Before marking done, fill the completion manifest:
+
+- Contracts changed (OpenAPI/AsyncAPI paths, error codes, permissions)
+- Migration files added
+- Tests run with command output (`pnpm verify`, focused tests)
+- Security notes (tenant isolation, permission negatives)
+- Observability (logs, traces, metrics added)
+- Rollback plan
+- Unresolved ADR/open questions
+
+Do not claim completion without fresh verification command evidence.

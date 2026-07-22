@@ -1,0 +1,14 @@
+---
+description: OpenAPI/AsyncAPI contract-first workflow
+globs: "**/openapi.yaml,**/asyncapi.yaml,backend_doc/matrices/**"
+alwaysApply: false
+---
+
+# Contracts
+
+- Update `backend_doc/contracts/` first, then run `pnpm contracts:validate` to sync packages.
+- Every new endpoint: OpenAPI operation, permission in `permission_matrix.csv`, errors in `error_catalog.csv`.
+- Use `pnpm agent:contract-slice --tag <Tag>` instead of loading the full 9k-line OpenAPI file.
+- Replace generic `GenericCommandRequest` / `GenericResource` placeholders before contract freeze.
+- AsyncAPI events must match domain event names and version fields.
+- Do not add endpoints without idempotency spec for mutations affecting money, inventory, orders, or payments.

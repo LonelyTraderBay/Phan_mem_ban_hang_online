@@ -1,0 +1,27 @@
+flowchart TD
+  internet[Internet / Web / Windows Client / Provider Webhooks]
+  edge[CDN / WAF / Load Balancer]
+  api[NestJS API]
+  worker[NestJS Worker]
+  scheduler[NestJS Scheduler]
+  db[(PostgreSQL source of truth)]
+  redis[(Redis / BullMQ)]
+  ai[FastAPI AI Service]
+  model[Model / Embedding Provider]
+  object[S3-Compatible Object Storage]
+  otel[OpenTelemetry Collector]
+
+  internet --> edge --> api
+  api --> db
+  api --> redis
+  worker --> db
+  worker --> redis
+  scheduler --> db
+  scheduler --> redis
+  api --> ai
+  ai --> model
+  ai --> object
+  api --> otel
+  worker --> otel
+  scheduler --> otel
+  ai --> otel

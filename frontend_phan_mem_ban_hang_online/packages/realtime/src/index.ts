@@ -1,0 +1,14 @@
+export { eventEnvelopeSchema, parseEventEnvelope, createEventDeduper } from "./envelope";
+export type { EventEnvelope } from "./envelope";
+export { transitionConnectionState } from "./connectionState";
+export type { SseConnectionState, SseConnectionEvent } from "./connectionState";
+export { computeBackoffDelay } from "./backoff";
+export type { BackoffOptions } from "./backoff";
+export { createEventRouter, EVENT_CATALOG } from "./router";
+export type { EventHandler, EventType } from "./router";
+export { createSseClient } from "./sseClient";
+export type { SseClient, SseClientOptions } from "./sseClient";
+export { createFakeEventSourceFactory } from "./mockHarness";
+export type { FakeEventSourceHandle } from "./mockHarness";
+export { createConnectionStatusStore, useConnectionStatus } from "./connectionStatus";
+export type { ConnectionStatusStore } from "./connectionStatus";

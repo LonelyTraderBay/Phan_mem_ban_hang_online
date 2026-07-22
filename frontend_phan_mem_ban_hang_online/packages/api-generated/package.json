@@ -1,0 +1,21 @@
+{
+  "name": "@ai-sales/api-generated",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Generated TypeScript types from contracts/openapi/*.yaml. Never hand-edit anything under src/generated/ (FE-F00-004).",
+  "type": "module",
+  "sideEffects": false,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "codegen": "openapi-typescript ../../contracts/openapi/tenant-api.yaml -o src/generated/tenant.d.ts && openapi-typescript ../../contracts/openapi/ops-api.yaml -o src/generated/ops.d.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@ai-sales/eslint-config": "workspace:*",
+    "@ai-sales/tsconfig": "workspace:*",
+    "openapi-typescript": "7.6.1",
+    "typescript": "6.0.3"
+  }
+}
