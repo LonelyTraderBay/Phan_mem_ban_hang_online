@@ -17,7 +17,6 @@ import { MissingSecurityContextError } from "@ai-sales/security";
 import {
   OperationsError,
   createReprocessRequest,
-  createSupportAccessForOps,
   disableTenantAI,
   getAiHealth,
   getTenantHealth,
@@ -81,11 +80,6 @@ function mapOpsError(error: unknown): never {
 
 export function createOperationsController(options: {
   readonly repo: OperationsRepository;
-  readonly createSupportGrant?: (args: {
-    readonly tenantId: string;
-    readonly expiresAt: string;
-    readonly reason: string;
-  }) => Promise<{ readonly id: string; readonly status: string }>;
 }) {
   @Controller("api/v1")
   class OperationsController {
@@ -116,30 +110,8 @@ export function createOperationsController(options: {
       }
     }
 
-    @Post("super-admin/tenants/:tenant_id/support-access")
-    @HttpCode(HttpStatus.CREATED)
-    async supportAccessRoute(
-      @Param("tenant_id") tenantId: string,
-      @Body() body: { expires_at?: string; reason?: string },
-      @Headers() headers: HeaderBag
-    ) {
-      try {
-        const actor = parseActor(headers);
-        if (!options.createSupportGrant) {
-          throw new OperationsError("Support grant port not configured.", "VALIDATION_FAILED");
-        }
-        return await createSupportAccessForOps({
-          tenantId,
-          expiresAt: body?.expires_at ?? new Date(Date.now() + 3_600_000).toISOString(),
-          ...(body?.reason !== undefined ? { reason: body.reason } : {}),
-          actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key"),
-          createGrant: options.createSupportGrant
-        });
-      } catch (error) {
-        mapOpsError(error);
-      }
-    }
+    // POST .../support-access is owned by createSupportAccessController (tenant module)
+    // to preserve grantee_user_id resolution — do not re-register here.
 
     @Post("super-admin/tenants/:tenant_id/feature-flags/:flag_key")
     async featureFlagRoute(

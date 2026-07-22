@@ -390,12 +390,18 @@ export async function sendAISuggestion(options: {
     text: row.outputRedacted,
     idempotencyKey: options.idempotencyKey
   });
+  if (job.status !== "queued") {
+    throw new AiOrchestrationError(
+      `Outbound queue rejected send (status=${job.status}).`,
+      "VALIDATION_FAILED"
+    );
+  }
   await options.repo.updateSuggestion({
     ...row,
     status: "sent",
     updatedAt: new Date().toISOString()
   });
-  return { data: { job_id: job.jobId, status: job.status as "queued" }, meta: {} };
+  return { data: { job_id: job.jobId, status: "queued" as const }, meta: {} };
 }
 
 export async function evaluateAIResponse(options: {

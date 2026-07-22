@@ -1,5 +1,4 @@
 import { Module, type DynamicModule, type Type } from "@nestjs/common";
-import { generateUuidV7 } from "@ai-sales/domain-kernel";
 import { isOidcConfigured, loadConfig } from "@ai-sales/config";
 import { createDatabase } from "@ai-sales/database";
 import { PostgresIdempotencyStore } from "@ai-sales/idempotency";
@@ -262,7 +261,8 @@ const aiOutboundPort: OutboundSendPort = {
       conversationId: args.conversationId
     });
     if (!conv?.channelAccountId) {
-      return { jobId: args.suggestionId, status: "queued" };
+      // Fail closed: never report success when nothing was enqueued.
+      throw new Error("Conversation has no channel account for outbound send.");
     }
     const queued = await queueOutboundMessage({
       repo: channelRepo,
@@ -350,22 +350,9 @@ function buildControllers(): Type<unknown>[] {
       }),
       createAnalyticsController({ repo: analyticsRepo }),
       createBillingController({ repo: billingRepo }),
-      createOperationsController({
-        repo: operationsRepo,
-        createSupportGrant: async (args) => {
-          const grant = await supportGrantStore.create({
-            id: generateUuidV7(),
-            tenantId: args.tenantId,
-            granteeUserId: generateUuidV7(),
-            reason: args.reason,
-            ticketRef: null,
-            scope: "read",
-            expiresAt: new Date(args.expiresAt),
-            approvedBy: null
-          });
-          return { id: grant.id, status: "active" };
-        }
-      })
+      // Support-access create stays on createSupportAccessController only
+      // (avoids duplicate POST .../support-access that overwrote grantee identity).
+      createOperationsController({ repo: operationsRepo })
     );
 
     const oidc = buildOidcConfig();
