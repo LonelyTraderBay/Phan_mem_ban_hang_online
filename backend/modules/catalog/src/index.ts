@@ -28,5 +28,16 @@ export {
   type PriceHistoryRecord
 } from "./application/catalog.js";
 
+export {
+  attachProductMedia,
+  createMediaUploadIntent,
+  getSignedMediaDownloadUrl,
+  markMediaUploadComplete,
+  type MediaRepository,
+  type MediaScanStatus,
+  type MediaUploadRecord,
+  type ProductMediaRecord
+} from "./application/media.js";
+
 export { InMemoryCatalogRepository } from "./infrastructure/persistence/in-memory-catalog.js";
 export { createCatalogController } from "./presentation/http/catalog.controller.js";

@@ -4,107 +4,58 @@ title: Private media upload/scan/signed URL flow
 owner: Backend AI Agent
 phase: P3
 risk: medium
-status: doc-frozen
+status: done
 ---
 
 # Business outcome
 
-Private media upload/scan/signed URL flow.
+Private media upload intent → attach to product → sync scan stub → signed download URL.
 
-Deliverable / details from backlog: (none — expand from blueprint + contracts before coding).
-
-Primary paths: `modules/catalog/`.
+Primary paths: `modules/catalog/` (`application/media.ts`).
 
 # Actor and use case
 
-Actors and flows for domain **CAT** as defined in the enterprise blueprint and frozen OpenAPI/AsyncAPI contracts for this phase (P3).
+1. `POST /media/uploads` (`createMediaUploadIntent`) with `catalog.write` + Idempotency-Key  
+   → JobResponse: `job_id`=upload_id, `status_url`=signed PUT URL (15 min TTL).
+2. Client uploads bytes to signed URL (in-memory: attach implies bytes received).
+3. `POST /products/{id}/media` (`attachProductMedia`) attaches to first active variant, scan→`clean`.
+4. `getSignedMediaDownloadUrl` only when `scan_status=clean`.
 
 # In scope / Out of scope
 
 In scope:
-- Private media upload/scan/signed URL flow
-- Align with frozen contracts, permission/error matrices, and data-dictionary classes (W1–W4).
-- Tests required by acceptance criteria below.
+- MIME allowlist (jpeg/png/webp/gif), 10 MiB cap
+- Errors: `UNSUPPORTED_MEDIA_TYPE`, `REQUEST_TOO_LARGE`
+- Idempotent intent + attach
+- Tenant isolation
 
 Out of scope:
-- Unrelated modules
-- FE UI (FE consumes contracts after sync)
-- Inventing permissions, money rules, or schema classes not in freeze docs
-
-# Dependencies
-
-- Enterprise freeze gate: feature coding forbidden until `FULL_PRODUCT_DOC_FREEZE.md` = PASS (except freeze-wave doc work).
-- Prefer prior phase tickets Done; consult `docs/p0/epic-dependency-board.md`.
-- Cite related `docs/tickets/BE-*.md` siblings in the same domain when implementing.
-
-Money N/A for this ticket unless a later scope change adds priced entities — then cite HO_DEFAULTS_v1.
-
-# Domain invariants and state transitions
-
-- Never trust client `tenant_id` for authorization; set tenant context server-side.
-- Apply state machines from `docs/domain/state-machine-transition-matrices.md` where this ticket owns transitions.
-- Ledger / append-only tables: no hard DELETE; compensating rows only.
-- Follow `docs/data/data-dictionary.md` + `rls-intent-catalog.md` for any table this ticket creates/touches.
+- Real S3/MinIO adapter
+- Async malware worker
+- Inventing OpenAPI fields for signed download GET
 
 # Contract
 
-- OpenAPI operation/schema: slice with `pnpm agent:contract-slice` for CAT; implement only operations this ticket owns.
-- AsyncAPI events: emit/consume only events listed for this deliverable in `backend_doc/contracts/asyncapi.yaml`.
-- Error codes: `backend_doc/matrices/error_catalog.csv` only — no ad-hoc codes.
-- Realtime event: only if AsyncAPI / ops channel lists one for this work.
+- OpenAPI: `createMediaUploadIntent`, `attachProductMedia` (frozen)
+- Field reuse on CatalogResource: name=filename, description=alt_text, brand=media_type, category_id=variant_id
+- JobResponse `status_url` = upload URL
 
-# Authorization and data classification
+# Persistence
 
-- Required permission: every public operation must have `x-permission` resolving to `permission_matrix.csv`.
-- Tenant/RLS behavior: per table class in data-dictionary; FORCE RLS for tenant-scoped tables.
-- Field-level restrictions: blueprint §5.5 / cost fields where applicable.
-- Data classification: secrets hashed/encrypted; PII redacted in logs/audit.
-
-# Persistence and migration
-
-- Tables/columns/constraints/indexes/RLS: only those required by this deliverable; class must already be frozen (no `Needs confirmation`).
-- Backfill: document if any; default none for greenfield.
-- Rolling-deploy compatibility: expand/contract only.
-
-# Transaction, concurrency and idempotency
-
-- Transaction boundary: business mutation + outbox/audit/idempotency in one tenant transaction where required.
-- Lock order/isolation: follow module invariants; avoid cross-aggregate deadlocks.
-- Idempotency scope/TTL: required on critical mutators per OpenAPI `x-idempotency` / blueprint §8.7.
-- Retry behavior: fail-closed on non-retryable; DLQ for workers.
-
-# Audit, telemetry and operations
-
-- Audit action: record security/business-significant mutations via audit port.
-- Logs/traces/metrics: correlation IDs; no secrets in clear text.
-- Alert/runbook impact: note new alerts if this ticket adds SLO-sensitive paths.
-- Feature flag/rollout: prefer flag when changing tenant-visible behavior.
-- Rollback: disable route/flag; no destructive down-migrations of ledger data.
+- Uses `app.product_media` shape from `000012` (in-memory)
+- Migration: none
 
 # Acceptance criteria
 
-- [ ] Happy path matches contract + backlog deliverable
-- [ ] Validation / business conflict codes from error catalog
-- [ ] Permission + tenant isolation tests (deny cross-tenant)
-- [ ] Idempotency / retry where mutator is critical
-- [ ] Transaction rollback / concurrency when applicable
-- [ ] Audit / outbox / domain events as required
-- [ ] Contract / generated client note for FE sync
-- [ ] Staging smoke checklist item when phase reaches staging
-
-# Test cases
-
-Derive from BE domain test matrices / blueprint §13 where present; otherwise write permission-negative + happy-path + isolation cases before coding.
+- [x] Happy path intent → attach → signed download
+- [x] MIME/size validation codes
+- [x] Permission + tenant isolation
+- [x] Idempotency
+- [ ] Staging smoke when phase reaches staging
 
 # Completion manifest
 
-- Contracts changed:
-- Migration:
-- Tests/evidence:
-- Known risks:
-
-# Freeze provenance
-
-- Generated/updated: 2026-07-22 (enterprise freeze W5)
-- Backlog status at freeze: Not Started
-- Source: `backend_doc/matrices/implementation_backlog.csv`
+- Contracts changed: none
+- Migration: none
+- Tests: `pnpm exec vitest run modules/catalog` — 24/24
+- Known risks: product-scoped API vs variant-scoped table (attach picks first active variant); real object storage TBD

@@ -7,6 +7,12 @@ import {
   type CatalogStatus,
   type PriceHistoryRecord
 } from "../../application/catalog.js";
+import type {
+  MediaRepository,
+  MediaScanStatus,
+  MediaUploadRecord,
+  ProductMediaRecord
+} from "../../application/media.js";
 
 interface StoredCategory {
   id: string;
@@ -50,13 +56,24 @@ interface StoredVariant {
   updatedAt: Date;
 }
 
-export class InMemoryCatalogRepository implements CatalogRepository {
+export class InMemoryCatalogRepository implements CatalogRepository, MediaRepository {
   readonly categories = new Map<string, StoredCategory>();
   readonly products = new Map<string, StoredProduct>();
   readonly variants = new Map<string, StoredVariant>();
   readonly priceHistory: PriceHistoryRecord[] = [];
   readonly audits: CatalogAuditRecord[] = [];
+  readonly uploads = new Map<string, MediaUploadRecord & { bytesReceived: boolean }>();
+  readonly media = new Map<string, ProductMediaRecord>();
   private readonly idempotency = new Map<string, CatalogResource>();
+  private readonly mediaJobIdempotency = new Map<
+    string,
+    {
+      job_id: string;
+      status: "queued" | "running" | "completed" | "failed" | "cancelled";
+      status_url: string | null;
+    }
+  >();
+  private readonly mediaAttachIdempotency = new Map<string, CatalogResource>();
 
   private toCategoryResource(c: StoredCategory): CatalogResource {
     return {
@@ -545,5 +562,169 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     variant.version += 1;
     variant.updatedAt = new Date();
     return this.toVariantResource(variant);
+  }
+
+  // -------------------------------------------------------------------------
+  // Media (BE-CAT-004)
+  // -------------------------------------------------------------------------
+
+  async createUploadIntent(args: {
+    readonly tenantId: string;
+    readonly uploadId: UuidV7;
+    readonly filename: string;
+    readonly contentType: string;
+    readonly byteSize: number;
+    readonly objectKey: string;
+    readonly uploadUrl: string;
+    readonly expiresAt: string;
+  }): Promise<MediaUploadRecord> {
+    const record: MediaUploadRecord & { bytesReceived: boolean } = {
+      id: args.uploadId,
+      tenantId: args.tenantId,
+      filename: args.filename,
+      contentType: args.contentType,
+      byteSize: args.byteSize,
+      objectKey: args.objectKey,
+      uploadUrl: args.uploadUrl,
+      expiresAt: args.expiresAt,
+      bytesReceived: false,
+      createdAt: new Date().toISOString()
+    };
+    this.uploads.set(args.uploadId, record);
+    return record;
+  }
+
+  async getUploadIntent(args: {
+    readonly tenantId: string;
+    readonly uploadId: string;
+  }): Promise<MediaUploadRecord | null> {
+    const row = this.uploads.get(args.uploadId);
+    if (!row || row.tenantId !== args.tenantId) return null;
+    return row;
+  }
+
+  async markUploadBytesReceived(args: {
+    readonly tenantId: string;
+    readonly uploadId: string;
+  }): Promise<MediaUploadRecord> {
+    const row = this.uploads.get(args.uploadId);
+    if (!row || row.tenantId !== args.tenantId) {
+      throw new CatalogError("Upload intent not found.", "RESOURCE_NOT_FOUND");
+    }
+    row.bytesReceived = true;
+    return row;
+  }
+
+  async findFirstActiveVariantId(args: {
+    readonly tenantId: string;
+    readonly productId: string;
+  }): Promise<string | null> {
+    for (const v of this.variants.values()) {
+      if (v.tenantId === args.tenantId && v.productId === args.productId && v.status === "active") {
+        return v.id;
+      }
+    }
+    return null;
+  }
+
+  async assertProductAttachable(args: {
+    readonly tenantId: string;
+    readonly productId: string;
+  }): Promise<void> {
+    const product = this.products.get(args.productId);
+    if (!product || product.tenantId !== args.tenantId) {
+      throw new CatalogError("Product not found.", "RESOURCE_NOT_FOUND");
+    }
+    if (product.status === "archived") {
+      throw new CatalogError("Product is archived.", "PRODUCT_ARCHIVED");
+    }
+  }
+
+  async attachMedia(args: {
+    readonly tenantId: string;
+    readonly mediaId: UuidV7;
+    readonly productId: string;
+    readonly variantId: string;
+    readonly uploadId: string;
+    readonly objectKey: string;
+    readonly mediaType: string;
+    readonly sizeBytes: number;
+    readonly sortOrder: number;
+    readonly altText: string | null;
+    readonly filename: string;
+    readonly scanStatus: MediaScanStatus;
+    readonly checksum: string | null;
+  }): Promise<ProductMediaRecord> {
+    const now = new Date().toISOString();
+    const record: ProductMediaRecord = {
+      id: args.mediaId,
+      tenantId: args.tenantId,
+      productId: args.productId,
+      variantId: args.variantId,
+      uploadId: args.uploadId,
+      objectKey: args.objectKey,
+      mediaType: args.mediaType,
+      checksum: args.checksum,
+      sizeBytes: args.sizeBytes,
+      sortOrder: args.sortOrder,
+      scanStatus: args.scanStatus,
+      altText: args.altText,
+      filename: args.filename,
+      version: 1,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.media.set(record.id, record);
+    return record;
+  }
+
+  async getIdempotentMediaJob(
+    tenantId: string,
+    key: string
+  ): Promise<{
+    readonly job_id: string;
+    readonly status: "queued" | "running" | "completed" | "failed" | "cancelled";
+    readonly status_url: string | null;
+  } | null> {
+    return this.mediaJobIdempotency.get(`${tenantId}:${key}`) ?? null;
+  }
+
+  async saveIdempotentMediaJob(
+    tenantId: string,
+    key: string,
+    job: {
+      readonly job_id: string;
+      readonly status: "queued" | "running" | "completed" | "failed" | "cancelled";
+      readonly status_url: string | null;
+    }
+  ): Promise<void> {
+    this.mediaJobIdempotency.set(`${tenantId}:${key}`, job);
+  }
+
+  async getIdempotentMediaAttach(tenantId: string, key: string): Promise<CatalogResource | null> {
+    return this.mediaAttachIdempotency.get(`${tenantId}:${key}`) ?? null;
+  }
+
+  async saveIdempotentMediaAttach(
+    tenantId: string,
+    key: string,
+    resource: CatalogResource
+  ): Promise<void> {
+    this.mediaAttachIdempotency.set(`${tenantId}:${key}`, resource);
+  }
+
+  async signDownloadUrl(args: {
+    readonly tenantId: string;
+    readonly mediaId: string;
+  }): Promise<string> {
+    const media = this.media.get(args.mediaId);
+    if (!media || media.tenantId !== args.tenantId) {
+      throw new CatalogError("Media not found.", "RESOURCE_NOT_FOUND");
+    }
+    if (media.scanStatus !== "clean") {
+      throw new CatalogError("Media is not available for download.", "VALIDATION_FAILED");
+    }
+    const expires = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    return `memory://download/${args.tenantId}/${media.id}?expires=${encodeURIComponent(expires)}`;
   }
 }

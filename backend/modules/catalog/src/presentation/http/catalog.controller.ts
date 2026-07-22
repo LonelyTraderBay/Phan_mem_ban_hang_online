@@ -35,6 +35,11 @@ import {
   updateVariant,
   type CatalogRepository
 } from "../../application/catalog.js";
+import {
+  attachProductMedia,
+  createMediaUploadIntent,
+  type MediaRepository
+} from "../../application/media.js";
 
 type HeaderBag = Record<string, string | string[] | undefined>;
 
@@ -110,6 +115,10 @@ function mapCatalogError(error: unknown): never {
         throw new ConflictException({ code: error.code, message: error.message });
       case "IDEMPOTENCY_KEY_REQUIRED":
         throw new BadRequestException({ code: error.code, message: error.message });
+      case "UNSUPPORTED_MEDIA_TYPE":
+        throw new HttpException({ code: error.code, message: error.message }, 415);
+      case "REQUEST_TOO_LARGE":
+        throw new HttpException({ code: error.code, message: error.message }, 413);
       case "CATEGORY_CYCLE":
       case "VALIDATION_FAILED":
       default:
@@ -119,7 +128,9 @@ function mapCatalogError(error: unknown): never {
   throw error;
 }
 
-export function createCatalogController(options: { readonly repo: CatalogRepository }) {
+export function createCatalogController(options: {
+  readonly repo: CatalogRepository & MediaRepository;
+}) {
   @Controller("api/v1")
   class CatalogController {
     // -------------------------------------------------------------------
@@ -407,6 +418,65 @@ export function createCatalogController(options: { readonly repo: CatalogReposit
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
           variantId,
           expectedVersion: parseIfMatchVersion(optionalHeader(headers, "if-match"))
+        });
+      } catch (error) {
+        mapCatalogError(error);
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // Media (BE-CAT-004)
+    // -------------------------------------------------------------------
+
+    @Post("media/uploads")
+    @HttpCode(HttpStatus.CREATED)
+    async createMediaUpload(
+      @Body()
+      body: {
+        filename?: string;
+        content_type?: string;
+        byte_size?: number;
+      },
+      @Headers() headers: HeaderBag
+    ) {
+      try {
+        const actor = parseActor(headers);
+        return await createMediaUploadIntent({
+          mediaRepo: options.repo,
+          tenantId: actor.tenantId,
+          actorPermissions: actor.permissions,
+          idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          filename: body?.filename ?? "",
+          contentType: body?.content_type ?? "",
+          byteSize: body?.byte_size ?? 0
+        });
+      } catch (error) {
+        mapCatalogError(error);
+      }
+    }
+
+    @Post("products/:product_id/media")
+    async attachMedia(
+      @Param("product_id") productId: string,
+      @Body()
+      body: {
+        upload_id?: string;
+        alt_text?: string | null;
+        sort_order?: number | null;
+      },
+      @Headers() headers: HeaderBag
+    ) {
+      try {
+        const actor = parseActor(headers);
+        return await attachProductMedia({
+          mediaRepo: options.repo,
+          tenantId: actor.tenantId,
+          actorPermissions: actor.permissions,
+          idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          productId,
+          uploadId: body?.upload_id ?? "",
+          ...(body?.alt_text !== undefined ? { altText: body.alt_text } : {}),
+          ...(body?.sort_order !== undefined ? { sortOrder: body.sort_order } : {})
         });
       } catch (error) {
         mapCatalogError(error);

@@ -28,7 +28,9 @@ export type CatalogErrorCode =
   | "BARCODE_DUPLICATE"
   | "CATEGORY_CYCLE"
   | "PRODUCT_ARCHIVED"
-  | "IDEMPOTENCY_KEY_REQUIRED";
+  | "IDEMPOTENCY_KEY_REQUIRED"
+  | "UNSUPPORTED_MEDIA_TYPE"
+  | "REQUEST_TOO_LARGE";
 
 export interface PriceHistoryRecord {
   readonly id: string;

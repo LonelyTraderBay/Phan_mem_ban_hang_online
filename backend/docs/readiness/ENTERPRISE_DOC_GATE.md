@@ -65,8 +65,9 @@
 21. BE-CUS-003 identity attach/dedupe — done
 22. BE-CUS-004 merge preview/transaction — Done
 23. BE-CAT-003 cost/price permission + audit — Done
-24. BE-CAT-004 private media upload/scan/signed URL — next
-25. IMP / FE slices when prior tickets Done
+24. BE-CAT-004 private media upload/scan/signed URL — Done
+25. BE-IMP-001…005 import pipeline — next
+26. FE slices when prior tickets Done
 ```
 
 Money/tax/billing: luôn cite [`../business/HO_DEFAULTS_v1.md`](../business/HO_DEFAULTS_v1.md).
