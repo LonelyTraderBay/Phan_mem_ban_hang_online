@@ -69,7 +69,7 @@ import {
 } from "@ai-sales/module-knowledge";
 import {
   createFulfillmentController,
-  InMemoryFulfillmentRepository,
+  PostgresFulfillmentRepository,
   type InventoryRestockPort,
   type OrderEligibilityPort
 } from "@ai-sales/module-fulfillment";
@@ -119,7 +119,6 @@ const supportGrantStore = new InMemorySupportGrantStore();
 const knowledgeRepo = new InMemoryKnowledgeRepository();
 const channelRepo = new InMemoryChannelRepository();
 const conversationRepo = new InMemoryConversationRepository();
-const fulfillmentRepo = new InMemoryFulfillmentRepository();
 const aiOrchestrationRepo = new InMemoryAiOrchestrationRepository();
 const analyticsRepo = new InMemoryAnalyticsRepository();
 const billingRepo = new InMemoryBillingRepository();
@@ -317,6 +316,7 @@ function buildControllers(): Type<unknown>[] {
     const importRepoPg = new PostgresImportRepository(db);
     const orderRepoPg = new PostgresOrderRepository(db);
     const paymentRepoPg = new PostgresPaymentRepository(db);
+    const fulfillmentRepoPg = new PostgresFulfillmentRepository(db);
     const importApplyPort = createInMemoryImportApplyPort(catalogRepo);
     const catalogPricingPort = buildCatalogPricingPort(catalogRepo);
     const reservationPort = buildReservationPort(inventoryRepo);
@@ -352,7 +352,7 @@ function buildControllers(): Type<unknown>[] {
       }),
       createPaymentController({ repo: paymentRepoPg, orders: orderLookupPort }),
       createFulfillmentController({
-        repo: fulfillmentRepo,
+        repo: fulfillmentRepoPg,
         orders: orderEligibilityPort,
         inventory: inventoryRestockPort
       }),
