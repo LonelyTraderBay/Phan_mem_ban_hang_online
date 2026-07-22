@@ -4,7 +4,7 @@ title: SLA calendar/calculation/breach scheduler
 owner: Backend AI Agent
 phase: P6
 risk: medium
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

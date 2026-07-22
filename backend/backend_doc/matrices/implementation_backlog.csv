@@ -81,18 +81,18 @@ phase,task_id,title,deliverable_or_details,status,primary_paths
 19.7 Phase P5,BE-CHN-009,Per-account/provider rate limiting/circuit breaker,,Done,modules/channel/
 19.7 Phase P5,BE-CHN-010,Token/scope/health monitoring and alerts,,Done,modules/channel/
 19.7 Phase P5,BE-CHN-011,Provider fixture/contract/replay test suite,,Done,modules/channel/
-19.8 Phase P6,BE-CON-001,Conversation/message/attachment/assignment/note schema,,Not Started,modules/conversation/
-19.8 Phase P6,BE-CON-002,Inbound normalized event -> identity/conversation/message upsert,,Not Started,modules/conversation/
-19.8 Phase P6,BE-CON-003,List/detail/message cursor APIs + indexes,,Not Started,modules/conversation/
-19.8 Phase P6,BE-CON-004,Multidimensional state handlers,,Not Started,modules/conversation/
-19.8 Phase P6,BE-CON-005,Assignment/history/internal notes,,Not Started,modules/conversation/
-19.8 Phase P6,BE-CON-006,Reply command -> outbound queue,,Not Started,modules/conversation/
-19.8 Phase P6,BE-CON-007,SLA calendar/calculation/breach scheduler,,Not Started,modules/conversation/
-19.8 Phase P6,BE-CON-008,Lead score v1 with rule version/provenance,,Not Started,modules/conversation/
-19.8 Phase P6,BE-CON-009,Human takeover/AI mode/escalation,,Not Started,modules/conversation/
-19.8 Phase P6,BE-CON-010,SSE authorization/fan-out/replay/resync,,Not Started,modules/conversation/
-19.8 Phase P6,BE-CON-011,Attachment download security/malware state,,Not Started,modules/conversation/
-19.8 Phase P6,BE-CON-012,End-to-end webhook-to-inbox/reply-to-provider test,,Not Started,modules/conversation/
+19.8 Phase P6,BE-CON-001,Conversation/message/attachment/assignment/note schema,,Done,modules/conversation/
+19.8 Phase P6,BE-CON-002,Inbound normalized event -> identity/conversation/message upsert,,Done,modules/conversation/
+19.8 Phase P6,BE-CON-003,List/detail/message cursor APIs + indexes,,Done,modules/conversation/
+19.8 Phase P6,BE-CON-004,Multidimensional state handlers,,Done,modules/conversation/
+19.8 Phase P6,BE-CON-005,Assignment/history/internal notes,,Done,modules/conversation/
+19.8 Phase P6,BE-CON-006,Reply command -> outbound queue,,Done,modules/conversation/
+19.8 Phase P6,BE-CON-007,SLA calendar/calculation/breach scheduler,,Done,modules/conversation/
+19.8 Phase P6,BE-CON-008,Lead score v1 with rule version/provenance,,Done,modules/conversation/
+19.8 Phase P6,BE-CON-009,Human takeover/AI mode/escalation,,Done,modules/conversation/
+19.8 Phase P6,BE-CON-010,SSE authorization/fan-out/replay/resync,,Done,modules/conversation/
+19.8 Phase P6,BE-CON-011,Attachment download security/malware state,,Done,modules/conversation/
+19.8 Phase P6,BE-CON-012,End-to-end webhook-to-inbox/reply-to-provider test,,Done,modules/conversation/
 19.9 Phase P7,BE-ORD-001,Order/item/history schema + money value objects,,Not Started,modules/order/
 19.9 Phase P7,BE-ORD-002,Deterministic calculation/rounding/discount/tax rules,,Not Started,modules/order/
 19.9 Phase P7,BE-ORD-003,Create/update/recalculate draft + quote version,,Not Started,modules/order/

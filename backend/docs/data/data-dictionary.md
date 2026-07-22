@@ -106,11 +106,11 @@ authoritative for AI coding agents — do not re-open without ADR.
 | `channel_accounts` | TENANT_OWNED | **Done** (`000017`) | |
 | `channel_credentials` | TENANT_OWNED | **Done** (`000017`) | Never expose via normal repository/DTO |
 | `webhook_events` | TENANT_OWNED | **Done** (`000017`) | Dedupe `(provider, channel_account_id, external_event_id)` |
-| `conversations` | TENANT_OWNED | Not started | 5 independent state dimensions — see ERD.md §6 |
-| `messages` | TENANT_OWNED | Not started | |
-| `message_attachments` | TENANT_OWNED | Not started | |
-| `conversation_assignments` | TENANT_OWNED [ledger-like history] | Not started | Current assignee denormalized on `conversations`; this table is the audit source |
-| `conversation_notes` | TENANT_OWNED | Not started | |
+| `conversations` | TENANT_OWNED | **Done** (`000018`) | 5 independent state dimensions — see ERD.md §6 |
+| `messages` | TENANT_OWNED | **Done** (`000018`) | |
+| `message_attachments` | TENANT_OWNED | **Done** (`000018`) | |
+| `conversation_assignments` | TENANT_OWNED [ledger-like history] | **Done** (`000018`) | Current assignee denormalized on `conversations`; this table is the audit source |
+| `conversation_notes` | TENANT_OWNED | **Done** (`000018`) | |
 | `outbound_messages` | TENANT_OWNED | **Done** (`000017`) | |
 | `outbound_delivery_attempts` | TENANT_OWNED | **Done** (`000017`) | |
 

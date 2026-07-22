@@ -4,7 +4,7 @@ title: Conversation/message/attachment/assignment/note schema
 owner: Backend AI Agent
 phase: P6
 risk: high
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

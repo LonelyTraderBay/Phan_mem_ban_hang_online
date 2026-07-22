@@ -32,8 +32,14 @@ import {
 import {
   createChannelController,
   InMemoryChannelRepository,
+  queueOutboundMessage,
   stubFacebookAdapter
 } from "@ai-sales/module-channel";
+import {
+  createConversationController,
+  InMemoryConversationRepository,
+  type OutboundQueuePort
+} from "@ai-sales/module-conversation";
 import {
   createAcceptInvitationController,
   createMeController,
@@ -72,6 +78,22 @@ const customerRepo = new InMemoryCustomerRepository();
 const inventoryRepo = new InMemoryInventoryRepository();
 const knowledgeRepo = new InMemoryKnowledgeRepository();
 const channelRepo = new InMemoryChannelRepository();
+const conversationRepo = new InMemoryConversationRepository();
+
+const conversationOutboundPort: OutboundQueuePort = {
+  async queueReply(args) {
+    const queued = await queueOutboundMessage({
+      repo: channelRepo,
+      tenantId: args.tenantId,
+      actorId: args.actorId,
+      channelAccountId: args.channelAccountId,
+      idempotencyKey: args.idempotencyKey,
+      contentType: "text",
+      text: args.text
+    });
+    return { outboundMessageId: queued.id, status: "queued" };
+  }
+};
 
 function buildOidcConfig(): OidcClientConfig | null {
   const config = loadConfig(process.env);
@@ -125,7 +147,8 @@ function buildControllers(): Type<unknown>[] {
       createCustomersController({ repo: customerRepo }),
       createInventoryController({ repo: inventoryRepo }),
       createKnowledgeController({ repo: knowledgeRepo }),
-      createChannelController({ repo: channelRepo, adapter: stubFacebookAdapter })
+      createChannelController({ repo: channelRepo, adapter: stubFacebookAdapter }),
+      createConversationController({ repo: conversationRepo, outbound: conversationOutboundPort })
     );
 
     const oidc = buildOidcConfig();

@@ -4,7 +4,7 @@ title: Inbound normalized event -> identity/conversation/message upsert
 owner: Backend AI Agent
 phase: P6
 risk: medium
-status: doc-frozen
+status: done
 ---
 
 # Business outcome
