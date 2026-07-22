@@ -65,6 +65,13 @@ type HistoryRow = {
 
 type Trx = Parameters<Parameters<typeof withTenantTransaction>[2]>[0];
 
+/** Empty string → null so `${value}::uuid` does not reject optional UUID columns. */
+function asUuidOrNull(value: string | null | undefined): string | null {
+  if (value == null) return null;
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
+
 function formatQuantity(value: string | number): string {
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(n)) return "0";
@@ -119,7 +126,6 @@ function toOrder(row: OrderRow, items: readonly OrderItemRecord[]): OrderRecord 
 export class PostgresOrderRepository implements OrderRepository {
   private readonly idempotentOrders = new Map<string, OrderRecord>();
   private readonly idempotentCommands = new Map<string, OrderRecord>();
-  private orderSeq = 0;
 
   constructor(private readonly db: AppDatabase) {}
 
@@ -127,9 +133,9 @@ export class PostgresOrderRepository implements OrderRepository {
     return `${tenantId}:${key}`;
   }
 
+  /** Globally unique enough for multi-instance (uses UUIDv7, not process counter). */
   private nextOrderCode(): string {
-    this.orderSeq += 1;
-    return `ORD-${Date.now()}-${this.orderSeq}`;
+    return `ORD-${generateUuidV7().replaceAll("-", "").slice(0, 16).toUpperCase()}`;
   }
 
   private async loadItems(trx: Trx, tenantId: string, orderId: string): Promise<OrderItemRecord[]> {
@@ -321,6 +327,8 @@ export class PostgresOrderRepository implements OrderRepository {
     const ctx = adapterSecurityContext(args.tenantId, args.actorId);
     return withTenantTransaction(this.db, ctx, async (trx) => {
       const orderCode = this.nextOrderCode();
+      const conversationId = asUuidOrNull(args.conversationId);
+      const shippingAddressId = asUuidOrNull(args.shippingAddressId);
       await sql`
         insert into app.orders (
           id, tenant_id, order_code, status, customer_id, conversation_id, currency,
@@ -333,7 +341,7 @@ export class PostgresOrderRepository implements OrderRepository {
           ${orderCode},
           'draft',
           ${args.customerId}::uuid,
-          ${args.conversationId}::uuid,
+          ${conversationId}::uuid,
           ${args.currency},
           ${args.totals.subtotalMinor},
           ${args.totals.discountMinor},
@@ -345,7 +353,7 @@ export class PostgresOrderRepository implements OrderRepository {
           true,
           ${args.quoteVersion},
           ${args.duplicateFingerprint},
-          ${args.shippingAddressId}::uuid,
+          ${shippingAddressId}::uuid,
           ${args.notes},
           1,
           ${args.actorId}::uuid,
@@ -408,7 +416,9 @@ export class PostgresOrderRepository implements OrderRepository {
       }
 
       const shippingAddressId =
-        args.shippingAddressId !== undefined ? args.shippingAddressId : current.shippingAddressId;
+        args.shippingAddressId !== undefined
+          ? asUuidOrNull(args.shippingAddressId)
+          : current.shippingAddressId;
       const notes = args.notes !== undefined ? args.notes : current.notes;
       const totals = args.totals ?? {
         subtotalMinor: current.subtotalMinor,

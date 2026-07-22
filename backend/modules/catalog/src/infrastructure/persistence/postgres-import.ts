@@ -2,6 +2,7 @@ import { sql } from "kysely";
 import type { AppDatabase } from "@ai-sales/database";
 import { adapterSecurityContext, withTenantTransaction } from "@ai-sales/database";
 import type { UuidV7 } from "@ai-sales/domain-kernel";
+import { CatalogError } from "../../application/catalog.js";
 import type {
   ImportJobRecord,
   ImportJobRow,
@@ -153,7 +154,9 @@ export class PostgresImportRepository implements ImportRepository {
   async saveJob(job: ImportJobRecord): Promise<void> {
     const ctx = adapterSecurityContext(job.tenantId);
     await withTenantTransaction(this.db, ctx, async (trx) => {
-      await sql`
+      // Application bumps version before save; require previous row version.
+      const previousVersion = job.version - 1;
+      const updated = await sql<{ id: string }>`
         update app.import_jobs
         set status = ${job.status},
             file_key = ${job.fileKey},
@@ -166,8 +169,14 @@ export class PostgresImportRepository implements ImportRepository {
             metrics = ${JSON.stringify(job.metrics)}::jsonb,
             version = ${job.version},
             updated_at = ${job.updatedAt}::timestamptz
-        where id = ${job.id}::uuid and tenant_id = ${job.tenantId}::uuid
+        where id = ${job.id}::uuid
+          and tenant_id = ${job.tenantId}::uuid
+          and version = ${previousVersion}
+        returning id
       `.execute(trx);
+      if (!updated.rows[0]) {
+        throw new CatalogError("Import job version conflict.", "RESOURCE_VERSION_MISMATCH");
+      }
     });
   }
 

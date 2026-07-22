@@ -72,14 +72,23 @@ export class PostgresPaymentRepository implements PaymentRepository {
   private async loadPayment(
     trx: Trx,
     tenantId: string,
-    paymentId: string
+    paymentId: string,
+    options?: { readonly forUpdate?: boolean }
   ): Promise<PaymentRecord | null> {
-    const result = await sql<PaymentRow>`
-      select id, tenant_id, order_id, status, amount_minor, currency, method,
-             provider, provider_ref, version, created_at, updated_at
-      from app.payments
-      where id = ${paymentId}::uuid and tenant_id = ${tenantId}::uuid
-    `.execute(trx);
+    const result = options?.forUpdate
+      ? await sql<PaymentRow>`
+          select id, tenant_id, order_id, status, amount_minor, currency, method,
+                 provider, provider_ref, version, created_at, updated_at
+          from app.payments
+          where id = ${paymentId}::uuid and tenant_id = ${tenantId}::uuid
+          for update
+        `.execute(trx)
+      : await sql<PaymentRow>`
+          select id, tenant_id, order_id, status, amount_minor, currency, method,
+                 provider, provider_ref, version, created_at, updated_at
+          from app.payments
+          where id = ${paymentId}::uuid and tenant_id = ${tenantId}::uuid
+        `.execute(trx);
     const row = result.rows[0];
     if (!row) return null;
     const refundedMinor = await sumRefundedMinor(trx, tenantId, paymentId);
@@ -221,7 +230,9 @@ export class PostgresPaymentRepository implements PaymentRepository {
         if (replay) return replay;
       }
 
-      const current = await this.loadPayment(trx, args.tenantId, args.paymentId);
+      const current = await this.loadPayment(trx, args.tenantId, args.paymentId, {
+        forUpdate: true
+      });
       if (!current) {
         throw new PaymentError("Payment not found.", "RESOURCE_NOT_FOUND");
       }
@@ -256,12 +267,48 @@ export class PostgresPaymentRepository implements PaymentRepository {
             version = version + 1,
             updated_at = now(),
             updated_by = ${args.actorId}::uuid
-        where id = ${args.paymentId}::uuid and tenant_id = ${args.tenantId}::uuid
+        where id = ${args.paymentId}::uuid
+          and tenant_id = ${args.tenantId}::uuid
+          and version = ${current.version}
         returning id, tenant_id, order_id, status, amount_minor, currency, method,
                   provider, provider_ref, version, created_at, updated_at
       `.execute(trx);
-      return toPayment(updated.rows[0]!, newRefunded);
+      if (!updated.rows[0]) {
+        throw new PaymentError("Version mismatch.", "RESOURCE_VERSION_MISMATCH");
+      }
+      return toPayment(updated.rows[0], newRefunded);
     });
+  }
+
+  private async insertPaymentAttempt(
+    trx: Trx,
+    args: {
+      readonly tenantId: string;
+      readonly paymentId: string;
+      readonly status: "pending" | "succeeded" | "failed";
+      readonly providerEventId: string | null;
+      readonly idempotencyKey: string;
+    }
+  ): Promise<void> {
+    const attemptNoResult = await sql<{ n: string | number }>`
+      select coalesce(max(attempt_no), 0) + 1 as n
+      from app.payment_attempts
+      where tenant_id = ${args.tenantId}::uuid and payment_id = ${args.paymentId}::uuid
+    `.execute(trx);
+    const attemptNo = Number(attemptNoResult.rows[0]?.n ?? 1);
+    await sql`
+      insert into app.payment_attempts (
+        id, tenant_id, payment_id, attempt_no, status, provider_event_id, idempotency_key
+      ) values (
+        ${generateUuidV7()}::uuid,
+        ${args.tenantId}::uuid,
+        ${args.paymentId}::uuid,
+        ${attemptNo},
+        ${args.status},
+        ${args.providerEventId},
+        ${args.idempotencyKey}
+      )
+    `.execute(trx);
   }
 
   async applyProviderCallback(args: {
@@ -285,7 +332,9 @@ export class PostgresPaymentRepository implements PaymentRepository {
         }
       }
 
-      const current = await this.loadPayment(trx, args.tenantId, args.paymentId);
+      const current = await this.loadPayment(trx, args.tenantId, args.paymentId, {
+        forUpdate: true
+      });
       if (!current) {
         throw new PaymentError("Payment not found.", "RESOURCE_NOT_FOUND");
       }
@@ -300,39 +349,48 @@ export class PostgresPaymentRepository implements PaymentRepository {
         args.payload.status === "captured" ? "captured" : "failed";
       const attemptStatus = args.payload.status === "captured" ? "succeeded" : "failed";
 
+      // Refunded payments are terminal — reject further provider mutations.
+      if (current.status === "refunded" || current.status === "partially_refunded") {
+        throw new PaymentError("Invalid payment state.", "PAYMENT_STATE_INVALID");
+      }
+
+      // Captured: ignore late failed/duplicate captured; do not downgrade.
+      if (current.status === "captured") {
+        await this.insertPaymentAttempt(trx, {
+          tenantId: args.tenantId,
+          paymentId: args.paymentId,
+          status: attemptStatus,
+          providerEventId: args.payload.providerEventId,
+          idempotencyKey: args.idempotencyKey
+        });
+        return current;
+      }
+
       const updated = await sql<PaymentRow>`
         update app.payments
         set status = ${nextStatus},
             provider = ${args.payload.provider},
             version = version + 1,
             updated_at = now()
-        where id = ${args.paymentId}::uuid and tenant_id = ${args.tenantId}::uuid
+        where id = ${args.paymentId}::uuid
+          and tenant_id = ${args.tenantId}::uuid
+          and status in ('pending', 'authorized', 'failed')
         returning id, tenant_id, order_id, status, amount_minor, currency, method,
                   provider, provider_ref, version, created_at, updated_at
       `.execute(trx);
+      if (!updated.rows[0]) {
+        throw new PaymentError("Invalid payment state.", "PAYMENT_STATE_INVALID");
+      }
 
-      const attemptNoResult = await sql<{ n: string | number }>`
-        select coalesce(max(attempt_no), 0) + 1 as n
-        from app.payment_attempts
-        where tenant_id = ${args.tenantId}::uuid and payment_id = ${args.paymentId}::uuid
-      `.execute(trx);
-      const attemptNo = Number(attemptNoResult.rows[0]?.n ?? 1);
+      await this.insertPaymentAttempt(trx, {
+        tenantId: args.tenantId,
+        paymentId: args.paymentId,
+        status: attemptStatus,
+        providerEventId: args.payload.providerEventId,
+        idempotencyKey: args.idempotencyKey
+      });
 
-      await sql`
-        insert into app.payment_attempts (
-          id, tenant_id, payment_id, attempt_no, status, provider_event_id, idempotency_key
-        ) values (
-          ${generateUuidV7()}::uuid,
-          ${args.tenantId}::uuid,
-          ${args.paymentId}::uuid,
-          ${attemptNo},
-          ${attemptStatus},
-          ${args.payload.providerEventId},
-          ${args.idempotencyKey}
-        )
-      `.execute(trx);
-
-      return toPayment(updated.rows[0]!, current.refundedMinor);
+      return toPayment(updated.rows[0], current.refundedMinor);
     });
   }
 
