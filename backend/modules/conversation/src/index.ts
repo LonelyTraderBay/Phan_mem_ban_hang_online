@@ -52,4 +52,5 @@ export {
 } from "./domain/sse.js";
 
 export { InMemoryConversationRepository } from "./infrastructure/persistence/in-memory-conversation.js";
+export { PostgresConversationRepository } from "./infrastructure/persistence/postgres-conversation.js";
 export { createConversationController } from "./presentation/http/conversation.controller.js";

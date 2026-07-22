@@ -51,4 +51,5 @@ export { generatePkcePair, generateOAuthStateToken } from "./domain/oauth.js";
 
 export { stubFacebookAdapter, StubFacebookAdapter } from "./infrastructure/adapters/stub-facebook-adapter.js";
 export { InMemoryChannelRepository } from "./infrastructure/persistence/in-memory-channel.js";
+export { PostgresChannelRepository } from "./infrastructure/persistence/postgres-channel.js";
 export { createChannelController } from "./presentation/http/channel.controller.js";

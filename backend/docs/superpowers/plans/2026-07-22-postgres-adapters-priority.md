@@ -13,7 +13,9 @@
 5. **Order** — schema `000019`
 6. **Payment** — schema `000020` (payments/refunds/attempts)
 7. **Fulfillment / Returns** — schema `000020` (shipments/returns)
-8. (sau) Conversation / Channel / Knowledge / AI / Analytics / Billing / Ops …
+8. **Channel** — schema `000017`
+9. **Conversation** — schema `000018`
+10. (sau) Knowledge / AI / Analytics / Billing / Ops …
 
 ## Quy tắc
 
@@ -31,12 +33,16 @@
 - [x] **Order (ORD)** — `PostgresOrderRepository` + status history
 - [x] **Payment (PAY)** — `PostgresPaymentRepository` + refunds + provider attempts dedupe
 - [x] **Fulfillment / Returns (FUL/RET)** — `PostgresFulfillmentRepository` (shipments + returns)
+- [x] **Channel (CHN)** — `PostgresChannelRepository` (accounts/OAuth/webhooks/outbound)
+- [x] **Conversation (CON)** — `PostgresConversationRepository` (inbox/messages/assignments/notes)
 - [x] Wire `app.module.ts` when `DATABASE_URL`
 - [x] Typecheck + focused smoke tests (`describe.skip` integration without DB)
 
 ## Gaps (v1)
 
-- Conversation / Channel / Knowledge / AI / Analytics / Billing / Ops vẫn InMemory
+- Knowledge / AI / Analytics / Billing / Ops vẫn InMemory
+- Channel: OAuth tenant lookup + webhook dedupe (null-tenant) process-local Maps; idempotency Maps
+- Conversation: SSE + customer stub + idempotency process-local Maps (no SSE/customer_identities tables)
 - Idempotency adapter: process-local Map — migrate sang `app.idempotency_records`
 - Media upload intents: process-local Map (chưa có bảng upload)
 - Reconciliation jobs: process-local Map (chưa có bảng job)
