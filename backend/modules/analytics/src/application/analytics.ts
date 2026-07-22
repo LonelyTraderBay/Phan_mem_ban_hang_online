@@ -58,6 +58,8 @@ export interface ReportExportRecord {
   readonly downloadUrl: string | null;
   readonly createdAt: string;
   readonly completedAt: string | null;
+  /** Persisted on Postgres via unique partial index; InMemory uses trackIdempotency. */
+  readonly idempotencyKey?: string | null;
 }
 
 export interface AnalyticsRepository {
@@ -276,7 +278,8 @@ export async function createReportExport(options: {
     toAt: options.toAt ?? null,
     downloadUrl: null,
     createdAt: new Date().toISOString(),
-    completedAt: null
+    completedAt: null,
+    idempotencyKey: options.idempotencyKey
   });
   if ("trackIdempotency" in options.repo && typeof (options.repo as { trackIdempotency?: Function }).trackIdempotency === "function") {
     (options.repo as { trackIdempotency: (t: string, k: string, id: string) => void }).trackIdempotency(

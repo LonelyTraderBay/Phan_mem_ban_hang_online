@@ -1,7 +1,7 @@
 # Postgres adapters — thứ tự ưu tiên
 
 **Date:** 2026-07-22  
-**Branch:** `cursor/postgres-adapters-fulfillment-returns` (wave 3)  
+**Branch:** `cursor/postgres-adapters-knowledge-ai-analytics` (wave 4)  
 **Pattern:** RLS + `withTenantTransaction` (không SECURITY DEFINER)
 
 ## Ưu tiên
@@ -15,7 +15,10 @@
 7. **Fulfillment / Returns** — schema `000020` (shipments/returns)
 8. **Channel** — schema `000017`
 9. **Conversation** — schema `000018`
-10. (sau) Knowledge / AI / Analytics / Billing / Ops …
+10. **Knowledge** — schema `000016`
+11. **AI orchestration** — schema `000021` + migration `000024` (suggestions/controls/eval tenant_id)
+12. **Analytics** — schema `000022` (+ `uq_report_exports_tenant_idempotency` in `000024`)
+13. (sau) Billing / Ops …
 
 ## Quy tắc
 
@@ -35,12 +38,18 @@
 - [x] **Fulfillment / Returns (FUL/RET)** — `PostgresFulfillmentRepository` (shipments + returns)
 - [x] **Channel (CHN)** — `PostgresChannelRepository` (accounts/OAuth/webhooks/outbound)
 - [x] **Conversation (CON)** — `PostgresConversationRepository` (inbox/messages/assignments/notes)
+- [x] **Knowledge (KNW)** — `PostgresKnowledgeRepository` (sources/versions/chunks/published search)
+- [x] **AI orchestration (AI)** — `PostgresAiOrchestrationRepository` + migration `000024_ai_suggestions_and_controls.sql`
+- [x] **Analytics (DAT)** — `PostgresAnalyticsRepository` (events/watermarks/metrics/exports + idempotency index)
 - [x] Wire `app.module.ts` when `DATABASE_URL`
 - [x] Typecheck + focused smoke tests (`describe.skip` integration without DB)
 
 ## Gaps (v1)
 
-- Knowledge / AI / Analytics / Billing / Ops vẫn InMemory
+- Billing / Ops vẫn InMemory
+- Knowledge / AI: process-local idempotency Maps (migrate `app.idempotency_records`)
+- AI: `tenant_ai_controls` stores full switch/budget JSON in `metadata`; column fields are denormalized
+- AI eval runs: GLOBAL table + `tenant_id` column (no RLS) — filter in adapter
 - Channel: OAuth tenant lookup + webhook dedupe (null-tenant) process-local Maps; idempotency Maps
 - Conversation: SSE + customer stub + idempotency process-local Maps (no SSE/customer_identities tables)
 - Idempotency adapter: process-local Map — migrate sang `app.idempotency_records`

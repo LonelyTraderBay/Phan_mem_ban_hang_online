@@ -39,4 +39,5 @@ export {
 } from "./application/knowledge.js";
 
 export { InMemoryKnowledgeRepository } from "./infrastructure/persistence/in-memory-knowledge.js";
+export { PostgresKnowledgeRepository } from "./infrastructure/persistence/postgres-knowledge.js";
 export { createKnowledgeController } from "./presentation/http/knowledge.controller.js";
