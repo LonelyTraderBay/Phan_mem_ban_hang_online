@@ -4,7 +4,7 @@ title: Tenant provisioning/default roles/owner invitation
 owner: Backend AI Agent
 phase: P2
 risk: high
-status: blocked
+status: done
 ---
 
 # Business outcome
@@ -13,17 +13,17 @@ Provision tenant, clone system roles to tenant customs, create owner membership,
 
 # Actor and use case
 
-Identity / tenant admin actors and unauthenticated auth flows as defined in blueprint ?5 and FE F01.
+Identity / tenant admin actors and unauthenticated auth flows as defined in blueprint §5 and FE F01.
 
 # In scope / Out of scope
 
 In scope: Tenant provisioning/default roles/owner invitation.
 
-Out of scope: unrelated modules; FE UI work (FE sync after BE contract freeze).
+Out of scope: unrelated modules; FE UI work (FE sync after BE contract freeze); OIDC session establishment (BE-IDN-003).
 
 # Dependencies
 
-Blocked on **BE-IDN-001**.
+Blocked on **BE-IDN-001** — unblocked (001 done).
 
 See also: `docs/data/identity-migration-design.md`, `docs/tickets/BE-IDN-test-matrix.md`, `docs/collaboration/gap-003-f01-slice.md`.
 
@@ -31,60 +31,61 @@ See also: `docs/data/identity-migration-design.md`, `docs/tickets/BE-IDN-test-ma
 
 - Server establishes tenant context; never trust client `tenant_id` for authorization.
 - Money N/A; sessions/tokens store hashes only.
-- No hard-delete of audit/session ledger rows ? revoke via status flags.
+- No hard-delete of audit/session ledger rows — revoke via status flags.
 
 # Contract
 
-- OpenAPI operation/schema: Auth / Members / Roles / Sessions tags as applicable (slice with `pnpm agent:contract-slice`).
-- AsyncAPI events: session revoke / membership events when this ticket owns them.
-- Error codes: per `backend_doc/matrices/error_catalog.csv` and BE-IDN-test-matrix mapping notes.
-- Realtime event: session revoke hooks where BE-IDN-006 applies.
+- OpenAPI: `POST /tenants` `operationId: provisionTenant` (`ProvisionTenantRequest/Data/Response`); `x-permission: authenticated`, `x-idempotency: required`.
+- AsyncAPI: outbox `com.aisales.tenant.activated.v1` on provision.
+- Error codes: `VALIDATION_FAILED` / `CONFLICT` / `INACTIVE_PLAN` → 422/409.
 
 # Authorization and data classification
 
-- Required permission: per operation `x-permission` (`authenticated` = session gate, not a permission string; role mutations use `role.manage`).
-- Tenant/RLS behavior: per data-dictionary; `user_sessions` nullable-tenant policy in identity-migration-design.
-- Field-level restrictions: BE-IDN-012.
-- Data classification: credentials/MFA secrets = restricted; PII redacted in logs.
+- Required permission: `authenticated` (session gate); controller currently accepts internal `x-actor-id` until BE-IDN-003 BFF.
+- Tenant/RLS: deterministic tenant UUID from actor+Idempotency-Key so retries share idempotency scope; no client `x-tenant-id`.
+- Field-level restrictions: invite plaintext returned once; DB stores `token_hash`.
+- Data classification: invite token sensitive; credentials/MFA secrets = restricted; PII redacted in logs.
 
 # Persistence and migration
 
-- Tables/columns/constraints/indexes/RLS: BE-IDN-001 owns `000005_identity_schema.sql`; later tickets are additive.
+- Tables/columns/constraints/indexes/RLS: BE-IDN-001 owns `000005_identity_schema.sql`; this ticket is application-layer only.
 - Backfill: none for greenfield.
 - Rolling-deploy compatibility: expand/contract only.
 
 # Transaction, concurrency and idempotency
 
-- Transaction boundary: auth mutations that touch session + refresh + audit share one tenant/actor transaction where applicable.
-- Lock order/isolation: unique constraints for invite/refresh family.
-- Idempotency scope/TTL: critical member/role/provision commands per OpenAPI `x-idempotency`.
-- Retry behavior: refresh reuse is fail-closed (revoke family).
+- Transaction boundary: tenant + roles + role_permissions + invitation + audit + outbox in one tenant transaction.
+- Lock order/isolation: unique `tenants.code` → CONFLICT on 23505.
+- Idempotency scope/TTL: `tenant.provision`, 24h, required Idempotency-Key.
+- Retry behavior: same key+hash → replay 201 body; conflict/validation → fail-final.
 
 # Audit, telemetry and operations
 
-- Audit action: login success/failure (no password), logout, revoke, invite, role change, support grant.
+- Audit action: `tenant.provision`.
 - Logs/traces/metrics: redacted; correlation IDs required.
-- Alert/runbook impact: refresh reuse spike; invite abuse rate limits.
-- Feature flag/rollout: MFA optional per tenant entitlement when billing exists.
-- Rollback: disable route / feature flag; no hard-delete.
+- Alert/runbook impact: invite abuse rate limits (later).
+- Feature flag/rollout: N/A.
+- Rollback: disable route; no hard-delete.
 
 # Acceptance criteria
 
 - Happy path provision
 - Idempotent provision key
-- Default roles present
-- Owner invite issued
-- [ ] Permission/tenant isolation tests per BE-IDN-test-matrix
-- [ ] Contract/generated client note for FE sync
-- [ ] Completion manifest filled
+- Default roles present (Owner/Admin/Staff/ReadOnly clones)
+- Owner invite issued (pending + token once)
+- [x] Permission/tenant isolation tests per BE-IDN-test-matrix (unit; live Postgres deferred)
+- [x] Contract/generated client note for FE sync — OpenAPI `provisionTenant` added; FE `contracts:sync` with `BACKEND_CONTRACTS_ROOT`
+- [x] Completion manifest filled
 
 # Test cases
 
 See `docs/tickets/BE-IDN-test-matrix.md` row `BE-IDN-002`.
 
+Evidence: `modules/tenant/src/application/provision-tenant.test.ts` — 6 passed.
+
 # Completion manifest
 
-- Contracts changed:
-- Migration:
-- Tests/evidence:
-- Known risks:
+- Contracts changed: OpenAPI `POST /tenants` (`provisionTenant`) + `ProvisionTenant*` schemas; synced to `packages/contracts-http` + `backend_doc/contracts`
+- Migration: none (uses 000005)
+- Tests/evidence: `pnpm exec vitest run modules/tenant` — 6 passed
+- Known risks: HTTP actor via `x-actor-id` until OIDC BFF (BE-IDN-003); live Postgres provision proof deferred (no Docker on this machine); invite-accept SECURITY DEFINER still BE-IDN-010

@@ -3,65 +3,74 @@
 Completes BE-P0-004 ("ERD/data dictionary/RLS classification for P1–P2", tracked in
 [`../p0/P0_CHECKLIST.md`](../p0/P0_CHECKLIST.md)) by turning the class rules in
 [`table-classification-seed.md`](table-classification-seed.md) into a full per-table checklist.
-Field-level detail and diagrams live in [`ERD.md`](ERD.md); full validation prose is the blueprint
-§6–§7. This file answers one question per table: **which class is it, and is RLS/migration done?**
+Field-level detail and diagrams live in [`ERD.md`](ERD.md); RLS policy templates in
+[`rls-intent-catalog.md`](rls-intent-catalog.md); full validation prose is the blueprint §6–§7.
+
+**Enterprise freeze W4 (2026-07-22):** `Needs confirmation` count = **0**. Classes below are
+authoritative for AI coding agents — do not re-open without ADR.
 
 ## How to use this during implementation
 
 - Before writing a table's migration, find its row here, confirm the class, then apply the rule
-  from `table-classification-seed.md` (RLS + composite FK for `TENANT_OWNED`, restricted DB role
-  for `SYSTEM_INTERNAL`, etc. — blueprint §6.1–§6.5).
+  from `table-classification-seed.md` / `rls-intent-catalog.md`.
 - Flip `RLS/migration status` to `Done` only after the migration exists **and**
   `tenant isolation test suite` (blueprint §6.6) passes for that table with the `app_runtime` role.
-- Rows marked **Needs confirmation** are cases the blueprint groups under a module without stating
-  the class explicitly — do not guess; resolve via ADR or a one-line clarification commit to the
-  blueprint before that table's migration ships. Release gate (§6.6) fails on missing RLS for any
-  `TENANT_OWNED` table regardless of what this index says, so treat "Needs confirmation" as blocking.
+- **Do not** introduce new `Needs confirmation` rows during feature work — resolve class first.
+- Money/tax: [`../business/HO_DEFAULTS_v1.md`](../business/HO_DEFAULTS_v1.md).
+
+## Foundation / P1 infrastructure (migrations landed)
+
+| Table | Class | RLS/migration status | Notes |
+|---|---|---|---|
+| `audit_events` | TENANT_OWNED | **Done** (`000002`) | Walking-skeleton audit; converge with blueprint `audit_logs` via later expand/contract — see rls-intent-catalog |
+| `outbox_events` | TENANT_OWNED | **Done** (`000002` + worker policy `000004`) | Transactional outbox |
+| `idempotency_records` | TENANT_OWNED | **Done** (`000003`) | PK includes `tenant_id` |
+| `inbox_events` | TENANT_OWNED | **Done** (`000004`) | Dedupe `(consumer_name, event_id)` |
 
 ## Identity / Tenant (blueprint §7.5)
 
 | Table | Class | RLS/migration status | Notes |
 |---|---|---|---|
-| `tenants` | **TENANT_ROOT** (resolved — new 5th class, see note below) | Not started | Not `TENANT_OWNED`: a row here doesn't have a `tenant_id` foreign key, it **is** the tenant. RLS row-filtering (`tenant_id = current_setting(...)`) doesn't apply. Access control is a plain permission check (`tenant.read`/`tenant.update`) plus "the actor's `membership.tenant_id` equals this row's `id`" in the application layer — not a `USING`/`WITH CHECK` policy. `ENABLE ROW LEVEL SECURITY` still applies (defense in depth) with a policy of `USING (id = nullif(current_setting('app.tenant_id', true), '')::uuid)`, i.e. the *inverse* comparison of every other table's policy (`id`, not `tenant_id`). |
-| `users` | GLOBAL | Not started | Global identity, no `tenant_id` (§7.5.2) |
-| `user_credentials` | GLOBAL | Not started | Keyed by `user_id`, not tenant |
-| `tenant_memberships` | TENANT_OWNED | Not started | Unique `(tenant_id, user_id)` |
-| `roles` | **Resolved — hybrid, see note** | Not started | Blueprint §7.5.5 already answers this ("system role có `tenant_id NULL`, custom role có tenant") — this row was flagged before that cross-reference was made explicit here. RLS policy: `USING (tenant_id IS NULL OR tenant_id = current_setting('app.tenant_id', true)::uuid)` — a system template row (`tenant_id NULL`) is visible to every tenant read-only; only a tenant's own custom rows (`tenant_id = <theirs>`) are visible/writable beyond that. `WITH CHECK` must still require `tenant_id = current_setting(...)` (a tenant can never insert/update a `tenant_id NULL` row — that's a platform-only seed operation via `app_migrator`, never `app_runtime`). |
-| `permissions` | GLOBAL | Not started | Immutable key catalog |
-| `role_permissions` | Follows `roles` | Not started | Same hybrid policy as `roles`, joined through `role_id` |
-| `membership_roles` | TENANT_OWNED | Not started | Must stay tenant-consistent with the membership |
-| `user_sessions` | **Resolved — TENANT_OWNED (nullable `tenant_id`)** | Not started | Sessions may exist before tenant selection (post-password / MFA challenge / pre-`switch-tenant`). `tenant_id` is nullable. RLS (definitive): `ENABLE`+`FORCE ROW LEVEL SECURITY`. Policy for `app_runtime`/`app_worker`: `USING (user_id = nullif(current_setting('app.actor_id', true), '')::uuid AND (tenant_id IS NULL OR tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid))` with the same predicate on `WITH CHECK`. Rows are never visible across users. A tenant-bound session (`tenant_id` set) is invisible under a different `app.tenant_id`. Pre-tenant rows (`tenant_id IS NULL`) remain visible to the owning actor so login/MFA/switch-tenant can bind them. Platform ops listing all sessions uses `app_migrator` / break-glass support grant paths — not this policy. See `docs/data/identity-migration-design.md`. |
-| `refresh_tokens` | Follows `user_sessions` | Not started | Same actor+nullable-tenant visibility via `session_id` join (or denormalized `user_id`/`tenant_id` mirroring the parent session). |
-| `devices` | GLOBAL | Not started | Belongs to `user_id`, not a tenant |
-| `invitations` | TENANT_OWNED | Not started | Unique active invite per `(tenant_id, email)` |
-| `mfa_factors` | GLOBAL | Not started | Belongs to `user_id` |
-| `recovery_codes` | GLOBAL | Not started | Belongs to `user_id` |
-| `support_access_grants` | TENANT_OWNED | Not started | Break-glass grant scoped to one tenant |
+| `tenants` | **TENANT_ROOT** | **Done** (`000005`) | RLS on `id = app.tenant_id`. See identity-migration-design.md |
+| `users` | GLOBAL | **Done** (`000005`) | Global identity, no `tenant_id` (§7.5.2) |
+| `user_credentials` | GLOBAL | **Done** (`000005`) | Keyed by `user_id`, not tenant |
+| `tenant_memberships` | TENANT_OWNED | **Done** (`000005`) | Unique `(tenant_id, user_id)` |
+| `roles` | **HYBRID** | **Done** (`000005`) | System `tenant_id NULL` + tenant custom; see rls-intent-catalog §C |
+| `permissions` | GLOBAL | **Done** (`000005`) | Seeded from permission_matrix.csv (75 keys) |
+| `role_permissions` | **HYBRID** | **Done** (`000005`) | Same hybrid policy as `roles` via `role_id` |
+| `membership_roles` | TENANT_OWNED | **Done** (`000005`) | Must stay tenant-consistent with the membership |
+| `user_sessions` | TENANT_OWNED (nullable tenant) | **Done** (`000005`) | Definitive RLS in identity-migration-design.md |
+| `refresh_tokens` | TENANT_OWNED (nullable tenant) | **Done** (`000005`) | Denormalized user_id + tenant_id; mirror session policy |
+| `devices` | GLOBAL | **Done** (`000005`) | Belongs to `user_id`, not a tenant |
+| `invitations` | TENANT_OWNED | **Done** (`000005`) | Unique active invite per `(tenant_id, email)` |
+| `mfa_factors` | GLOBAL | **Done** (`000005`) | Belongs to `user_id` |
+| `recovery_codes` | GLOBAL | **Done** (`000005`) | Belongs to `user_id` |
+| `support_access_grants` | TENANT_OWNED | **Done** (`000005`) | Break-glass grant scoped to one tenant |
 
 ## Customer / CDP (blueprint §7.6)
 
 | Table | Class | RLS/migration status | Notes |
 |---|---|---|---|
-| `customers` | TENANT_OWNED | Not started | |
-| `customer_identities` | TENANT_OWNED | Not started | Unique `(tenant_id, provider, channel_account_id, external_id)` when scoped |
-| `customer_addresses` | TENANT_OWNED | Not started | Snapshot copied into order at confirm, not referenced live |
-| `customer_tags` | TENANT_OWNED | Not started | Unique tag name per tenant |
-| `customer_tag_links` | TENANT_OWNED | Not started | |
-| `customer_consents` | TENANT_OWNED | Not started | |
-| `customer_notes` | TENANT_OWNED | Not started | |
-| `customer_merge_history` | TENANT_OWNED | Not started | |
+| `customers` | TENANT_OWNED | **Done** (`000011`) | PII ciphertext (`*_encrypted` BYTEA) + blind index (`*_blind_index`); RLS on `tenant_id` |
+| `customer_identities` | TENANT_OWNED | **Done** (`000011`) | Unique `(tenant_id, provider, channel_account_id, external_id)` when scoped |
+| `customer_addresses` | TENANT_OWNED | **Done** (`000011`) | Snapshot copied into order at confirm, not referenced live |
+| `customer_tags` | TENANT_OWNED | **Done** (`000011`) | Unique tag name per tenant |
+| `customer_tag_links` | TENANT_OWNED | **Done** (`000011`) | |
+| `customer_consents` | TENANT_OWNED | **Done** (`000011`) | |
+| `customer_notes` | TENANT_OWNED | **Done** (`000011`) | |
+| `customer_merge_history` | TENANT_OWNED | **Done** (`000011`) | |
 
 ## Catalog (blueprint §7.7)
 
 | Table | Class | RLS/migration status | Notes |
 |---|---|---|---|
-| `categories` | TENANT_OWNED | Not started | |
-| `products` | TENANT_OWNED | Not started | No inventory quantity here |
-| `product_variants` | TENANT_OWNED | Not started | `cost_minor` is field-level protected (§5.5) even though row is tenant-owned |
-| `product_media` | TENANT_OWNED | Not started | |
-| `price_history` | TENANT_OWNED [ledger] | Not started | Append-only |
-| `import_jobs` | TENANT_OWNED | Not started | |
-| `import_job_rows` | TENANT_OWNED | Not started | |
+| `categories` | TENANT_OWNED | **Done** (`000012`) | Self-ref `parent_id`; slug uniqueness scope still an open product decision |
+| `products` | TENANT_OWNED | **Done** (`000012`) | No inventory quantity here |
+| `product_variants` | TENANT_OWNED | **Done** (`000012`) | `cost_minor` field-level protected (§5.5); `price_minor` = tax-**inclusive** đồng per HO_DEFAULTS_v1 |
+| `product_media` | TENANT_OWNED | **Done** (`000012`) | |
+| `price_history` | TENANT_OWNED [ledger] | **Done** (`000012`) | Append-only; SELECT/INSERT only, no UPDATE/DELETE grant |
+| `import_jobs` | TENANT_OWNED | Not started | Owned by BE-IMP-001, not BE-CAT-001 — see `docs/tickets/BE-IMP-001.md` |
+| `import_job_rows` | TENANT_OWNED | Not started | Owned by BE-IMP-001, not BE-CAT-001 — see `docs/tickets/BE-IMP-001.md` |
 
 ## Inventory (blueprint §7.8)
 
@@ -81,13 +90,13 @@ Field-level detail and diagrams live in [`ERD.md`](ERD.md); full validation pros
 | `knowledge_sources` | TENANT_OWNED | Not started | |
 | `knowledge_source_versions` | TENANT_OWNED | Not started | Only one published version effective at a time (unless scoped otherwise) |
 | `knowledge_chunks` | TENANT_OWNED | Not started | Retrieval query MUST filter tenant + published version (§4.3.7) |
-| `prompt_versions` | **Resolved: TENANT_OWNED** | Not started | Blueprint doesn't state this explicitly, so this is a technical default (not a business decision) chosen for consistency with every sibling AI table (`knowledge_sources`, `ai_logs`, `ai_tool_calls` are all `TENANT_OWNED`) and because `ai.configure`/`ai.activate` are per-tenant permissions in `permission_matrix.csv` — a tenant activating "their" prompt version only makes sense if the row is theirs. If v1 product scope turns out to be "every tenant gets the same platform-authored prompt, no customization," this degrades gracefully (one row per tenant, all identical content) rather than requiring a schema migration later. If Human Owner wants true platform-wide-only prompts in v1, override via ADR — flagging this choice in `docs/collaboration/SIGNOFF_TRACKER.md` for awareness, not blocking on it. |
+| `prompt_versions` | TENANT_OWNED | Not started | Technical default (not HO business decision): consistent with sibling AI tables + per-tenant `ai.configure`/`ai.activate`. Platform-wide-only prompts → override via ADR. |
 | `ai_logs` | TENANT_OWNED | Not started | |
 | `ai_tool_calls` | TENANT_OWNED | Not started | |
-| `ai_evaluation_sets` | **Resolved: GLOBAL** | Not started | Platform-owned eval harness gating model/prompt releases across all tenants (blueprint §13.13) — not tenant data. |
-| `ai_evaluation_cases` | Follows `ai_evaluation_sets` | Not started | |
-| `ai_evaluation_runs` | Follows `ai_evaluation_sets` | Not started | |
-| `ai_evaluation_results` | Follows `ai_evaluation_sets` | Not started | |
+| `ai_evaluation_sets` | GLOBAL | Not started | Platform-owned eval harness (blueprint §13.13) — not tenant data |
+| `ai_evaluation_cases` | GLOBAL | Not started | Child of `ai_evaluation_sets`; no `tenant_id` |
+| `ai_evaluation_runs` | GLOBAL | Not started | Child of `ai_evaluation_sets`; no `tenant_id` |
+| `ai_evaluation_results` | GLOBAL | Not started | Child of `ai_evaluation_sets`; no `tenant_id` |
 | `ai_blocked_outputs` | TENANT_OWNED | Not started | Per-tenant incident record |
 
 ## Channel / Conversation (blueprint §7.10)
@@ -109,8 +118,8 @@ Field-level detail and diagrams live in [`ERD.md`](ERD.md); full validation pros
 
 | Table | Class | RLS/migration status | Notes |
 |---|---|---|---|
-| `orders` | TENANT_OWNED | Not started | Unique `order_code` per tenant |
-| `order_items` | TENANT_OWNED | Not started | Immutable snapshot after confirm |
+| `orders` | TENANT_OWNED | Not started | Unique `order_code` per tenant; HO_DEFAULTS: `tax_rate_bps=1000`, `prices_tax_inclusive=true` |
+| `order_items` | TENANT_OWNED | Not started | Immutable snapshot after confirm; unit prices tax-inclusive |
 | `order_status_history` | TENANT_OWNED [ledger] | Not started | |
 | `payments` | TENANT_OWNED | Not started | |
 | `payment_reconciliations` | TENANT_OWNED | Not started | |
@@ -133,32 +142,32 @@ Field-level detail and diagrams live in [`ERD.md`](ERD.md); full validation pros
 | `conversation_conversion_facts` | TENANT_OWNED | Not started | Fact table |
 | `order_profit_facts` | TENANT_OWNED | Not started | Fact table |
 | `ai_quality_facts` | TENANT_OWNED | Not started | Fact table |
-| `plans` | GLOBAL | Not started | Versioned limits/features |
-| `subscriptions` | TENANT_OWNED | Not started | |
+| `plans` | GLOBAL | Not started | Seed ids: `plan_free` \| `plan_pro` \| `plan_business` (HO_DEFAULTS_v1) |
+| `subscriptions` | TENANT_OWNED | Not started | Over-limit: soft_warn → hard_block, no auto-upgrade (HO_DEFAULTS) |
 | `usage_meters` | TENANT_OWNED | Not started | |
 | `feature_flags` | GLOBAL | Not started | |
 | `feature_flag_overrides` | TENANT_OVERRIDE | Not started | Global key + `tenant_id` |
-| `system_alerts` | **Resolved: GLOBAL** | Not started | SRE-facing platform alert, not tenant business data — visible only via `ops.*` permissions, which are `Platform-only via separate role` per `permission_matrix.csv`, never a tenant role. |
+| `system_alerts` | GLOBAL | Not started | Platform SRE alert; `ops.*` only — never tenant role |
 | `support_tickets` | TENANT_OWNED | Not started | |
-| `reprocess_requests` | **Resolved: GLOBAL, with optional nullable `target_tenant_id` filter column** | Not started | Reclassified from the seed file's "likely SYSTEM_INTERNAL" guess: `ops.reprocess` **is** exposed through a real API (`permission_matrix.csv` row 58, Super Admin only) — blueprint §6.1 defines `SYSTEM_INTERNAL` as specifically *not* exposed through user APIs, so that class is wrong here even for a platform-only user. Use `GLOBAL` (actor is platform ops, not tenant-scoped) with a plain nullable `target_tenant_id` column (not RLS-enforced — the row isn't owned by that tenant, it's an ops record that happens to reference one) for requests that reprocess one tenant's data. |
+| `reprocess_requests` | GLOBAL | Not started | Ops API (`ops.reprocess`); optional nullable `target_tenant_id` filter column (not RLS ownership) |
 | `job_runs` | SYSTEM_INTERNAL | Not started | Not exposed through user APIs (§6.1) |
-| `audit_logs` | TENANT_OWNED (nullable tenant) [ledger] | Not started | "`tenant_id` nullable for global action" (§7.12.5) |
+| `audit_logs` | TENANT_OWNED (nullable tenant) [ledger] | Not started | Domain ledger (§7.12.5); converge with skeleton `audit_events` via expand/contract |
 
-## Summary counts (fill in as migrations land)
+## Summary counts (W4 freeze baseline — update when migrations land)
 
 | Class | Table count | RLS done |
 |---|---:|---:|
-| GLOBAL | 11 (+3 resolved: `ai_evaluation_sets` group, `system_alerts`, `reprocess_requests`) | 0 |
-| TENANT_OWNED | ~56 (+1 resolved: `prompt_versions`) | 0 |
+| GLOBAL | 14 | 7 (identity GLOBAL tables in `000005`) |
+| TENANT_OWNED (incl. ledgers) | 68 | 21 — 4 foundation + memberships/invites/grants/membership_roles (`000005`) + 8 Customer/CDP (`000011`) + 5 Catalog (`000012`) |
+| TENANT_OWNED (nullable tenant) | 3 (`user_sessions`, `refresh_tokens`, `audit_logs`) | 2 (`user_sessions`, `refresh_tokens` in `000005`) |
+| HYBRID | 2 (`roles`, `role_permissions`) | 2 (`000005`) |
 | TENANT_OVERRIDE | 1 | 0 |
-| TENANT_ROOT (new 5th class) | 1 (`tenants`, resolved) | 0 |
-| SYSTEM_INTERNAL | 1 (+ migration history, outbox lease per seed file) | 0 |
-| Needs confirmation | 0 — all 6 resolved 2026-07-21, see notes column per row above | — |
+| TENANT_ROOT | 1 (`tenants`) | 1 (`000005`) |
+| SYSTEM_INTERNAL | 1 (`job_runs`) | 0 |
+| **Needs confirmation** | **0** | — |
+| **Total indexed** | **90** | **see rows** |
 
-All 6 previously-blocking rows are resolved as of this pass — `BE-IDN-001` (the first P2 ticket,
-which needed `tenants`/`roles`) is unblocked on this front. `tenants`' new `TENANT_ROOT` class and
-`roles`' hybrid policy should be folded into blueprint §6.1's class table and §7.5.5 respectively
-the next time that section is touched, so this file stops being the only place they're written down.
+Coverage inventory: [`../enterprise-freeze/inventory/data_dictionary_coverage.csv`](../enterprise-freeze/inventory/data_dictionary_coverage.csv)  
+RLS templates: [`rls-intent-catalog.md`](rls-intent-catalog.md)
 
-Update these counts whenever a migration ships — this table is the single place leadership/QA can
-check "how much of P1's data layer is actually RLS-safe" without reading every migration file.
+All prior blocking rows are resolved — `BE-IDN-001` is unblocked on classification. Fold `TENANT_ROOT` / `HYBRID` into blueprint §6.1 when that section is next edited.

@@ -9,7 +9,15 @@ export function buildSessionBootstrap(overrides: Partial<Record<string, unknown>
     tenant: { id: "ten_fixture", name: "Shop thử nghiệm", currency: "VND", timezone: "Asia/Ho_Chi_Minh" },
     session: { id: "ses_fixture", version: 1, expires_at: "2099-01-01T00:00:00Z", reauth_required_at: null },
     device: { id: "dev_fixture", trusted: true },
-    permissions: [] as string[],
+    permissions: [
+      "member.read",
+      "member.invite",
+      "member.update",
+      "member.revoke",
+      "role.read",
+      "role.manage",
+      "catalog.read",
+    ] as string[],
     feature_flags: {} as Record<string, { enabled: boolean; variant?: string }>,
     ...overrides,
   };

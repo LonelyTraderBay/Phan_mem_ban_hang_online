@@ -26,3 +26,29 @@ export function maskRestrictedFields<T extends Record<string, unknown>>(
 ): Partial<T> {
   return Object.fromEntries(Object.entries(value).filter(([key]) => !restrictedFields.includes(key))) as Partial<T>;
 }
+
+export {
+  applyFieldPolicies,
+  applyFieldPoliciesForContext,
+  assertCanReadField,
+  DEFAULT_FIELD_POLICIES,
+  FieldAuthorizationError,
+  fieldsRequiringPermission,
+  redactSecretsDeep,
+  SECRET_PAYLOAD_KEYS,
+  type FieldPolicyRule
+} from "./field-policy.js";
+
+export {
+  AccessTokenError,
+  createAccessTokenService,
+  generateEs256KeyPairPem,
+  parseBearerAuthorization,
+  securityContextFromAccessToken,
+  type AccessTokenClaims,
+  type AccessTokenErrorCode,
+  type AccessTokenKeyRingOptions,
+  type AccessTokenService,
+  type IssueAccessTokenInput,
+  type IssuedAccessToken
+} from "./access-token.js";

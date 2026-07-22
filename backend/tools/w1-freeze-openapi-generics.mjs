@@ -362,6 +362,50 @@ const RESOURCE_BY_TAG = {
       created_at: { type: "string", format: "date-time" },
     },
   },
+  Sessions: {
+    required: [
+      "id",
+      "user_id",
+      "device_id",
+      "current",
+      "revoked",
+      "created_at",
+      "absolute_expiry",
+    ],
+    properties: {
+      id: { type: "string", format: "uuid" },
+      user_id: { type: "string", format: "uuid" },
+      tenant_id: { type: ["string", "null"], format: "uuid" },
+      device_id: { type: "string", format: "uuid" },
+      current: { type: "boolean" },
+      revoked: { type: "boolean" },
+      created_at: { type: "string", format: "date-time" },
+      last_seen_at: { type: ["string", "null"], format: "date-time" },
+      absolute_expiry: { type: "string", format: "date-time" },
+      user_agent: { type: ["string", "null"], maxLength: 512 },
+      ip_hint: { type: ["string", "null"], maxLength: 64 },
+    },
+  },
+  Devices: {
+    required: ["id", "user_id", "platform", "trusted", "created_at"],
+    properties: {
+      id: { type: "string", format: "uuid" },
+      user_id: { type: "string", format: "uuid" },
+      platform: {
+        type: "string",
+        enum: ["web", "windows", "ios", "android", "other"],
+      },
+      label: { type: ["string", "null"], maxLength: 200 },
+      trusted: { type: "boolean" },
+      current: { type: "boolean" },
+      created_at: { type: "string", format: "date-time" },
+      last_seen_at: { type: ["string", "null"], format: "date-time" },
+      trust_status: {
+        type: "string",
+        enum: ["trusted", "pending", "revoked"],
+      },
+    },
+  },
 };
 
 const REQUEST_BY_OPERATION = {
@@ -917,6 +961,8 @@ function resourceSchemaName(tag) {
     Billing: "BillingResource",
     Operations: "OperationsResource",
     Audit: "AuditExportResource",
+    Sessions: "SessionsResource",
+    Devices: "DevicesResource",
   };
   return map[tag] || `${tag.replace(/[^A-Za-z0-9]/g, "")}Resource`;
 }

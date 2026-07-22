@@ -98,10 +98,10 @@
 - Modify: `docs/data/ERD.md`, `data-dictionary.md`, `table-classification-seed.md`
 - Modify: `waves/W4_data_model_rls.md`
 
-- [ ] Resolve all `Needs confirmation` for in-scope P2–P10 tables
-- [ ] Mark classification Done/Not started consistently for freeze scope
-- [ ] Cross-link identity-migration-design patterns for later modules
-- [ ] Mark W4 Done
+- [x] Resolve all `Needs confirmation` for in-scope P2–P10 tables
+- [x] Mark classification Done/Not started consistently for freeze scope
+- [x] Cross-link identity-migration-design patterns for later modules
+- [x] Mark W4 Done
 
 ---
 
@@ -112,10 +112,10 @@
 - Create: `inventory/backlog_coverage.csv`
 - Modify: `waves/W5_be_tickets.md`
 
-- [ ] Generate coverage CSV from `implementation_backlog.csv`
-- [ ] For each missing ticket: fill from `backend_ticket_template.md` + HO_DEFAULTS + contract slice
-- [ ] status `doc-frozen` until implementation sprint; first kickoff ticket may be `ready` after PASS
-- [ ] Coverage 100% → Mark W5 Done
+- [x] Generate coverage CSV from `implementation_backlog.csv`
+- [x] For each missing ticket: fill from `backend_ticket_template.md` + HO_DEFAULTS + contract slice
+- [x] status `doc-frozen` until implementation sprint; first kickoff ticket may be `ready` after PASS
+- [x] Coverage 100% → Mark W5 Done
 
 ---
 
@@ -128,10 +128,10 @@
 - Modify: `inventory/fe_screen_inventory.csv`
 - Modify: `waves/W6_fe_design_specs.md`
 
-- [ ] Inventory all routes from handoff + FE spec §8.1
-- [ ] Design AI Agent fills specs from `_TEMPLATE.md` using HO defaults / F01 tone
-- [ ] HO policy C: treat pack as READY-MOCK when checklist complete (note: production legal review still later)
-- [ ] Mark W6 Done
+- [x] Inventory all routes from handoff + FE spec §8.1
+- [x] Design AI Agent fills specs from `_TEMPLATE.md` using HO defaults / F01 tone
+- [x] HO policy C: treat pack as READY-MOCK when checklist complete (note: production legal review still later)
+- [x] Mark W6 Done
 
 ---
 
@@ -143,11 +143,11 @@
 - Modify: `waves/W7_gate_sync.md`
 - FE: `contracts:sync` + codegen clean
 
-- [ ] All waves Done
-- [ ] Inventories clean
-- [ ] Both repos `contracts:validate` pass
-- [ ] FREEZE=PASS
-- [ ] Announce coding may start in phase order only
+- [x] All waves Done
+- [x] Inventories clean
+- [x] Both repos `contracts:validate` pass
+- [x] FREEZE=PASS
+- [x] Announce coding may start in phase order only
 
 ---
 

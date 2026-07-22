@@ -84,3 +84,6 @@ AI_SOURCE_STALE,409,ai,1,Nguồn dữ liệu đã cũ.,Freshness window exceeded
 AI_PROMPT_VERSION_NOT_APPROVED,409,ai,0,Phiên bản AI chưa được phê duyệt.,Prompt/model config lifecycle gate
 AI_EVALUATION_FAILED,409,ai,0,Phiên bản AI chưa đạt đánh giá bắt buộc.,Release thresholds failed
 
+ENTITLEMENT_LIMIT_EXCEEDED,403,billing,0,Gói dịch vụ đã đạt hạn mức. Vui lòng nâng cấp hoặc giảm sử dụng.,Hard block when plan meter at/above 100% (HO_DEFAULTS_v1 §3). Prefer this over inventing quota messages.
+ENTITLEMENT_WARNING,200,billing,0,Gói dịch vụ sắp đạt hạn mức.,Soft-warn band; may appear as header X-Entitlement-Warning with 200 responses (HO_DEFAULTS_v1).
+TAX_RATE_MISMATCH,409,order,0,Thuế trên đơn không khớp cấu hình hiện tại.,Order tax_rate_bps/inclusive flag drifted from HO_DEFAULTS / tenant tax config.

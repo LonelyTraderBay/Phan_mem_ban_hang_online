@@ -24,20 +24,19 @@ const router = createBrowserRouter(routeManifest);
 
 function AppShell({
   config,
-  apiClient,
+  queryClient,
 }: {
   config: RuntimeConfig;
-  apiClient: ReturnType<typeof createApiClient>;
+  queryClient: ReturnType<typeof createQueryClient>;
 }) {
-  const { session } = useAuth();
+  const { session, authenticatedClient } = useAuth();
   const [telemetry] = useState(() => createConsoleAdapter());
-  const [queryClient] = useState(() => createQueryClient(config.environment));
 
   return (
     <AppProviders
       queryClient={queryClient}
       telemetry={telemetry}
-      apiClient={apiClient}
+      apiClient={authenticatedClient}
       tenantScope={session?.tenant.id ?? "anonymous"}
       locale={resolveLocale(session?.user.locale)}
       permissions={session?.permissions ?? []}
@@ -51,13 +50,15 @@ function AppShell({
 export function App({ config }: AppProps) {
   const telemetry = useMemo(() => createConsoleAdapter(), []);
   const apiClient = useMemo(() => createApiClient({ config, telemetry }), [config, telemetry]);
+  const [queryClient] = useState(() => createQueryClient(config.environment));
 
   return (
     <AuthProvider
       apiClient={apiClient}
+      queryClient={queryClient}
       fallback={<Skeleton width="100%" height="100vh" aria-label="Đang tải ứng dụng" />}
     >
-      <AppShell config={config} apiClient={apiClient} />
+      <AppShell config={config} queryClient={queryClient} />
     </AuthProvider>
   );
 }

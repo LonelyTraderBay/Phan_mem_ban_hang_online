@@ -13,3 +13,8 @@ export type { TenantSwitchDeps, TenantSwitchResult } from "./tenantSwitch";
 export { createSessionStore } from "./sessionStore";
 export type { SessionState, SessionStore } from "./sessionStore";
 export { RequireAuth, RequireTenant } from "./guards";
+export { resolveSafeReturnUrl, safeReturnUrlFromSearch } from "./safeReturnUrl";
+export { logoutSession, clearSessionLocally } from "./sessionLifecycle";
+export type { LogoutDeps } from "./sessionLifecycle";
+export { createAuthenticatedApiClient } from "./authenticatedClient";
+export type { AuthenticatedClientDeps } from "./authenticatedClient";

@@ -4,86 +4,59 @@ title: Tenant switch and request context resolution
 owner: Backend AI Agent
 phase: P2
 risk: high
-status: blocked
+status: done
 ---
 
 # Business outcome
 
-Switch tenant binds session.tenant_id; resolve request context; GET /me bootstrap.
+Switch tenant binds `session.tenant_id`; resolve request context; GET `/me` bootstrap.
 
 # Actor and use case
 
-Identity / tenant admin actors and unauthenticated auth flows as defined in blueprint ?5 and FE F01.
+Authenticated Web Admin (BFF cookie session) switching among active memberships.
 
 # In scope / Out of scope
 
-In scope: Tenant switch and request context resolution.
+In scope: `POST /auth/switch-tenant` (CSRF), session tenant/membership rebind, SessionBootstrap on switch + `/me`.
 
-Out of scope: unrelated modules; FE UI work (FE sync after BE contract freeze).
+Out of scope: `GET /tenants/current` product surface (separate tenant ops); FE UI.
 
 # Dependencies
 
-Blocked on **BE-IDN-003** and **BE-IDN-005**. `/me` returns SessionBootstrapResponse (GAP-004 closed).
-
-See also: `docs/data/identity-migration-design.md`, `docs/tickets/BE-IDN-test-matrix.md`, `docs/collaboration/gap-003-f01-slice.md`.
+Blocked on **BE-IDN-003** and **BE-IDN-005** — unblocked. GAP-004 `/me` SessionBootstrap already closed.
 
 # Domain invariants and state transitions
 
-- Server establishes tenant context; never trust client `tenant_id` for authorization.
-- Money N/A; sessions/tokens store hashes only.
-- No hard-delete of audit/session ledger rows ? revoke via status flags.
+- Server binds tenant from membership; never trust client `tenant_id` for authorization beyond selecting which membership to activate.
+- Inactive membership → `MEMBERSHIP_INACTIVE`; no membership / unknown tenant → `TENANT_CONTEXT_INVALID`; suspended tenant → `TENANT_INACTIVE`.
+- Same session id; version bumps; refresh cookie not rotated.
 
 # Contract
 
-- OpenAPI operation/schema: Auth / Members / Roles / Sessions tags as applicable (slice with `pnpm agent:contract-slice`).
-- AsyncAPI events: session revoke / membership events when this ticket owns them.
-- Error codes: per `backend_doc/matrices/error_catalog.csv` and BE-IDN-test-matrix mapping notes.
-- Realtime event: session revoke hooks where BE-IDN-006 applies.
-
-# Authorization and data classification
-
-- Required permission: per operation `x-permission` (`authenticated` = session gate, not a permission string; role mutations use `role.manage`).
-- Tenant/RLS behavior: per data-dictionary; `user_sessions` nullable-tenant policy in identity-migration-design.
-- Field-level restrictions: BE-IDN-012.
-- Data classification: credentials/MFA secrets = restricted; PII redacted in logs.
+- OpenAPI `switchTenant` already frozen → `SessionBootstrapResponse`.
 
 # Persistence and migration
 
-- Tables/columns/constraints/indexes/RLS: BE-IDN-001 owns `000005_identity_schema.sql`; later tickets are additive.
-- Backfill: none for greenfield.
-- Rolling-deploy compatibility: expand/contract only.
-
-# Transaction, concurrency and idempotency
-
-- Transaction boundary: auth mutations that touch session + refresh + audit share one tenant/actor transaction where applicable.
-- Lock order/isolation: unique constraints for invite/refresh family.
-- Idempotency scope/TTL: critical member/role/provision commands per OpenAPI `x-idempotency`.
-- Retry behavior: refresh reuse is fail-closed (revoke family).
-
-# Audit, telemetry and operations
-
-- Audit action: login success/failure (no password), logout, revoke, invite, role change, support grant.
-- Logs/traces/metrics: redacted; correlation IDs required.
-- Alert/runbook impact: refresh reuse spike; invite abuse rate limits.
-- Feature flag/rollout: MFA optional per tenant entitlement when billing exists.
-- Rollback: disable route / feature flag; no hard-delete.
+- `infra/migrations/000010_switch_tenant.sql` (`app.session_switch_tenant`)
 
 # Acceptance criteria
 
 - Switch updates context
 - /me SessionBootstrap shape
 - MEMBERSHIP_INACTIVE / TENANT_CONTEXT_INVALID
-- [ ] Permission/tenant isolation tests per BE-IDN-test-matrix
-- [ ] Contract/generated client note for FE sync
-- [ ] Completion manifest filled
+- [x] Permission/tenant isolation tests per BE-IDN-test-matrix
+- [x] Contract/generated client note — OpenAPI unchanged; FE sync not required
+- [x] Completion manifest filled
 
 # Test cases
 
 See `docs/tickets/BE-IDN-test-matrix.md` row `BE-IDN-009`.
 
+Evidence: `modules/identity/src/application/switch-tenant.test.ts` — identity suite 29 passed.
+
 # Completion manifest
 
-- Contracts changed:
-- Migration:
-- Tests/evidence:
-- Known risks:
+- Contracts changed: none (OpenAPI frozen)
+- Migration: `infra/migrations/000010_switch_tenant.sql`
+- Tests/evidence: `pnpm exec vitest run modules/identity` — 29 passed; typecheck OK
+- Known risks: live Postgres proof deferred; `GET /tenants/current` not implemented in this ticket

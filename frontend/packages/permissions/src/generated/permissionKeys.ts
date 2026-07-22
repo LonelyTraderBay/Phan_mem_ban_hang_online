@@ -64,4 +64,15 @@ export type PermissionKey =
   | "ops.ai_health.read"
   | "ops.channel_health.read"
   | "ops.audit.read"
-  | "support.access";
+  | "support.access"
+  | "catalog.import"
+  | "catalog.publish"
+  | "ops.alert.acknowledge"
+  | "ops.ai.disable"
+  | "ops.channel.manage"
+  | "customer.export"
+  | "ai.sandbox.test"
+  | "report.revenue.read"
+  | "report.sla.read"
+  | "report.ai_quality.read"
+  | "packing_slip.print";

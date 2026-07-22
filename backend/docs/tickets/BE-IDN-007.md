@@ -4,86 +4,59 @@ title: Password forgot/reset single-use flow
 owner: Backend AI Agent
 phase: P2
 risk: high
-status: blocked
+status: done
 ---
 
 # Business outcome
 
-Forgot/reset with single-use hashed tokens.
+Forgot/reset with single-use hashed tokens for `credential_type=password` accounts only (not Web Admin OIDC primary path — GAP-009).
 
 # Actor and use case
 
-Identity / tenant admin actors and unauthenticated auth flows as defined in blueprint ?5 and FE F01.
+Unauthenticated local-credential recovery; OIDC/IdP users recover via IdP.
 
 # In scope / Out of scope
 
-In scope: Password forgot/reset single-use flow.
+In scope: `POST /auth/password/forgot`, `POST /auth/password/reset`, Argon2id hash, session revoke on reset, enumeration-safe forgot.
 
-Out of scope: unrelated modules; FE UI work (FE sync after BE contract freeze).
+Out of scope: email transport productization (token issuance path ready; delivery via outbox later); Web Admin email/password login.
 
 # Dependencies
 
-Blocked on **BE-IDN-003**.
-
-See also: `docs/data/identity-migration-design.md`, `docs/tickets/BE-IDN-test-matrix.md`, `docs/collaboration/gap-003-f01-slice.md`.
+Blocked on **BE-IDN-003** — unblocked.
 
 # Domain invariants and state transitions
 
-- Server establishes tenant context; never trust client `tenant_id` for authorization.
-- Money N/A; sessions/tokens store hashes only.
-- No hard-delete of audit/session ledger rows ? revoke via status flags.
+- Tokens stored hashed only; single-use; expired/reused → reject.
+- Forgot always returns identical EmptyOk (enumeration-safe).
+- Successful reset revokes all user sessions/refresh tokens.
 
 # Contract
 
-- OpenAPI operation/schema: Auth / Members / Roles / Sessions tags as applicable (slice with `pnpm agent:contract-slice`).
-- AsyncAPI events: session revoke / membership events when this ticket owns them.
-- Error codes: per `backend_doc/matrices/error_catalog.csv` and BE-IDN-test-matrix mapping notes.
-- Realtime event: session revoke hooks where BE-IDN-006 applies.
-
-# Authorization and data classification
-
-- Required permission: per operation `x-permission` (`authenticated` = session gate, not a permission string; role mutations use `role.manage`).
-- Tenant/RLS behavior: per data-dictionary; `user_sessions` nullable-tenant policy in identity-migration-design.
-- Field-level restrictions: BE-IDN-012.
-- Data classification: credentials/MFA secrets = restricted; PII redacted in logs.
+- OpenAPI ops already frozen (`requestPasswordReset`, `resetPassword`).
 
 # Persistence and migration
 
-- Tables/columns/constraints/indexes/RLS: BE-IDN-001 owns `000005_identity_schema.sql`; later tickets are additive.
-- Backfill: none for greenfield.
-- Rolling-deploy compatibility: expand/contract only.
-
-# Transaction, concurrency and idempotency
-
-- Transaction boundary: auth mutations that touch session + refresh + audit share one tenant/actor transaction where applicable.
-- Lock order/isolation: unique constraints for invite/refresh family.
-- Idempotency scope/TTL: critical member/role/provision commands per OpenAPI `x-idempotency`.
-- Retry behavior: refresh reuse is fail-closed (revoke family).
-
-# Audit, telemetry and operations
-
-- Audit action: login success/failure (no password), logout, revoke, invite, role change, support grant.
-- Logs/traces/metrics: redacted; correlation IDs required.
-- Alert/runbook impact: refresh reuse spike; invite abuse rate limits.
-- Feature flag/rollout: MFA optional per tenant entitlement when billing exists.
-- Rollback: disable route / feature flag; no hard-delete.
+- `infra/migrations/000009_password_reset_mfa_challenges.sql` (`password_reset_tokens` + SECURITY DEFINER)
 
 # Acceptance criteria
 
 - Reset once
 - Reuse/expired rejected
 - Enumeration-safe forgot response
-- [ ] Permission/tenant isolation tests per BE-IDN-test-matrix
-- [ ] Contract/generated client note for FE sync
-- [ ] Completion manifest filled
+- [x] Permission/tenant isolation tests per BE-IDN-test-matrix
+- [x] Contract/generated client note — OpenAPI unchanged; FE sync not required
+- [x] Completion manifest filled
 
 # Test cases
 
 See `docs/tickets/BE-IDN-test-matrix.md` row `BE-IDN-007`.
 
+Evidence: `modules/identity/src/application/password-reset.test.ts` — identity suite 25 passed.
+
 # Completion manifest
 
-- Contracts changed:
-- Migration:
-- Tests/evidence:
-- Known risks:
+- Contracts changed: none (OpenAPI frozen)
+- Migration: `infra/migrations/000009_password_reset_mfa_challenges.sql`
+- Tests/evidence: `pnpm exec vitest run modules/identity` — 25 passed; typecheck OK
+- Known risks: email delivery not wired (ops must enqueue notify separately); live Postgres proof deferred without Docker

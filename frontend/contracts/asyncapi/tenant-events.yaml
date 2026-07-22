@@ -4,12 +4,14 @@ asyncapi: 3.1.0
 info:
   title: AI Sales Operating System Events
   version: 2.0.0
-  description: Starter AsyncAPI contract for internal domain events and realtime notifications.
+  description: Frozen AsyncAPI contract for tenant domain events, ops events, and
+    realtime SSE (enterprise doc-freeze W2).
 servers:
   redis:
     host: redis.internal:6379
     protocol: redis
-    description: Logical transport; BullMQ queues/outbox publisher are implementation details.
+    description: Logical transport; BullMQ queues/outbox publisher are
+      implementation details.
   sse:
     host: api.example.com
     pathname: /api/v1/realtime/stream
@@ -20,200 +22,203 @@ channels:
     address: domain.events
     messages:
       tenantActivated:
-        $ref: '#/components/messages/tenantActivated'
+        $ref: "#/components/messages/tenantActivated"
       tenantSuspended:
-        $ref: '#/components/messages/tenantSuspended'
+        $ref: "#/components/messages/tenantSuspended"
       membershipChanged:
-        $ref: '#/components/messages/membershipChanged'
+        $ref: "#/components/messages/membershipChanged"
       customerUpdated:
-        $ref: '#/components/messages/customerUpdated'
+        $ref: "#/components/messages/customerUpdated"
       customerMerged:
-        $ref: '#/components/messages/customerMerged'
+        $ref: "#/components/messages/customerMerged"
       catalogVariantUpdated:
-        $ref: '#/components/messages/catalogVariantUpdated'
+        $ref: "#/components/messages/catalogVariantUpdated"
       inventoryAdjusted:
-        $ref: '#/components/messages/inventoryAdjusted'
+        $ref: "#/components/messages/inventoryAdjusted"
       inventoryReserved:
-        $ref: '#/components/messages/inventoryReserved'
+        $ref: "#/components/messages/inventoryReserved"
       inventoryReservationReleased:
-        $ref: '#/components/messages/inventoryReservationReleased'
+        $ref: "#/components/messages/inventoryReservationReleased"
       inventoryReservationExpired:
-        $ref: '#/components/messages/inventoryReservationExpired'
+        $ref: "#/components/messages/inventoryReservationExpired"
       knowledgePublished:
-        $ref: '#/components/messages/knowledgePublished'
+        $ref: "#/components/messages/knowledgePublished"
       knowledgeIngestionCompleted:
-        $ref: '#/components/messages/knowledgeIngestionCompleted'
+        $ref: "#/components/messages/knowledgeIngestionCompleted"
       channelAccountConnected:
-        $ref: '#/components/messages/channelAccountConnected'
+        $ref: "#/components/messages/channelAccountConnected"
       channelHealthChanged:
-        $ref: '#/components/messages/channelHealthChanged'
+        $ref: "#/components/messages/channelHealthChanged"
       webhookReceived:
-        $ref: '#/components/messages/webhookReceived'
+        $ref: "#/components/messages/webhookReceived"
       messageInboundNormalized:
-        $ref: '#/components/messages/messageInboundNormalized'
+        $ref: "#/components/messages/messageInboundNormalized"
       messageOutboundQueued:
-        $ref: '#/components/messages/messageOutboundQueued'
+        $ref: "#/components/messages/messageOutboundQueued"
       messageOutboundSent:
-        $ref: '#/components/messages/messageOutboundSent'
+        $ref: "#/components/messages/messageOutboundSent"
       messageOutboundFailed:
-        $ref: '#/components/messages/messageOutboundFailed'
+        $ref: "#/components/messages/messageOutboundFailed"
       conversationCreated:
-        $ref: '#/components/messages/conversationCreated'
+        $ref: "#/components/messages/conversationCreated"
       conversationUpdated:
-        $ref: '#/components/messages/conversationUpdated'
+        $ref: "#/components/messages/conversationUpdated"
       conversationSlaBreached:
-        $ref: '#/components/messages/conversationSlaBreached'
+        $ref: "#/components/messages/conversationSlaBreached"
       aiSuggestionCreated:
-        $ref: '#/components/messages/aiSuggestionCreated'
+        $ref: "#/components/messages/aiSuggestionCreated"
       aiOutputBlocked:
-        $ref: '#/components/messages/aiOutputBlocked'
+        $ref: "#/components/messages/aiOutputBlocked"
       orderDraftCreated:
-        $ref: '#/components/messages/orderDraftCreated'
+        $ref: "#/components/messages/orderDraftCreated"
       orderConfirmed:
-        $ref: '#/components/messages/orderConfirmed'
+        $ref: "#/components/messages/orderConfirmed"
       orderCancelled:
-        $ref: '#/components/messages/orderCancelled'
+        $ref: "#/components/messages/orderCancelled"
       paymentRecorded:
-        $ref: '#/components/messages/paymentRecorded'
+        $ref: "#/components/messages/paymentRecorded"
       paymentRefunded:
-        $ref: '#/components/messages/paymentRefunded'
+        $ref: "#/components/messages/paymentRefunded"
       shipmentCreated:
-        $ref: '#/components/messages/shipmentCreated'
+        $ref: "#/components/messages/shipmentCreated"
       shipmentStatusChanged:
-        $ref: '#/components/messages/shipmentStatusChanged'
+        $ref: "#/components/messages/shipmentStatusChanged"
       returnCompleted:
-        $ref: '#/components/messages/returnCompleted'
+        $ref: "#/components/messages/returnCompleted"
       billingUsageRecorded:
-        $ref: '#/components/messages/billingUsageRecorded'
+        $ref: "#/components/messages/billingUsageRecorded"
       auditRecorded:
-        $ref: '#/components/messages/auditRecorded'
+        $ref: "#/components/messages/auditRecorded"
   realtimeEvents:
     address: /api/v1/realtime/stream
     messages:
       realtimeNotification:
-        $ref: '#/components/messages/realtimeNotification'
+        $ref: "#/components/messages/realtimeNotification"
+      systemResyncRequired:
+        $ref: "#/components/messages/systemResyncRequired"
 operations:
   publishDomainEvents:
     action: send
     channel:
-      $ref: '#/channels/domainEvents'
+      $ref: "#/channels/domainEvents"
     messages:
-    - $ref: '#/channels/domainEvents/messages/tenantActivated'
-    - $ref: '#/channels/domainEvents/messages/tenantSuspended'
-    - $ref: '#/channels/domainEvents/messages/membershipChanged'
-    - $ref: '#/channels/domainEvents/messages/customerUpdated'
-    - $ref: '#/channels/domainEvents/messages/customerMerged'
-    - $ref: '#/channels/domainEvents/messages/catalogVariantUpdated'
-    - $ref: '#/channels/domainEvents/messages/inventoryAdjusted'
-    - $ref: '#/channels/domainEvents/messages/inventoryReserved'
-    - $ref: '#/channels/domainEvents/messages/inventoryReservationReleased'
-    - $ref: '#/channels/domainEvents/messages/inventoryReservationExpired'
-    - $ref: '#/channels/domainEvents/messages/knowledgePublished'
-    - $ref: '#/channels/domainEvents/messages/knowledgeIngestionCompleted'
-    - $ref: '#/channels/domainEvents/messages/channelAccountConnected'
-    - $ref: '#/channels/domainEvents/messages/channelHealthChanged'
-    - $ref: '#/channels/domainEvents/messages/webhookReceived'
-    - $ref: '#/channels/domainEvents/messages/messageInboundNormalized'
-    - $ref: '#/channels/domainEvents/messages/messageOutboundQueued'
-    - $ref: '#/channels/domainEvents/messages/messageOutboundSent'
-    - $ref: '#/channels/domainEvents/messages/messageOutboundFailed'
-    - $ref: '#/channels/domainEvents/messages/conversationCreated'
-    - $ref: '#/channels/domainEvents/messages/conversationUpdated'
-    - $ref: '#/channels/domainEvents/messages/conversationSlaBreached'
-    - $ref: '#/channels/domainEvents/messages/aiSuggestionCreated'
-    - $ref: '#/channels/domainEvents/messages/aiOutputBlocked'
-    - $ref: '#/channels/domainEvents/messages/orderDraftCreated'
-    - $ref: '#/channels/domainEvents/messages/orderConfirmed'
-    - $ref: '#/channels/domainEvents/messages/orderCancelled'
-    - $ref: '#/channels/domainEvents/messages/paymentRecorded'
-    - $ref: '#/channels/domainEvents/messages/paymentRefunded'
-    - $ref: '#/channels/domainEvents/messages/shipmentCreated'
-    - $ref: '#/channels/domainEvents/messages/shipmentStatusChanged'
-    - $ref: '#/channels/domainEvents/messages/returnCompleted'
-    - $ref: '#/channels/domainEvents/messages/billingUsageRecorded'
-    - $ref: '#/channels/domainEvents/messages/auditRecorded'
+      - $ref: "#/channels/domainEvents/messages/tenantActivated"
+      - $ref: "#/channels/domainEvents/messages/tenantSuspended"
+      - $ref: "#/channels/domainEvents/messages/membershipChanged"
+      - $ref: "#/channels/domainEvents/messages/customerUpdated"
+      - $ref: "#/channels/domainEvents/messages/customerMerged"
+      - $ref: "#/channels/domainEvents/messages/catalogVariantUpdated"
+      - $ref: "#/channels/domainEvents/messages/inventoryAdjusted"
+      - $ref: "#/channels/domainEvents/messages/inventoryReserved"
+      - $ref: "#/channels/domainEvents/messages/inventoryReservationReleased"
+      - $ref: "#/channels/domainEvents/messages/inventoryReservationExpired"
+      - $ref: "#/channels/domainEvents/messages/knowledgePublished"
+      - $ref: "#/channels/domainEvents/messages/knowledgeIngestionCompleted"
+      - $ref: "#/channels/domainEvents/messages/channelAccountConnected"
+      - $ref: "#/channels/domainEvents/messages/channelHealthChanged"
+      - $ref: "#/channels/domainEvents/messages/webhookReceived"
+      - $ref: "#/channels/domainEvents/messages/messageInboundNormalized"
+      - $ref: "#/channels/domainEvents/messages/messageOutboundQueued"
+      - $ref: "#/channels/domainEvents/messages/messageOutboundSent"
+      - $ref: "#/channels/domainEvents/messages/messageOutboundFailed"
+      - $ref: "#/channels/domainEvents/messages/conversationCreated"
+      - $ref: "#/channels/domainEvents/messages/conversationUpdated"
+      - $ref: "#/channels/domainEvents/messages/conversationSlaBreached"
+      - $ref: "#/channels/domainEvents/messages/aiSuggestionCreated"
+      - $ref: "#/channels/domainEvents/messages/aiOutputBlocked"
+      - $ref: "#/channels/domainEvents/messages/orderDraftCreated"
+      - $ref: "#/channels/domainEvents/messages/orderConfirmed"
+      - $ref: "#/channels/domainEvents/messages/orderCancelled"
+      - $ref: "#/channels/domainEvents/messages/paymentRecorded"
+      - $ref: "#/channels/domainEvents/messages/paymentRefunded"
+      - $ref: "#/channels/domainEvents/messages/shipmentCreated"
+      - $ref: "#/channels/domainEvents/messages/shipmentStatusChanged"
+      - $ref: "#/channels/domainEvents/messages/returnCompleted"
+      - $ref: "#/channels/domainEvents/messages/billingUsageRecorded"
+      - $ref: "#/channels/domainEvents/messages/auditRecorded"
   consumeDomainEvents:
     action: receive
     channel:
-      $ref: '#/channels/domainEvents'
+      $ref: "#/channels/domainEvents"
     messages:
-    - $ref: '#/channels/domainEvents/messages/tenantActivated'
-    - $ref: '#/channels/domainEvents/messages/tenantSuspended'
-    - $ref: '#/channels/domainEvents/messages/membershipChanged'
-    - $ref: '#/channels/domainEvents/messages/customerUpdated'
-    - $ref: '#/channels/domainEvents/messages/customerMerged'
-    - $ref: '#/channels/domainEvents/messages/catalogVariantUpdated'
-    - $ref: '#/channels/domainEvents/messages/inventoryAdjusted'
-    - $ref: '#/channels/domainEvents/messages/inventoryReserved'
-    - $ref: '#/channels/domainEvents/messages/inventoryReservationReleased'
-    - $ref: '#/channels/domainEvents/messages/inventoryReservationExpired'
-    - $ref: '#/channels/domainEvents/messages/knowledgePublished'
-    - $ref: '#/channels/domainEvents/messages/knowledgeIngestionCompleted'
-    - $ref: '#/channels/domainEvents/messages/channelAccountConnected'
-    - $ref: '#/channels/domainEvents/messages/channelHealthChanged'
-    - $ref: '#/channels/domainEvents/messages/webhookReceived'
-    - $ref: '#/channels/domainEvents/messages/messageInboundNormalized'
-    - $ref: '#/channels/domainEvents/messages/messageOutboundQueued'
-    - $ref: '#/channels/domainEvents/messages/messageOutboundSent'
-    - $ref: '#/channels/domainEvents/messages/messageOutboundFailed'
-    - $ref: '#/channels/domainEvents/messages/conversationCreated'
-    - $ref: '#/channels/domainEvents/messages/conversationUpdated'
-    - $ref: '#/channels/domainEvents/messages/conversationSlaBreached'
-    - $ref: '#/channels/domainEvents/messages/aiSuggestionCreated'
-    - $ref: '#/channels/domainEvents/messages/aiOutputBlocked'
-    - $ref: '#/channels/domainEvents/messages/orderDraftCreated'
-    - $ref: '#/channels/domainEvents/messages/orderConfirmed'
-    - $ref: '#/channels/domainEvents/messages/orderCancelled'
-    - $ref: '#/channels/domainEvents/messages/paymentRecorded'
-    - $ref: '#/channels/domainEvents/messages/paymentRefunded'
-    - $ref: '#/channels/domainEvents/messages/shipmentCreated'
-    - $ref: '#/channels/domainEvents/messages/shipmentStatusChanged'
-    - $ref: '#/channels/domainEvents/messages/returnCompleted'
-    - $ref: '#/channels/domainEvents/messages/billingUsageRecorded'
-    - $ref: '#/channels/domainEvents/messages/auditRecorded'
+      - $ref: "#/channels/domainEvents/messages/tenantActivated"
+      - $ref: "#/channels/domainEvents/messages/tenantSuspended"
+      - $ref: "#/channels/domainEvents/messages/membershipChanged"
+      - $ref: "#/channels/domainEvents/messages/customerUpdated"
+      - $ref: "#/channels/domainEvents/messages/customerMerged"
+      - $ref: "#/channels/domainEvents/messages/catalogVariantUpdated"
+      - $ref: "#/channels/domainEvents/messages/inventoryAdjusted"
+      - $ref: "#/channels/domainEvents/messages/inventoryReserved"
+      - $ref: "#/channels/domainEvents/messages/inventoryReservationReleased"
+      - $ref: "#/channels/domainEvents/messages/inventoryReservationExpired"
+      - $ref: "#/channels/domainEvents/messages/knowledgePublished"
+      - $ref: "#/channels/domainEvents/messages/knowledgeIngestionCompleted"
+      - $ref: "#/channels/domainEvents/messages/channelAccountConnected"
+      - $ref: "#/channels/domainEvents/messages/channelHealthChanged"
+      - $ref: "#/channels/domainEvents/messages/webhookReceived"
+      - $ref: "#/channels/domainEvents/messages/messageInboundNormalized"
+      - $ref: "#/channels/domainEvents/messages/messageOutboundQueued"
+      - $ref: "#/channels/domainEvents/messages/messageOutboundSent"
+      - $ref: "#/channels/domainEvents/messages/messageOutboundFailed"
+      - $ref: "#/channels/domainEvents/messages/conversationCreated"
+      - $ref: "#/channels/domainEvents/messages/conversationUpdated"
+      - $ref: "#/channels/domainEvents/messages/conversationSlaBreached"
+      - $ref: "#/channels/domainEvents/messages/aiSuggestionCreated"
+      - $ref: "#/channels/domainEvents/messages/aiOutputBlocked"
+      - $ref: "#/channels/domainEvents/messages/orderDraftCreated"
+      - $ref: "#/channels/domainEvents/messages/orderConfirmed"
+      - $ref: "#/channels/domainEvents/messages/orderCancelled"
+      - $ref: "#/channels/domainEvents/messages/paymentRecorded"
+      - $ref: "#/channels/domainEvents/messages/paymentRefunded"
+      - $ref: "#/channels/domainEvents/messages/shipmentCreated"
+      - $ref: "#/channels/domainEvents/messages/shipmentStatusChanged"
+      - $ref: "#/channels/domainEvents/messages/returnCompleted"
+      - $ref: "#/channels/domainEvents/messages/billingUsageRecorded"
+      - $ref: "#/channels/domainEvents/messages/auditRecorded"
   sendRealtimeEvents:
     action: send
     channel:
-      $ref: '#/channels/realtimeEvents'
+      $ref: "#/channels/realtimeEvents"
     messages:
-    - $ref: '#/channels/realtimeEvents/messages/realtimeNotification'
+      - $ref: "#/channels/realtimeEvents/messages/realtimeNotification"
+      - $ref: "#/channels/realtimeEvents/messages/systemResyncRequired"
 components:
   schemas:
     Actor:
       type: object
       additionalProperties: false
       required:
-      - type
+        - type
       properties:
         type:
           type: string
           enum:
-          - user
-          - service
-          - ai
-          - system
-          - support
+            - user
+            - service
+            - ai
+            - system
+            - support
         id:
           type:
-          - string
-          - 'null'
-    EventEnvelope:
+            - string
+            - "null"
+    EventEnvelopeBase:
       type: object
       additionalProperties: false
       required:
-      - specversion
-      - id
-      - source
-      - type
-      - time
-      - datacontenttype
-      - tenantid
-      - correlationid
-      - data
+        - specversion
+        - id
+        - source
+        - type
+        - time
+        - datacontenttype
+        - tenantid
+        - correlationid
+        - data
       properties:
         specversion:
           type: string
-          const: '1.0'
+          const: "1.0"
         id:
           type: string
           format: uuid
@@ -223,8 +228,8 @@ components:
           type: string
         subject:
           type:
-          - string
-          - 'null'
+            - string
+            - "null"
         time:
           type: string
           format: date-time
@@ -233,35 +238,37 @@ components:
           const: application/json
         dataschema:
           type:
-          - string
-          - 'null'
+            - string
+            - "null"
         tenantid:
-          type: string
+          type:
+            - string
+            - "null"
           format: uuid
+          description: Null only for global ops events (e.g. global AI kill switch).
         correlationid:
           type: string
         causationid:
           type:
-          - string
-          - 'null'
+            - string
+            - "null"
         partitionkey:
           type:
-          - string
-          - 'null'
+            - string
+            - "null"
         actor:
-          $ref: '#/components/schemas/Actor'
+          $ref: "#/components/schemas/Actor"
         data:
           type: object
-          additionalProperties: true
     RealtimeNotification:
       type: object
       additionalProperties: false
       required:
-      - schema_version
-      - tenant_id
-      - resource_id
-      - resource_version
-      - occurred_at
+        - schema_version
+        - tenant_id
+        - resource_id
+        - resource_version
+        - occurred_at
       properties:
         schema_version:
           type: integer
@@ -279,7 +286,1735 @@ components:
           format: date-time
         summary:
           type: object
-          additionalProperties: true
+          additionalProperties: false
+          description: Non-PII summary fields only.
+          properties:
+            title:
+              type:
+                - string
+                - "null"
+              maxLength: 200
+            status:
+              type:
+                - string
+                - "null"
+              maxLength: 64
+    SystemResyncRequired:
+      type: object
+      additionalProperties: false
+      required:
+        - schema_version
+        - reason
+        - occurred_at
+      properties:
+        schema_version:
+          type: integer
+          minimum: 1
+        reason:
+          type: string
+          enum:
+            - last_event_id_too_old
+            - buffer_evicted
+            - permission_changed
+        occurred_at:
+          type: string
+          format: date-time
+        refetch_hint:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+    TenantActivatedData:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant_id
+        - plan_id
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        plan_id:
+          type: string
+          enum:
+            - plan_free
+            - plan_pro
+            - plan_business
+          description: HO_DEFAULTS_v1
+      description: Minimum payload for com.aisales.tenant.activated.v1 (blueprint §9.8
+        / W2 freeze).
+    TenantActivatedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.tenant.activated.v1
+            data:
+              $ref: "#/components/schemas/TenantActivatedData"
+    TenantSuspendedData:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant_id
+        - reason
+        - effective_at
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        effective_at:
+          type: string
+          format: date-time
+      description: Minimum payload for com.aisales.tenant.suspended.v1 (blueprint §9.8
+        / W2 freeze).
+    TenantSuspendedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.tenant.suspended.v1
+            data:
+              $ref: "#/components/schemas/TenantSuspendedData"
+    MembershipChangedData:
+      type: object
+      additionalProperties: false
+      required:
+        - membership_id
+        - status
+        - permission_version
+      properties:
+        membership_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - invited
+            - active
+            - suspended
+            - revoked
+        permission_version:
+          type: integer
+          minimum: 1
+        role_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+      description: Minimum payload for com.aisales.membership.changed.v1 (blueprint
+        §9.8 / W2 freeze).
+    MembershipChangedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.membership.changed.v1
+            data:
+              $ref: "#/components/schemas/MembershipChangedData"
+    CustomerUpdatedData:
+      type: object
+      additionalProperties: false
+      required:
+        - customer_id
+        - changed_fields
+      properties:
+        customer_id:
+          type: string
+          format: uuid
+        changed_fields:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        version:
+          type: integer
+          minimum: 1
+      description: Minimum payload for com.aisales.customer.updated.v1 (blueprint §9.8
+        / W2 freeze).
+    CustomerUpdatedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.customer.updated.v1
+            data:
+              $ref: "#/components/schemas/CustomerUpdatedData"
+    CustomerMergedData:
+      type: object
+      additionalProperties: false
+      required:
+        - source_ids
+        - target_id
+      properties:
+        source_ids:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+        target_id:
+          type: string
+          format: uuid
+      description: Minimum payload for com.aisales.customer.merged.v1 (blueprint §9.8
+        / W2 freeze).
+    CustomerMergedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.customer.merged.v1
+            data:
+              $ref: "#/components/schemas/CustomerMergedData"
+    CatalogVariantUpdatedData:
+      type: object
+      additionalProperties: false
+      required:
+        - variant_id
+        - version
+        - changed_fields
+      properties:
+        variant_id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+        changed_fields:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        unit_price_minor:
+          type:
+            - integer
+            - "null"
+          description: Tax-inclusive đồng when price changed (HO_DEFAULTS_v1).
+      description: Minimum payload for com.aisales.catalog.variant.updated.v1
+        (blueprint §9.8 / W2 freeze).
+    CatalogVariantUpdatedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.catalog.variant.updated.v1
+            data:
+              $ref: "#/components/schemas/CatalogVariantUpdatedData"
+    InventoryAdjustedData:
+      type: object
+      additionalProperties: false
+      required:
+        - warehouse_id
+        - variant_id
+        - quantity_delta
+        - reason
+      properties:
+        warehouse_id:
+          type: string
+          format: uuid
+        variant_id:
+          type: string
+          format: uuid
+        quantity_delta:
+          type: string
+          pattern: ^-?\d+(\.\d{1,6})?$
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        adjustment_id:
+          type: string
+          format: uuid
+      description: Minimum payload for com.aisales.inventory.adjusted.v1 (blueprint
+        §9.8 / W2 freeze).
+    InventoryAdjustedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.inventory.adjusted.v1
+            data:
+              $ref: "#/components/schemas/InventoryAdjustedData"
+    InventoryReservedData:
+      type: object
+      additionalProperties: false
+      required:
+        - reservation_id
+        - allocations
+        - expires_at
+      properties:
+        reservation_id:
+          type: string
+          format: uuid
+        expires_at:
+          type: string
+          format: date-time
+        owner_type:
+          type: string
+          enum:
+            - order
+            - conversation
+            - manual
+        owner_id:
+          type: string
+          format: uuid
+        allocations:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - variant_id
+              - warehouse_id
+              - quantity
+            properties:
+              variant_id:
+                type: string
+                format: uuid
+              warehouse_id:
+                type: string
+                format: uuid
+              quantity:
+                type: string
+      description: Minimum payload for com.aisales.inventory.reserved.v1 (blueprint
+        §9.8 / W2 freeze).
+    InventoryReservedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.inventory.reserved.v1
+            data:
+              $ref: "#/components/schemas/InventoryReservedData"
+    InventoryReservationReleasedData:
+      type: object
+      additionalProperties: false
+      required:
+        - reservation_id
+        - reason
+      properties:
+        reservation_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+      description: Minimum payload for com.aisales.inventory.reservation-released.v1
+        (blueprint §9.8 / W2 freeze).
+    InventoryReservationReleasedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.inventory.reservation-released.v1
+            data:
+              $ref: "#/components/schemas/InventoryReservationReleasedData"
+    InventoryReservationExpiredData:
+      type: object
+      additionalProperties: false
+      required:
+        - reservation_id
+        - owner_type
+        - owner_id
+      properties:
+        reservation_id:
+          type: string
+          format: uuid
+        owner_type:
+          type: string
+          enum:
+            - order
+            - conversation
+            - manual
+        owner_id:
+          type: string
+          format: uuid
+      description: Minimum payload for com.aisales.inventory.reservation-expired.v1
+        (blueprint §9.8 / W2 freeze).
+    InventoryReservationExpiredEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.inventory.reservation-expired.v1
+            data:
+              $ref: "#/components/schemas/InventoryReservationExpiredData"
+    KnowledgePublishedData:
+      type: object
+      additionalProperties: false
+      required:
+        - source_version_id
+      properties:
+        source_version_id:
+          type: string
+          format: uuid
+        source_id:
+          type: string
+          format: uuid
+        effective_from:
+          type:
+            - string
+            - "null"
+          format: date-time
+        effective_to:
+          type:
+            - string
+            - "null"
+          format: date-time
+      description: Minimum payload for com.aisales.knowledge.published.v1 (blueprint
+        §9.8 / W2 freeze).
+    KnowledgePublishedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.knowledge.published.v1
+            data:
+              $ref: "#/components/schemas/KnowledgePublishedData"
+    KnowledgeIngestionCompletedData:
+      type: object
+      additionalProperties: false
+      required:
+        - version_id
+        - chunk_count
+      properties:
+        version_id:
+          type: string
+          format: uuid
+        chunk_count:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+          enum:
+            - completed
+            - failed
+      description: Minimum payload for com.aisales.knowledge.ingestion-completed.v1
+        (blueprint §9.8 / W2 freeze).
+    KnowledgeIngestionCompletedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.knowledge.ingestion-completed.v1
+            data:
+              $ref: "#/components/schemas/KnowledgeIngestionCompletedData"
+    ChannelAccountConnectedData:
+      type: object
+      additionalProperties: false
+      required:
+        - account_id
+        - provider
+      properties:
+        account_id:
+          type: string
+          format: uuid
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 100
+        scopes:
+          type: array
+          items:
+            type: string
+      description: Minimum payload for com.aisales.channel.account-connected.v1
+        (blueprint §9.8 / W2 freeze).
+    ChannelAccountConnectedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.channel.account-connected.v1
+            data:
+              $ref: "#/components/schemas/ChannelAccountConnectedData"
+    ChannelHealthChangedData:
+      type: object
+      additionalProperties: false
+      required:
+        - account_id
+        - old_health
+        - new_health
+      properties:
+        account_id:
+          type: string
+          format: uuid
+        old_health:
+          type: string
+          enum:
+            - ok
+            - warn
+            - error
+            - unknown
+        new_health:
+          type: string
+          enum:
+            - ok
+            - warn
+            - error
+            - unknown
+        reason:
+          type:
+            - string
+            - "null"
+          maxLength: 1000
+      description: Minimum payload for com.aisales.channel.health-changed.v1
+        (blueprint §9.8 / W2 freeze).
+    ChannelHealthChangedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.channel.health-changed.v1
+            data:
+              $ref: "#/components/schemas/ChannelHealthChangedData"
+    WebhookReceivedData:
+      type: object
+      additionalProperties: false
+      required:
+        - webhook_event_id
+        - provider
+      properties:
+        webhook_event_id:
+          type: string
+          format: uuid
+        provider:
+          type: string
+        event_type:
+          type:
+            - string
+            - "null"
+      description: Minimum payload for com.aisales.webhook.received.v1 (blueprint §9.8
+        / W2 freeze).
+    WebhookReceivedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.webhook.received.v1
+            data:
+              $ref: "#/components/schemas/WebhookReceivedData"
+    MessageInboundNormalizedData:
+      type: object
+      additionalProperties: false
+      required:
+        - message_id
+        - conversation_id
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        conversation_id:
+          type: string
+          format: uuid
+        channel_account_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        content_ref:
+          type: string
+          description: Opaque reference — not full PII/body.
+      description: Minimum payload for com.aisales.message.inbound-normalized.v1
+        (blueprint §9.8 / W2 freeze).
+    MessageInboundNormalizedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.message.inbound-normalized.v1
+            data:
+              $ref: "#/components/schemas/MessageInboundNormalizedData"
+    MessageOutboundQueuedData:
+      type: object
+      additionalProperties: false
+      required:
+        - outbound_message_id
+      properties:
+        outbound_message_id:
+          type: string
+          format: uuid
+        conversation_id:
+          type: string
+          format: uuid
+      description: Minimum payload for com.aisales.message.outbound-queued.v1
+        (blueprint §9.8 / W2 freeze).
+    MessageOutboundQueuedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.message.outbound-queued.v1
+            data:
+              $ref: "#/components/schemas/MessageOutboundQueuedData"
+    MessageOutboundSentData:
+      type: object
+      additionalProperties: false
+      required:
+        - message_id
+        - provider_message_id
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        provider_message_id:
+          type: string
+        conversation_id:
+          type: string
+          format: uuid
+      description: Minimum payload for com.aisales.message.outbound-sent.v1 (blueprint
+        §9.8 / W2 freeze).
+    MessageOutboundSentEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.message.outbound-sent.v1
+            data:
+              $ref: "#/components/schemas/MessageOutboundSentData"
+    MessageOutboundFailedData:
+      type: object
+      additionalProperties: false
+      required:
+        - message_id
+        - error_class
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        error_class:
+          type: string
+          enum:
+            - network
+            - auth
+            - validation
+            - business
+            - provider
+            - unknown
+        conversation_id:
+          type: string
+          format: uuid
+      description: Minimum payload for com.aisales.message.outbound-failed.v1
+        (blueprint §9.8 / W2 freeze).
+    MessageOutboundFailedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.message.outbound-failed.v1
+            data:
+              $ref: "#/components/schemas/MessageOutboundFailedData"
+    ConversationCreatedData:
+      type: object
+      additionalProperties: false
+      required:
+        - conversation_id
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+        customer_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        channel_account_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+      description: Minimum payload for com.aisales.conversation.created.v1 (blueprint
+        §9.8 / W2 freeze).
+    ConversationCreatedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.conversation.created.v1
+            data:
+              $ref: "#/components/schemas/ConversationCreatedData"
+    ConversationUpdatedData:
+      type: object
+      additionalProperties: false
+      required:
+        - conversation_id
+        - version
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+        changed_fields:
+          type: array
+          items:
+            type: string
+        status:
+          type:
+            - string
+            - "null"
+          enum:
+            - open
+            - pending
+            - resolved
+            - closed
+            - null
+      description: Minimum payload for com.aisales.conversation.updated.v1 (blueprint
+        §9.8 / W2 freeze).
+    ConversationUpdatedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.conversation.updated.v1
+            data:
+              $ref: "#/components/schemas/ConversationUpdatedData"
+    ConversationSlaBreachedData:
+      type: object
+      additionalProperties: false
+      required:
+        - conversation_id
+        - due_at
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+        due_at:
+          type: string
+          format: date-time
+        assignee_member_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+      description: Minimum payload for com.aisales.conversation.sla-breached.v1
+        (blueprint §9.8 / W2 freeze).
+    ConversationSlaBreachedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.conversation.sla-breached.v1
+            data:
+              $ref: "#/components/schemas/ConversationSlaBreachedData"
+    AiSuggestionCreatedData:
+      type: object
+      additionalProperties: false
+      required:
+        - suggestion_id
+        - disposition
+      properties:
+        suggestion_id:
+          type: string
+          format: uuid
+        conversation_id:
+          type: string
+          format: uuid
+        disposition:
+          type: string
+          enum:
+            - draft
+            - pending_approval
+            - auto_send_candidate
+            - blocked
+      description: Minimum payload for com.aisales.ai.suggestion-created.v1 (blueprint
+        §9.8 / W2 freeze).
+    AiSuggestionCreatedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ai.suggestion-created.v1
+            data:
+              $ref: "#/components/schemas/AiSuggestionCreatedData"
+    AiOutputBlockedData:
+      type: object
+      additionalProperties: false
+      required:
+        - rule_id
+        - severity
+      properties:
+        rule_id:
+          type: string
+        severity:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - critical
+        suggestion_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        conversation_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+      description: Minimum payload for com.aisales.ai.output-blocked.v1 (blueprint
+        §9.8 / W2 freeze).
+    AiOutputBlockedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ai.output-blocked.v1
+            data:
+              $ref: "#/components/schemas/AiOutputBlockedData"
+    OrderDraftCreatedData:
+      type: object
+      additionalProperties: false
+      required:
+        - order_id
+        - source
+      properties:
+        order_id:
+          type: string
+          format: uuid
+        source:
+          type: string
+          enum:
+            - manual
+            - conversation
+            - import
+            - api
+        customer_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+      description: Minimum payload for com.aisales.order.draft-created.v1 (blueprint
+        §9.8 / W2 freeze).
+    OrderDraftCreatedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.order.draft-created.v1
+            data:
+              $ref: "#/components/schemas/OrderDraftCreatedData"
+    OrderConfirmedData:
+      type: object
+      additionalProperties: false
+      required:
+        - order_id
+        - customer_id
+        - currency
+        - grand_total_minor
+        - tax_rate_bps
+        - prices_tax_inclusive
+        - item_refs
+      properties:
+        order_id:
+          type: string
+          format: uuid
+        customer_id:
+          type: string
+          format: uuid
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        subtotal_minor:
+          type: integer
+        discount_minor:
+          type: integer
+        tax_minor:
+          type: integer
+        grand_total_minor:
+          type: integer
+        tax_rate_bps:
+          type: integer
+          const: 1000
+        prices_tax_inclusive:
+          type: boolean
+          const: true
+        item_refs:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - order_item_id
+              - variant_id
+              - quantity
+            properties:
+              order_item_id:
+                type: string
+                format: uuid
+              variant_id:
+                type: string
+                format: uuid
+              quantity:
+                type: string
+      description: Minimum payload for com.aisales.order.confirmed.v1 (blueprint §9.8
+        / W2 freeze).
+    OrderConfirmedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.order.confirmed.v1
+            data:
+              $ref: "#/components/schemas/OrderConfirmedData"
+    OrderCancelledData:
+      type: object
+      additionalProperties: false
+      required:
+        - order_id
+        - reason
+      properties:
+        order_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+      description: Minimum payload for com.aisales.order.cancelled.v1 (blueprint §9.8
+        / W2 freeze).
+    OrderCancelledEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.order.cancelled.v1
+            data:
+              $ref: "#/components/schemas/OrderCancelledData"
+    PaymentRecordedData:
+      type: object
+      additionalProperties: false
+      required:
+        - payment_id
+        - order_id
+        - amount_minor
+        - currency
+        - status
+      properties:
+        payment_id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+        amount_minor:
+          type: integer
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        status:
+          type: string
+          enum:
+            - pending
+            - authorized
+            - captured
+            - failed
+      description: Minimum payload for com.aisales.payment.recorded.v1 (blueprint §9.8
+        / W2 freeze).
+    PaymentRecordedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.payment.recorded.v1
+            data:
+              $ref: "#/components/schemas/PaymentRecordedData"
+    PaymentRefundedData:
+      type: object
+      additionalProperties: false
+      required:
+        - refund_id
+        - payment_id
+        - amount_minor
+      properties:
+        refund_id:
+          type: string
+          format: uuid
+        payment_id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+        amount_minor:
+          type: integer
+          minimum: 1
+      description: Minimum payload for com.aisales.payment.refunded.v1 (blueprint §9.8
+        / W2 freeze).
+    PaymentRefundedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.payment.refunded.v1
+            data:
+              $ref: "#/components/schemas/PaymentRefundedData"
+    ShipmentCreatedData:
+      type: object
+      additionalProperties: false
+      required:
+        - shipment_id
+        - order_id
+      properties:
+        shipment_id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+      description: Minimum payload for com.aisales.shipment.created.v1 (blueprint §9.8
+        / W2 freeze).
+    ShipmentCreatedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.shipment.created.v1
+            data:
+              $ref: "#/components/schemas/ShipmentCreatedData"
+    ShipmentStatusChangedData:
+      type: object
+      additionalProperties: false
+      required:
+        - shipment_id
+        - old_status
+        - new_status
+      properties:
+        shipment_id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+        old_status:
+          type: string
+          enum:
+            - pending
+            - packed
+            - shipped
+            - delivered
+            - cancelled
+        new_status:
+          type: string
+          enum:
+            - pending
+            - packed
+            - shipped
+            - delivered
+            - cancelled
+      description: Minimum payload for com.aisales.shipment.status-changed.v1
+        (blueprint §9.8 / W2 freeze).
+    ShipmentStatusChangedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.shipment.status-changed.v1
+            data:
+              $ref: "#/components/schemas/ShipmentStatusChangedData"
+    ReturnCompletedData:
+      type: object
+      additionalProperties: false
+      required:
+        - return_id
+        - order_id
+      properties:
+        return_id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+        refund_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        restocked:
+          type: boolean
+      description: Minimum payload for com.aisales.return.completed.v1 (blueprint §9.8
+        / W2 freeze).
+    ReturnCompletedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.return.completed.v1
+            data:
+              $ref: "#/components/schemas/ReturnCompletedData"
+    BillingUsageRecordedData:
+      type: object
+      additionalProperties: false
+      required:
+        - meter
+        - quantity
+        - period_start
+        - period_end
+      properties:
+        meter:
+          type: string
+          enum:
+            - orders_created
+            - ai_suggestions
+            - channel_accounts
+        quantity:
+          type: integer
+          minimum: 0
+        period_start:
+          type: string
+          format: date-time
+        period_end:
+          type: string
+          format: date-time
+        plan_id:
+          type:
+            - string
+            - "null"
+          enum:
+            - plan_free
+            - plan_pro
+            - plan_business
+            - null
+      description: Minimum payload for com.aisales.billing.usage-recorded.v1
+        (blueprint §9.8 / W2 freeze).
+    BillingUsageRecordedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.billing.usage-recorded.v1
+            data:
+              $ref: "#/components/schemas/BillingUsageRecordedData"
+    AuditRecordedData:
+      type: object
+      additionalProperties: false
+      required:
+        - audit_id
+        - action
+        - resource_type
+        - resource_id
+      properties:
+        audit_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+          minLength: 1
+          maxLength: 100
+        resource_type:
+          type: string
+          minLength: 1
+          maxLength: 100
+        resource_id:
+          type: string
+          format: uuid
+      description: Minimum payload for com.aisales.audit.recorded.v1 (blueprint §9.8 /
+        W2 freeze).
+    AuditRecordedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.audit.recorded.v1
+            data:
+              $ref: "#/components/schemas/AuditRecordedData"
+    OpsAlertRaisedData:
+      type: object
+      additionalProperties: false
+      required:
+        - alert_id
+        - severity
+        - title
+      properties:
+        alert_id:
+          type: string
+          format: uuid
+        tenant_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        severity:
+          type: string
+          enum:
+            - info
+            - warn
+            - error
+            - critical
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        source:
+          type: string
+          enum:
+            - channel
+            - ai
+            - billing
+            - system
+            - dlq
+      description: Minimum payload for com.aisales.ops.alert.raised.v1 (blueprint §9.8
+        / W2 freeze).
+    OpsAlertRaisedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.alert.raised.v1
+            data:
+              $ref: "#/components/schemas/OpsAlertRaisedData"
+    OpsAlertAcknowledgedData:
+      type: object
+      additionalProperties: false
+      required:
+        - alert_id
+        - acknowledged_by
+      properties:
+        alert_id:
+          type: string
+          format: uuid
+        acknowledged_by:
+          type: string
+          format: uuid
+        acknowledged_at:
+          type: string
+          format: date-time
+      description: Minimum payload for com.aisales.ops.alert.acknowledged.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsAlertAcknowledgedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.alert.acknowledged.v1
+            data:
+              $ref: "#/components/schemas/OpsAlertAcknowledgedData"
+    OpsSupportAccessGrantedData:
+      type: object
+      additionalProperties: false
+      required:
+        - grant_id
+        - tenant_id
+        - expires_at
+      properties:
+        grant_id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        expires_at:
+          type: string
+          format: date-time
+        reason:
+          type:
+            - string
+            - "null"
+          maxLength: 1000
+      description: Minimum payload for com.aisales.ops.support_access.granted.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsSupportAccessGrantedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.support_access.granted.v1
+            data:
+              $ref: "#/components/schemas/OpsSupportAccessGrantedData"
+    OpsSupportAccessRevokedData:
+      type: object
+      additionalProperties: false
+      required:
+        - grant_id
+        - tenant_id
+      properties:
+        grant_id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+      description: Minimum payload for com.aisales.ops.support_access.revoked.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsSupportAccessRevokedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.support_access.revoked.v1
+            data:
+              $ref: "#/components/schemas/OpsSupportAccessRevokedData"
+    OpsTenantAiDisabledData:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant_id
+        - reason
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+      description: Minimum payload for com.aisales.ops.tenant_ai.disabled.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsTenantAiDisabledEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.tenant_ai.disabled.v1
+            data:
+              $ref: "#/components/schemas/OpsTenantAiDisabledData"
+    OpsFeatureFlagChangedData:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant_id
+        - flag_key
+        - enabled
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        flag_key:
+          type: string
+          minLength: 1
+          maxLength: 100
+        enabled:
+          type: boolean
+      description: Minimum payload for com.aisales.ops.feature_flag.changed.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsFeatureFlagChangedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.feature_flag.changed.v1
+            data:
+              $ref: "#/components/schemas/OpsFeatureFlagChangedData"
+    OpsDlqReprocessRequestedData:
+      type: object
+      additionalProperties: false
+      required:
+        - reprocess_id
+        - target_type
+        - target_id
+      properties:
+        reprocess_id:
+          type: string
+          format: uuid
+        target_type:
+          type: string
+          enum:
+            - webhook
+            - outbound
+            - import
+            - ai_eval
+        target_id:
+          type: string
+          format: uuid
+        reason:
+          type:
+            - string
+            - "null"
+          maxLength: 1000
+      description: Minimum payload for com.aisales.ops.dlq.reprocess_requested.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsDlqReprocessRequestedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.dlq.reprocess_requested.v1
+            data:
+              $ref: "#/components/schemas/OpsDlqReprocessRequestedData"
+    OpsAiKillSwitchActivatedData:
+      type: object
+      additionalProperties: false
+      required:
+        - scope
+        - reason
+      properties:
+        scope:
+          type: string
+          enum:
+            - global
+            - tenant
+        tenant_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+      description: Minimum payload for com.aisales.ops.ai.kill_switch.activated.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsAiKillSwitchActivatedEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.ai.kill_switch.activated.v1
+            data:
+              $ref: "#/components/schemas/OpsAiKillSwitchActivatedData"
+    OpsChannelHealthCriticalData:
+      type: object
+      additionalProperties: false
+      required:
+        - account_id
+        - provider
+        - health
+      properties:
+        account_id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        provider:
+          type: string
+        health:
+          type: string
+          enum:
+            - error
+        reason:
+          type:
+            - string
+            - "null"
+          maxLength: 1000
+      description: Minimum payload for com.aisales.ops.channel.health_critical.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsChannelHealthCriticalEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.channel.health_critical.v1
+            data:
+              $ref: "#/components/schemas/OpsChannelHealthCriticalData"
+    OpsEntitlementLimitExceededData:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant_id
+        - meter
+        - limit
+        - observed
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        meter:
+          type: string
+          enum:
+            - orders_created
+            - ai_suggestions
+            - channel_accounts
+        limit:
+          type: integer
+          minimum: 0
+        observed:
+          type: integer
+          minimum: 0
+        plan_id:
+          type: string
+          enum:
+            - plan_free
+            - plan_pro
+            - plan_business
+      description: Minimum payload for com.aisales.ops.entitlement.limit_exceeded.v1
+        (blueprint §9.8 / W2 freeze).
+    OpsEntitlementLimitExceededEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventEnvelopeBase"
+        - type: object
+          additionalProperties: false
+          required:
+            - type
+            - data
+          properties:
+            type:
+              type: string
+              const: com.aisales.ops.entitlement.limit_exceeded.v1
+            data:
+              $ref: "#/components/schemas/OpsEntitlementLimitExceededData"
   messages:
     tenantActivated:
       name: tenantActivated
@@ -295,7 +2030,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/TenantActivatedEvent"
       x-event-type: com.aisales.tenant.activated.v1
       x-delivery: at-least-once
     tenantSuspended:
@@ -312,7 +2047,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/TenantSuspendedEvent"
       x-event-type: com.aisales.tenant.suspended.v1
       x-delivery: at-least-once
     membershipChanged:
@@ -329,7 +2064,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/MembershipChangedEvent"
       x-event-type: com.aisales.membership.changed.v1
       x-delivery: at-least-once
     customerUpdated:
@@ -346,7 +2081,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/CustomerUpdatedEvent"
       x-event-type: com.aisales.customer.updated.v1
       x-delivery: at-least-once
     customerMerged:
@@ -363,7 +2098,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/CustomerMergedEvent"
       x-event-type: com.aisales.customer.merged.v1
       x-delivery: at-least-once
     catalogVariantUpdated:
@@ -380,7 +2115,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/CatalogVariantUpdatedEvent"
       x-event-type: com.aisales.catalog.variant.updated.v1
       x-delivery: at-least-once
     inventoryAdjusted:
@@ -397,7 +2132,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/InventoryAdjustedEvent"
       x-event-type: com.aisales.inventory.adjusted.v1
       x-delivery: at-least-once
     inventoryReserved:
@@ -414,7 +2149,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/InventoryReservedEvent"
       x-event-type: com.aisales.inventory.reserved.v1
       x-delivery: at-least-once
     inventoryReservationReleased:
@@ -431,7 +2166,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/InventoryReservationReleasedEvent"
       x-event-type: com.aisales.inventory.reservation-released.v1
       x-delivery: at-least-once
     inventoryReservationExpired:
@@ -448,7 +2183,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/InventoryReservationExpiredEvent"
       x-event-type: com.aisales.inventory.reservation-expired.v1
       x-delivery: at-least-once
     knowledgePublished:
@@ -465,7 +2200,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/KnowledgePublishedEvent"
       x-event-type: com.aisales.knowledge.published.v1
       x-delivery: at-least-once
     knowledgeIngestionCompleted:
@@ -482,7 +2217,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/KnowledgeIngestionCompletedEvent"
       x-event-type: com.aisales.knowledge.ingestion-completed.v1
       x-delivery: at-least-once
     channelAccountConnected:
@@ -499,7 +2234,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/ChannelAccountConnectedEvent"
       x-event-type: com.aisales.channel.account-connected.v1
       x-delivery: at-least-once
     channelHealthChanged:
@@ -516,7 +2251,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/ChannelHealthChangedEvent"
       x-event-type: com.aisales.channel.health-changed.v1
       x-delivery: at-least-once
     webhookReceived:
@@ -533,7 +2268,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/WebhookReceivedEvent"
       x-event-type: com.aisales.webhook.received.v1
       x-delivery: at-least-once
     messageInboundNormalized:
@@ -550,7 +2285,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/MessageInboundNormalizedEvent"
       x-event-type: com.aisales.message.inbound-normalized.v1
       x-delivery: at-least-once
     messageOutboundQueued:
@@ -567,7 +2302,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/MessageOutboundQueuedEvent"
       x-event-type: com.aisales.message.outbound-queued.v1
       x-delivery: at-least-once
     messageOutboundSent:
@@ -584,7 +2319,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/MessageOutboundSentEvent"
       x-event-type: com.aisales.message.outbound-sent.v1
       x-delivery: at-least-once
     messageOutboundFailed:
@@ -601,7 +2336,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/MessageOutboundFailedEvent"
       x-event-type: com.aisales.message.outbound-failed.v1
       x-delivery: at-least-once
     conversationCreated:
@@ -618,7 +2353,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/ConversationCreatedEvent"
       x-event-type: com.aisales.conversation.created.v1
       x-delivery: at-least-once
     conversationUpdated:
@@ -635,7 +2370,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/ConversationUpdatedEvent"
       x-event-type: com.aisales.conversation.updated.v1
       x-delivery: at-least-once
     conversationSlaBreached:
@@ -652,7 +2387,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/ConversationSlaBreachedEvent"
       x-event-type: com.aisales.conversation.sla-breached.v1
       x-delivery: at-least-once
     aiSuggestionCreated:
@@ -669,7 +2404,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/AiSuggestionCreatedEvent"
       x-event-type: com.aisales.ai.suggestion-created.v1
       x-delivery: at-least-once
     aiOutputBlocked:
@@ -686,7 +2421,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/AiOutputBlockedEvent"
       x-event-type: com.aisales.ai.output-blocked.v1
       x-delivery: at-least-once
     orderDraftCreated:
@@ -703,7 +2438,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/OrderDraftCreatedEvent"
       x-event-type: com.aisales.order.draft-created.v1
       x-delivery: at-least-once
     orderConfirmed:
@@ -720,7 +2455,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/OrderConfirmedEvent"
       x-event-type: com.aisales.order.confirmed.v1
       x-delivery: at-least-once
     orderCancelled:
@@ -737,7 +2472,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/OrderCancelledEvent"
       x-event-type: com.aisales.order.cancelled.v1
       x-delivery: at-least-once
     paymentRecorded:
@@ -754,7 +2489,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/PaymentRecordedEvent"
       x-event-type: com.aisales.payment.recorded.v1
       x-delivery: at-least-once
     paymentRefunded:
@@ -771,7 +2506,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/PaymentRefundedEvent"
       x-event-type: com.aisales.payment.refunded.v1
       x-delivery: at-least-once
     shipmentCreated:
@@ -788,7 +2523,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/ShipmentCreatedEvent"
       x-event-type: com.aisales.shipment.created.v1
       x-delivery: at-least-once
     shipmentStatusChanged:
@@ -805,7 +2540,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/ShipmentStatusChangedEvent"
       x-event-type: com.aisales.shipment.status-changed.v1
       x-delivery: at-least-once
     returnCompleted:
@@ -822,7 +2557,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/ReturnCompletedEvent"
       x-event-type: com.aisales.return.completed.v1
       x-delivery: at-least-once
     billingUsageRecorded:
@@ -839,7 +2574,7 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/BillingUsageRecordedEvent"
       x-event-type: com.aisales.billing.usage-recorded.v1
       x-delivery: at-least-once
     auditRecorded:
@@ -856,11 +2591,189 @@ components:
             type: string
             format: uuid
       payload:
-        $ref: '#/components/schemas/EventEnvelope'
+        $ref: "#/components/schemas/AuditRecordedEvent"
       x-event-type: com.aisales.audit.recorded.v1
       x-delivery: at-least-once
     realtimeNotification:
       name: realtimeNotification
       contentType: application/json
       payload:
-        $ref: '#/components/schemas/RealtimeNotification'
+        $ref: "#/components/schemas/RealtimeNotification"
+    opsAlertRaised:
+      name: opsAlertRaised
+      title: com.aisales.ops.alert.raised.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.alert.raised.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsAlertRaisedEvent"
+      x-event-type: com.aisales.ops.alert.raised.v1
+      x-delivery: at-least-once
+    opsAlertAcknowledged:
+      name: opsAlertAcknowledged
+      title: com.aisales.ops.alert.acknowledged.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.alert.acknowledged.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsAlertAcknowledgedEvent"
+      x-event-type: com.aisales.ops.alert.acknowledged.v1
+      x-delivery: at-least-once
+    opsSupportAccessGranted:
+      name: opsSupportAccessGranted
+      title: com.aisales.ops.support_access.granted.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.support_access.granted.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsSupportAccessGrantedEvent"
+      x-event-type: com.aisales.ops.support_access.granted.v1
+      x-delivery: at-least-once
+    opsSupportAccessRevoked:
+      name: opsSupportAccessRevoked
+      title: com.aisales.ops.support_access.revoked.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.support_access.revoked.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsSupportAccessRevokedEvent"
+      x-event-type: com.aisales.ops.support_access.revoked.v1
+      x-delivery: at-least-once
+    opsTenantAiDisabled:
+      name: opsTenantAiDisabled
+      title: com.aisales.ops.tenant_ai.disabled.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.tenant_ai.disabled.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsTenantAiDisabledEvent"
+      x-event-type: com.aisales.ops.tenant_ai.disabled.v1
+      x-delivery: at-least-once
+    opsFeatureFlagChanged:
+      name: opsFeatureFlagChanged
+      title: com.aisales.ops.feature_flag.changed.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.feature_flag.changed.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsFeatureFlagChangedEvent"
+      x-event-type: com.aisales.ops.feature_flag.changed.v1
+      x-delivery: at-least-once
+    opsDlqReprocessRequested:
+      name: opsDlqReprocessRequested
+      title: com.aisales.ops.dlq.reprocess_requested.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.dlq.reprocess_requested.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsDlqReprocessRequestedEvent"
+      x-event-type: com.aisales.ops.dlq.reprocess_requested.v1
+      x-delivery: at-least-once
+    opsAiKillSwitchActivated:
+      name: opsAiKillSwitchActivated
+      title: com.aisales.ops.ai.kill_switch.activated.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.ai.kill_switch.activated.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsAiKillSwitchActivatedEvent"
+      x-event-type: com.aisales.ops.ai.kill_switch.activated.v1
+      x-delivery: at-least-once
+    opsChannelHealthCritical:
+      name: opsChannelHealthCritical
+      title: com.aisales.ops.channel.health_critical.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.channel.health_critical.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsChannelHealthCriticalEvent"
+      x-event-type: com.aisales.ops.channel.health_critical.v1
+      x-delivery: at-least-once
+    opsEntitlementLimitExceeded:
+      name: opsEntitlementLimitExceeded
+      title: com.aisales.ops.entitlement.limit_exceeded.v1
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          event-type:
+            type: string
+            const: com.aisales.ops.entitlement.limit_exceeded.v1
+          event-id:
+            type: string
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/OpsEntitlementLimitExceededEvent"
+      x-event-type: com.aisales.ops.entitlement.limit_exceeded.v1
+      x-delivery: at-least-once
+    systemResyncRequired:
+      name: systemResyncRequired
+      title: system.resync_required
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/SystemResyncRequired"
+      x-event-type: system.resync_required
+      x-delivery: sse

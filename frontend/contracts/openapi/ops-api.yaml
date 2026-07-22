@@ -213,6 +213,9 @@ components:
         updated_at:
           type: string
           format: date-time
+      deprecated: true
+      description: " DEPRECATED after W1 freeze — must not be referenced by
+        implementable operations."
     GenericDataResponse:
       type: object
       additionalProperties: false
@@ -224,6 +227,9 @@ components:
           $ref: "#/components/schemas/GenericResource"
         meta:
           $ref: "#/components/schemas/Meta"
+      deprecated: true
+      description: " DEPRECATED after W1 freeze — must not be referenced by
+        implementable operations."
     GenericListResponse:
       type: object
       additionalProperties: false
@@ -240,11 +246,16 @@ components:
           $ref: "#/components/schemas/PageInfo"
         meta:
           $ref: "#/components/schemas/Meta"
+      deprecated: true
+      description: " DEPRECATED after W1 freeze — must not be referenced by
+        implementable operations."
     GenericCommandRequest:
       type: object
       additionalProperties: true
       description: Starter placeholder. Replace with operation-specific schema before
-        contract freeze.
+        contract freeze. DEPRECATED after W1 freeze — must not be referenced by
+        implementable operations.
+      deprecated: true
     JobResponse:
       type: object
       additionalProperties: false
@@ -846,6 +857,3850 @@ components:
             - semi_auto
             - autopilot
           default: copilot
+    TenantResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - code
+        - name
+        - status
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          minLength: 1
+          maxLength: 100
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        status:
+          type: string
+          enum:
+            - active
+            - suspended
+            - closed
+        plan_id:
+          type:
+            - string
+            - "null"
+          description: Billing plan id from HO_DEFAULTS_v1
+            (plan_free|plan_pro|plan_business).
+        version:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag Tenant (enterprise doc-freeze W1).
+    MemberResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - user_id
+        - tenant_id
+        - status
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        display_name:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+        status:
+          type: string
+          enum:
+            - invited
+            - active
+            - suspended
+            - revoked
+        role_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        version:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag Members (enterprise
+        doc-freeze W1).
+    RoleResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - tenant_id
+        - name
+        - permissions
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type:
+            - string
+            - "null"
+          maxLength: 1000
+        permissions:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        version:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag Roles (enterprise doc-freeze W1).
+    CustomerResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - tenant_id
+        - status
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        display_name:
+          type:
+            - string
+            - "null"
+          maxLength: 300
+        primary_email:
+          type:
+            - string
+            - "null"
+          format: email
+          maxLength: 320
+        primary_phone:
+          type:
+            - string
+            - "null"
+          maxLength: 32
+        status:
+          type: string
+          enum:
+            - active
+            - merged
+            - anonymized
+        tags:
+          type: array
+          items:
+            type: string
+        version:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag Customers (enterprise
+        doc-freeze W1).
+    CatalogResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - tenant_id
+        - name
+        - status
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 300
+        description:
+          type:
+            - string
+            - "null"
+          maxLength: 20000
+        category_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        brand:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+        status:
+          type: string
+          enum:
+            - draft
+            - active
+            - archived
+        version:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag Catalog (enterprise
+        doc-freeze W1).
+    ImportJobResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - tenant_id
+        - status
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        source_type:
+          type: string
+          enum:
+            - csv
+            - xlsx
+            - api
+        status:
+          type: string
+          enum:
+            - uploaded
+            - mapped
+            - analyzing
+            - preview_ready
+            - confirming
+            - applied
+            - failed
+            - cancelled
+        row_count:
+          type:
+            - integer
+            - "null"
+          minimum: 0
+        error_count:
+          type:
+            - integer
+            - "null"
+          minimum: 0
+        version:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag Imports (enterprise
+        doc-freeze W1).
+    InventoryResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - tenant_id
+        - status
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag Inventory (enterprise
+        doc-freeze W1).
+    KnowledgeResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - tenant_id
+        - status
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        title:
+          type:
+            - string
+            - "null"
+          maxLength: 500
+        status:
+          type: string
+          enum:
+            - draft
+            - in_review
+            - approved
+            - published
+            - archived
+        version:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag Knowledge (enterprise
+        doc-freeze W1).
+    ChannelAccountResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - tenant_id
+        - provider
+        - status
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 100
+        display_name:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+        status:
+          type: string
+          enum:
+            - connecting
+            - active
+            - degraded
+            - disconnected
+            - revoked
+        health:
+          type:
+            - string
+            - "null"
+          enum:
+            - ok
+            - warn
+            - error
+            - null
+        version:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag Channels (enterprise
+        doc-freeze W1).
+    WebhookEventResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - tenant_id
+        - provider
+        - status
+        - received_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        provider:
+          type: string
+        event_type:
+          type:
+            - string
+            - "null"
+        status:
+          type: string
+          enum:
+            - received
+            - normalized
+            - failed
+            - reprocessed
+            - dead_letter
+        received_at:
+          type: string
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag Webhooks (enterprise
+        doc-freeze W1).
+    ConversationResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - tenant_id
+        - status
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        channel_account_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        customer_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        assignee_member_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        status:
+          type: string
+          enum:
+            - open
+            - pending
+            - resolved
+            - closed
+        ai_takeover:
+          type: boolean
+        version:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag Conversations (enterprise
+        doc-freeze W1).
+    OrderResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - tenant_id
+        - order_code
+        - status
+        - currency
+        - grand_total_minor
+        - tax_rate_bps
+        - prices_tax_inclusive
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        order_code:
+          type: string
+          minLength: 1
+          maxLength: 64
+        customer_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        status:
+          type: string
+          enum:
+            - draft
+            - reserved
+            - confirmed
+            - cancelled
+            - expired
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        subtotal_minor:
+          type: integer
+        discount_minor:
+          type: integer
+        tax_minor:
+          type: integer
+        grand_total_minor:
+          type: integer
+        tax_rate_bps:
+          type: integer
+          const: 1000
+          description: HO_DEFAULTS_v1 — 10% VAT
+        prices_tax_inclusive:
+          type: boolean
+          const: true
+          description: HO_DEFAULTS_v1 — catalog prices include VAT
+        version:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag Orders (enterprise doc-freeze W1).
+    PaymentResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - tenant_id
+        - order_id
+        - status
+        - amount_minor
+        - currency
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - pending
+            - authorized
+            - captured
+            - failed
+            - refunded
+            - partially_refunded
+        amount_minor:
+          type: integer
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        provider:
+          type:
+            - string
+            - "null"
+        version:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag Payments (enterprise
+        doc-freeze W1).
+    ShipmentResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - tenant_id
+        - order_id
+        - status
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - pending
+            - packed
+            - shipped
+            - delivered
+            - cancelled
+        carrier:
+          type:
+            - string
+            - "null"
+          maxLength: 100
+        tracking_code:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+        version:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag Shipments (enterprise
+        doc-freeze W1).
+    ReturnResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - tenant_id
+        - order_id
+        - status
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - requested
+            - approved
+            - received
+            - completed
+            - rejected
+        reason:
+          type:
+            - string
+            - "null"
+          maxLength: 2000
+        version:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag Returns (enterprise
+        doc-freeze W1).
+    AIResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - tenant_id
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag AI (enterprise doc-freeze W1).
+    AnalyticsReportResource:
+      type: object
+      additionalProperties: false
+      required:
+        - generated_at
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+        currency:
+          type:
+            - string
+            - "null"
+          minLength: 3
+          maxLength: 3
+        metrics:
+          type: object
+          additionalProperties:
+            type:
+              - number
+              - integer
+              - string
+              - "null"
+          description: Metric keys must exist in metric catalog (W3/F09).
+      description: Frozen resource schema for OpenAPI tag Analytics (enterprise
+        doc-freeze W1).
+    BillingResource:
+      type: object
+      additionalProperties: false
+      required:
+        - plan_id
+        - status
+      properties:
+        plan_id:
+          type: string
+          enum:
+            - plan_free
+            - plan_pro
+            - plan_business
+          description: HO_DEFAULTS_v1
+        status:
+          type: string
+          enum:
+            - active
+            - past_due
+            - cancelled
+        seats_used:
+          type:
+            - integer
+            - "null"
+          minimum: 0
+        seats_limit:
+          type:
+            - integer
+            - "null"
+          minimum: 0
+        period_start:
+          type:
+            - string
+            - "null"
+          format: date-time
+        period_end:
+          type:
+            - string
+            - "null"
+          format: date-time
+        usage:
+          type: object
+          additionalProperties: false
+          properties:
+            orders_created:
+              type: integer
+              minimum: 0
+            ai_suggestions:
+              type: integer
+              minimum: 0
+            channel_accounts:
+              type: integer
+              minimum: 0
+      description: Frozen resource schema for OpenAPI tag Billing (enterprise
+        doc-freeze W1).
+    OperationsResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        tenant_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        detail:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+      description: Frozen resource schema for OpenAPI tag Operations (enterprise
+        doc-freeze W1).
+    AuditExportResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - queued
+            - running
+            - completed
+            - failed
+        download_url:
+          type:
+            - string
+            - "null"
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+      description: Frozen resource schema for OpenAPI tag Audit (enterprise doc-freeze W1).
+    GetCurrentTenantResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/TenantResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    UpdateCurrentTenantRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - expected_version
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+        name:
+          type:
+            - string
+            - "null"
+          minLength: 1
+          maxLength: 200
+      description: Request body for updateCurrentTenant (W1 freeze).
+    UpdateCurrentTenantResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/TenantResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListMembersListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemberResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    InviteMemberRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        display_name:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+        role_ids:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+      description: Request body for inviteMember (W1 freeze).
+    InviteMemberResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/MemberResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ResendInvitationResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/MemberResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ActivateMemberResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/MemberResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    SuspendMemberResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/MemberResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    RevokeMemberResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/MemberResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListRolesListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoleResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateRoleRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - permissions
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type:
+            - string
+            - "null"
+          maxLength: 1000
+        permissions:
+          type: array
+          minItems: 1
+          items:
+            type: string
+      description: Request body for createRole (W1 freeze).
+    CreateRoleResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/RoleResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    UpdateRoleRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - expected_version
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+        name:
+          type:
+            - string
+            - "null"
+          minLength: 1
+          maxLength: 100
+        description:
+          type:
+            - string
+            - "null"
+          maxLength: 1000
+        permissions:
+          type:
+            - array
+            - "null"
+          items:
+            type: string
+      description: Request body for updateRole (W1 freeze).
+    UpdateRoleResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/RoleResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListPermissionsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoleResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ReplaceMemberRolesRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - role_ids
+        - expected_version
+      properties:
+        role_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        expected_version:
+          type: integer
+          minimum: 1
+      description: Request body for replaceMemberRoles (W1 freeze).
+    ReplaceMemberRolesResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/RoleResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    SessionsResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - user_id
+        - device_id
+        - current
+        - revoked
+        - created_at
+        - absolute_expiry
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        tenant_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+          description: Nullable before tenant bind (identity nullable-tenant sessions).
+        device_id:
+          type: string
+          format: uuid
+        current:
+          type: boolean
+          description: True when this session is the caller's active session.
+        revoked:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        last_seen_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        absolute_expiry:
+          type: string
+          format: date-time
+        user_agent:
+          type:
+            - string
+            - "null"
+          maxLength: 512
+        ip_hint:
+          type:
+            - string
+            - "null"
+          maxLength: 64
+          description: Coarse / redacted client address hint — never full sensitive PII
+            dump.
+      description: Frozen resource schema for OpenAPI tag Sessions (enterprise
+        doc-freeze W7).
+    DevicesResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - user_id
+        - platform
+        - trusted
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        platform:
+          type: string
+          enum:
+            - web
+            - windows
+            - ios
+            - android
+            - other
+        label:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+        trusted:
+          type: boolean
+        current:
+          type: boolean
+          description: True when this device hosts the caller's active session.
+        created_at:
+          type: string
+          format: date-time
+        last_seen_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        trust_status:
+          type: string
+          enum:
+            - trusted
+            - pending
+            - revoked
+      description: Frozen resource schema for OpenAPI tag Devices (enterprise
+        doc-freeze W7).
+    ListSessionsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SessionsResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListDevicesListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/DevicesResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListAuditLogsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditExportResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateAuditExportRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - from
+        - to
+      properties:
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        actor_user_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+      description: Request body for createAuditExport (W1 freeze).
+    ListCustomersListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomerResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateCustomerRequest:
+      type: object
+      additionalProperties: false
+      required: []
+      properties:
+        display_name:
+          type:
+            - string
+            - "null"
+          maxLength: 300
+        primary_email:
+          type:
+            - string
+            - "null"
+          format: email
+          maxLength: 320
+        primary_phone:
+          type:
+            - string
+            - "null"
+          maxLength: 32
+        tags:
+          type: array
+          items:
+            type: string
+      description: Request body for createCustomer (W1 freeze).
+    CreateCustomerResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CustomerResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetCustomerResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CustomerResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    UpdateCustomerRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - expected_version
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+        display_name:
+          type:
+            - string
+            - "null"
+          maxLength: 300
+        primary_email:
+          type:
+            - string
+            - "null"
+          format: email
+          maxLength: 320
+        primary_phone:
+          type:
+            - string
+            - "null"
+          maxLength: 32
+      description: Request body for updateCustomer (W1 freeze).
+    UpdateCustomerResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CustomerResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    AddCustomerIdentityRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - value
+      properties:
+        type:
+          type: string
+          enum:
+            - email
+            - phone
+            - external
+        value:
+          type: string
+          minLength: 1
+          maxLength: 320
+      description: Request body for addCustomerIdentity (W1 freeze).
+    AddCustomerIdentityResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CustomerResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    AddCustomerAddressRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - line1
+        - country
+      properties:
+        line1:
+          type: string
+          minLength: 1
+          maxLength: 300
+        line2:
+          type:
+            - string
+            - "null"
+          maxLength: 300
+        city:
+          type:
+            - string
+            - "null"
+          maxLength: 100
+        province:
+          type:
+            - string
+            - "null"
+          maxLength: 100
+        postal_code:
+          type:
+            - string
+            - "null"
+          maxLength: 32
+        country:
+          type: string
+          minLength: 2
+          maxLength: 2
+      description: Request body for addCustomerAddress (W1 freeze).
+    AddCustomerAddressResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CustomerResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    UpdateCustomerAddressRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - expected_version
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+        line1:
+          type:
+            - string
+            - "null"
+          maxLength: 300
+        line2:
+          type:
+            - string
+            - "null"
+          maxLength: 300
+        city:
+          type:
+            - string
+            - "null"
+          maxLength: 100
+        province:
+          type:
+            - string
+            - "null"
+          maxLength: 100
+        postal_code:
+          type:
+            - string
+            - "null"
+          maxLength: 32
+        country:
+          type:
+            - string
+            - "null"
+          minLength: 2
+          maxLength: 2
+      description: Request body for updateCustomerAddress (W1 freeze).
+    UpdateCustomerAddressResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CustomerResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    AddCustomerTagRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - tag
+      properties:
+        tag:
+          type: string
+          minLength: 1
+          maxLength: 64
+      description: Request body for addCustomerTag (W1 freeze).
+    AddCustomerTagResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CustomerResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    AddCustomerNoteRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - body
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 10000
+      description: Request body for addCustomerNote (W1 freeze).
+    AddCustomerNoteResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CustomerResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    PreviewCustomerMergeRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - survivor_id
+        - merge_ids
+      properties:
+        survivor_id:
+          type: string
+          format: uuid
+        merge_ids:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+      description: Request body for previewCustomerMerge (W1 freeze).
+    PreviewCustomerMergeResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CustomerResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    MergeCustomersRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - survivor_id
+        - merge_ids
+        - confirmation_token
+      properties:
+        survivor_id:
+          type: string
+          format: uuid
+        merge_ids:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+        confirmation_token:
+          type: string
+          minLength: 8
+          maxLength: 128
+      description: Request body for mergeCustomers (W1 freeze).
+    MergeCustomersResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CustomerResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListCategoriesListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CatalogResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateCategoryRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        parent_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+      description: Request body for createCategory (W1 freeze).
+    CreateCategoryResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CatalogResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    UpdateCategoryRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - expected_version
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+        name:
+          type:
+            - string
+            - "null"
+          minLength: 1
+          maxLength: 200
+        parent_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+      description: Request body for updateCategory (W1 freeze).
+    UpdateCategoryResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CatalogResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ArchiveCategoryResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CatalogResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListProductsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CatalogResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateProductResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CatalogResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetProductResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CatalogResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    UpdateProductRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - expected_version
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+        name:
+          type:
+            - string
+            - "null"
+          minLength: 1
+          maxLength: 300
+        description:
+          type:
+            - string
+            - "null"
+          maxLength: 20000
+        category_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        brand:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+        status:
+          type:
+            - string
+            - "null"
+          enum:
+            - draft
+            - active
+            - null
+      description: Request body for updateProduct (W1 freeze).
+    UpdateProductResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CatalogResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ArchiveProductResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CatalogResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListVariantsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CatalogResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateVariantRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - sku
+      properties:
+        sku:
+          type: string
+          minLength: 1
+          maxLength: 100
+        name:
+          type:
+            - string
+            - "null"
+          maxLength: 300
+        unit_price_minor:
+          type: integer
+          description: Tax-inclusive price in đồng (HO_DEFAULTS_v1).
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          default: VND
+        attributes:
+          type: object
+          additionalProperties: true
+      description: Request body for createVariant (W1 freeze).
+    CreateVariantResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CatalogResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    UpdateVariantRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - expected_version
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+        name:
+          type:
+            - string
+            - "null"
+          maxLength: 300
+        unit_price_minor:
+          type:
+            - integer
+            - "null"
+        status:
+          type:
+            - string
+            - "null"
+          enum:
+            - active
+            - archived
+            - null
+      description: Request body for updateVariant (W1 freeze).
+    UpdateVariantResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CatalogResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ArchiveVariantResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CatalogResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateMediaUploadIntentRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - filename
+        - content_type
+        - byte_size
+      properties:
+        filename:
+          type: string
+          minLength: 1
+          maxLength: 255
+        content_type:
+          type: string
+          minLength: 3
+          maxLength: 100
+        byte_size:
+          type: integer
+          minimum: 1
+      description: Request body for createMediaUploadIntent (W1 freeze).
+    CreateMediaUploadIntentResponse:
+      $ref: "#/components/schemas/JobResponse"
+    AttachProductMediaRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - upload_id
+      properties:
+        upload_id:
+          type: string
+          format: uuid
+        alt_text:
+          type:
+            - string
+            - "null"
+          maxLength: 500
+        sort_order:
+          type:
+            - integer
+            - "null"
+          minimum: 0
+      description: Request body for attachProductMedia (W1 freeze).
+    AttachProductMediaResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/CatalogResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateImportJobRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - source_type
+      properties:
+        source_type:
+          type: string
+          enum:
+            - csv
+            - xlsx
+            - api
+        upload_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+      description: Request body for createImportJob (W1 freeze).
+    GetImportJobResponse:
+      $ref: "#/components/schemas/JobResponse"
+    GetImportPreviewResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ImportJobResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    UpdateImportMappingRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - mapping
+      properties:
+        mapping:
+          type: object
+          additionalProperties:
+            type: string
+          description: source_column -> canonical_field
+      description: Request body for updateImportMapping (W1 freeze).
+    UpdateImportMappingResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ImportJobResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetImportErrorsResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ImportJobResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CancelImportResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ImportJobResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListWarehousesListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/InventoryResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateWarehouseRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - code
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        code:
+          type: string
+          minLength: 1
+          maxLength: 64
+        address:
+          type:
+            - string
+            - "null"
+          maxLength: 500
+      description: Request body for createWarehouse (W1 freeze).
+    CreateWarehouseResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/InventoryResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    UpdateWarehouseRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - expected_version
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+        name:
+          type:
+            - string
+            - "null"
+          minLength: 1
+          maxLength: 200
+        address:
+          type:
+            - string
+            - "null"
+          maxLength: 500
+      description: Request body for updateWarehouse (W1 freeze).
+    UpdateWarehouseResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/InventoryResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListInventoryBalancesListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/InventoryResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListInventoryMovementsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/InventoryResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateInventoryAdjustmentRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - warehouse_id
+        - variant_id
+        - quantity_delta
+        - reason
+      properties:
+        warehouse_id:
+          type: string
+          format: uuid
+        variant_id:
+          type: string
+          format: uuid
+        quantity_delta:
+          type: string
+          pattern: ^-?\d+(\.\d{1,6})?$
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+      description: Request body for createInventoryAdjustment (W1 freeze).
+    CreateInventoryAdjustmentResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/InventoryResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetInventoryAdjustmentResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/InventoryResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ExtendInventoryReservationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - expires_at
+        - expected_version
+      properties:
+        expires_at:
+          type: string
+          format: date-time
+        expected_version:
+          type: integer
+          minimum: 1
+      description: Request body for extendInventoryReservation (W1 freeze).
+    CreateInventoryReconciliationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - warehouse_id
+      properties:
+        warehouse_id:
+          type: string
+          format: uuid
+        notes:
+          type:
+            - string
+            - "null"
+          maxLength: 2000
+      description: Request body for createInventoryReconciliation (W1 freeze).
+    GetInventoryReconciliationResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/InventoryResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListKnowledgeSourcesListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/KnowledgeResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateKnowledgeSourceRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 300
+        type:
+          type: string
+          enum:
+            - url
+            - upload
+            - manual
+        uri:
+          type:
+            - string
+            - "null"
+          format: uri
+      description: Request body for createKnowledgeSource (W1 freeze).
+    CreateKnowledgeSourceResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/KnowledgeResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetKnowledgeSourceResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/KnowledgeResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateKnowledgeVersionRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - source_id
+        - title
+      properties:
+        source_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        body_markdown:
+          type:
+            - string
+            - "null"
+          maxLength: 200000
+      description: Request body for createKnowledgeVersion (W1 freeze).
+    CreateKnowledgeVersionResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/KnowledgeResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    UpdateKnowledgeVersionRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - expected_version
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+        title:
+          type:
+            - string
+            - "null"
+          maxLength: 500
+        body_markdown:
+          type:
+            - string
+            - "null"
+          maxLength: 200000
+      description: Request body for updateKnowledgeVersion (W1 freeze).
+    UpdateKnowledgeVersionResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/KnowledgeResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    SubmitKnowledgeReviewResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/KnowledgeResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ApproveKnowledgeVersionResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/KnowledgeResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ArchiveKnowledgeVersionResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/KnowledgeResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetKnowledgeIngestionResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/KnowledgeResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    TestKnowledgeSearchRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        top_k:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 5
+      description: Request body for testKnowledgeSearch (W1 freeze).
+    TestKnowledgeSearchResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/KnowledgeResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListChannelAccountsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChannelAccountResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ConnectChannelRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - provider
+      properties:
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 100
+        display_name:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+        oauth_return_path:
+          type:
+            - string
+            - "null"
+          maxLength: 500
+      description: Request body for connectChannel (W1 freeze).
+    ConnectChannelResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ChannelAccountResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ChannelOAuthCallbackResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ChannelAccountResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ReceiveWebhookResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/WebhookEventResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetChannelAccountResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ChannelAccountResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    DisconnectChannelResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ChannelAccountResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListWebhookEventsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebhookEventResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetWebhookEventResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/WebhookEventResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetOutboundMessageResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ChannelAccountResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListConversationsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetConversationResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ConversationResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    UpdateConversationMetadataRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - expected_version
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+        metadata:
+          type: object
+          additionalProperties: true
+      description: Request body for updateConversationMetadata (W1 freeze).
+    UpdateConversationMetadataResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ConversationResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListConversationMessagesListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    AssignConversationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - assignee_member_id
+        - expected_version
+      properties:
+        assignee_member_id:
+          type: string
+          format: uuid
+        expected_version:
+          type: integer
+          minimum: 1
+      description: Request body for assignConversation (W1 freeze).
+    AssignConversationResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ConversationResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    UnassignConversationResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ConversationResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    AddConversationNoteRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - body
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 10000
+      description: Request body for addConversationNote (W1 freeze).
+    AddConversationNoteResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ConversationResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ResolveConversationResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ConversationResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ReopenConversationResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ConversationResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    EscalateConversationResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ConversationResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    TakeOverConversationResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ConversationResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ReleaseConversationTakeoverResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ConversationResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListConversationAISuggestionsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ApproveAISuggestionResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/AIResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    EvaluateAIResponseResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/AIResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    TestAIMessageResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/AIResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListAILogsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetAILogResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/AIResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListAIBlockedOutputsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListPromptVersionsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreatePromptVersionRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - content
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        content:
+          type: string
+          minLength: 1
+          maxLength: 100000
+        risk_level:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+          default: medium
+      description: Request body for createPromptVersion (W1 freeze).
+    CreatePromptVersionResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/AIResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetEvaluationRunResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/AIResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ApprovePromptVersionResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/AIResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ActivatePromptVersionResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/AIResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    RollbackPromptVersionResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/AIResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    DisableAIResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/AIResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    EnableAIResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/AIResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListOrdersListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateOrderDraftResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/OrderResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetOrderResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/OrderResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    UpdateOrderDraftRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - expected_version
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+        shipping_address_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        notes:
+          type:
+            - string
+            - "null"
+          maxLength: 2000
+        items:
+          type:
+            - array
+            - "null"
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - variant_id
+              - quantity
+            properties:
+              variant_id:
+                type: string
+                format: uuid
+              quantity:
+                type: string
+      description: Request body for updateOrderDraft (W1 freeze).
+    UpdateOrderDraftResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/OrderResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    RecalculateOrderResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/OrderResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ReserveOrderInventoryResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/OrderResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ConfirmOrderResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/OrderResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CancelOrderRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - expected_version
+        - reason
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+      description: Request body for cancelOrder (W1 freeze).
+    CancelOrderResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/OrderResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ExpireOrderResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/OrderResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetOrderHistoryResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/OrderResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    RecordPaymentRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - amount_minor
+        - currency
+        - method
+      properties:
+        amount_minor:
+          type: integer
+          minimum: 1
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        method:
+          type: string
+          enum:
+            - cod
+            - transfer
+            - card
+            - ewallet
+            - other
+        provider_ref:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+      description: Request body for recordPayment (W1 freeze).
+    RecordPaymentResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/PaymentResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListOrderPaymentsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaymentResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ConfirmPaymentRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - expected_version
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+        provider_ref:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+      description: Request body for confirmPayment (W1 freeze).
+    ConfirmPaymentResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/PaymentResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateRefundRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - amount_minor
+        - reason
+      properties:
+        amount_minor:
+          type: integer
+          minimum: 1
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+      description: Request body for createRefund (W1 freeze).
+    CreateRefundResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/PaymentResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateShipmentRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        carrier:
+          type:
+            - string
+            - "null"
+          maxLength: 100
+        tracking_code:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - order_item_id
+              - quantity
+            properties:
+              order_item_id:
+                type: string
+                format: uuid
+              quantity:
+                type: string
+      description: Request body for createShipment (W1 freeze).
+    CreateShipmentResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ShipmentResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    UpdateShipmentRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - expected_version
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+        carrier:
+          type:
+            - string
+            - "null"
+          maxLength: 100
+        tracking_code:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+      description: Request body for updateShipment (W1 freeze).
+    UpdateShipmentResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ShipmentResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    MarkShipmentPackedResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ShipmentResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    MarkShipmentShippedResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ShipmentResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    MarkShipmentDeliveredResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ShipmentResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateReturnRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - order_item_id
+              - quantity
+            properties:
+              order_item_id:
+                type: string
+                format: uuid
+              quantity:
+                type: string
+      description: Request body for createReturn (W1 freeze).
+    CreateReturnResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ReturnResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ApproveReturnResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ReturnResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ReceiveReturnResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ReturnResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CompleteReturnResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ReturnResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetDashboardTodayResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/AnalyticsReportResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetRevenueReportResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/AnalyticsReportResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetGrossProfitReportResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/AnalyticsReportResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetSlaReportResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/AnalyticsReportResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetAIQualityReportResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/AnalyticsReportResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateReportExportRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - report_type
+      properties:
+        report_type:
+          type: string
+          enum:
+            - revenue
+            - gross_profit
+            - sla
+            - ai_quality
+        from:
+          type:
+            - string
+            - "null"
+          format: date-time
+        to:
+          type:
+            - string
+            - "null"
+          format: date-time
+      description: Request body for createReportExport (W1 freeze).
+    GetBillingPlanResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/BillingResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetBillingUsageResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/BillingResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ManualUpdateSubscriptionRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - plan_id
+      properties:
+        plan_id:
+          type: string
+          enum:
+            - plan_free
+            - plan_pro
+            - plan_business
+          description: HO_DEFAULTS_v1
+        reason:
+          type:
+            - string
+            - "null"
+          maxLength: 1000
+      description: Request body for manualUpdateSubscription (W1 freeze).
+    ManualUpdateSubscriptionResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/BillingResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListTenantsForOperationsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/OperationsResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetTenantHealthResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/OperationsResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateSupportAccessRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant_id
+        - expires_at
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        expires_at:
+          type: string
+          format: date-time
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+      description: Request body for createSupportAccess (W1 freeze).
+    CreateSupportAccessResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/OperationsResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    SetTenantFeatureFlagRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - flag_key
+        - enabled
+      properties:
+        flag_key:
+          type: string
+          minLength: 1
+          maxLength: 100
+        enabled:
+          type: boolean
+      description: Request body for setTenantFeatureFlag (W1 freeze).
+    SetTenantFeatureFlagResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/OperationsResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    DisableTenantAIResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/OperationsResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListSystemAlertsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/OperationsResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    CreateReprocessRequestRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - target_type
+        - target_id
+      properties:
+        target_type:
+          type: string
+          enum:
+            - webhook
+            - outbound
+            - import
+            - ai_eval
+        target_id:
+          type: string
+          format: uuid
+        reason:
+          type:
+            - string
+            - "null"
+          maxLength: 1000
+      description: Request body for createReprocessRequest (W1 freeze).
+    GetAiHealthResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/OperationsResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GetChannelHealthResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/OperationsResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ListAuditLogsForOperationsListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/OperationsResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    ProvisionTenantRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - name
+        - owner_email
+      properties:
+        code:
+          type: string
+          minLength: 2
+          maxLength: 100
+          pattern: ^[a-z0-9]([a-z0-9-]{0,98}[a-z0-9])?$
+          description: Immutable public slug (citext).
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        owner_email:
+          type: string
+          format: email
+          maxLength: 320
+        timezone:
+          type:
+            - string
+            - "null"
+          maxLength: 64
+        currency:
+          type:
+            - string
+            - "null"
+          minLength: 3
+          maxLength: 3
+        locale:
+          type:
+            - string
+            - "null"
+          maxLength: 35
+        plan_id:
+          type:
+            - string
+            - "null"
+          enum:
+            - plan_free
+            - plan_pro
+            - plan_business
+            - null
+          description: HO_DEFAULTS_v1; default plan_free
+      description: Request body for provisionTenant (BE-IDN-002).
+    ProvisionTenantData:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant
+        - owner_invitation_id
+        - invite_token
+        - default_role_ids
+      properties:
+        tenant:
+          $ref: "#/components/schemas/TenantResource"
+        owner_invitation_id:
+          type: string
+          format: uuid
+        invite_token:
+          type: string
+          minLength: 16
+          maxLength: 128
+          description: Opaque token returned once; only hash stored.
+        default_role_ids:
+          type: object
+          additionalProperties: false
+          required:
+            - owner
+            - admin
+            - staff
+            - readonly
+          properties:
+            owner:
+              type: string
+              format: uuid
+            admin:
+              type: string
+              format: uuid
+            staff:
+              type: string
+              format: uuid
+            readonly:
+              type: string
+              format: uuid
+    ProvisionTenantResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/ProvisionTenantData"
+        meta:
+          $ref: "#/components/schemas/Meta"
   responses:
     BadRequest:
       description: Bad request
@@ -992,7 +4847,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GenericListResponse"
+                $ref: "#/components/schemas/ListTenantsForOperationsListResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1041,7 +4896,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GenericDataResponse"
+                $ref: "#/components/schemas/GetTenantHealthResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1093,7 +4948,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GenericDataResponse"
+                $ref: "#/components/schemas/CreateSupportAccessResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1119,7 +4974,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/GenericCommandRequest"
+              $ref: "#/components/schemas/CreateSupportAccessRequest"
   /super-admin/tenants/{tenant_id}/feature-flags/{flag_key}:
     post:
       tags:
@@ -1156,7 +5011,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GenericDataResponse"
+                $ref: "#/components/schemas/SetTenantFeatureFlagResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1182,14 +5037,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/GenericCommandRequest"
+              $ref: "#/components/schemas/SetTenantFeatureFlagRequest"
   /super-admin/tenants/{tenant_id}/disable-ai:
     post:
       tags:
         - Operations
       summary: Disable tenant a i
       operationId: disableTenantAI
-      x-permission: ai.disable
+      x-permission: ops.ai.disable
       x-idempotency: required
       x-csrf-protection: cookie-session-required
       parameters:
@@ -1214,7 +5069,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GenericDataResponse"
+                $ref: "#/components/schemas/DisableTenantAIResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1240,7 +5095,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/GenericCommandRequest"
+              $ref: "#/components/schemas/EmptyCommandRequest"
   /super-admin/system-alerts:
     get:
       tags:
@@ -1265,7 +5120,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GenericListResponse"
+                $ref: "#/components/schemas/ListSystemAlertsListResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1337,7 +5192,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/GenericCommandRequest"
+              $ref: "#/components/schemas/CreateReprocessRequestRequest"
   /super-admin/ai-health:
     get:
       tags:
@@ -1360,7 +5215,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GenericDataResponse"
+                $ref: "#/components/schemas/GetAiHealthResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1403,7 +5258,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GenericDataResponse"
+                $ref: "#/components/schemas/GetChannelHealthResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1448,7 +5303,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GenericListResponse"
+                $ref: "#/components/schemas/ListAuditLogsForOperationsListResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":

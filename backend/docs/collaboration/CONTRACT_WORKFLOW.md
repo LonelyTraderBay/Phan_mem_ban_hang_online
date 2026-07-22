@@ -20,7 +20,7 @@ AI Agent **tiêu thụ** qua codegen, không bao giờ sửa tay.
 | Artefact | File nguồn (backend, Backend AI Agent sở hữu) | Frontend AI Agent nhận được gì sau `pnpm contracts:sync` |
 |---|---|---|
 | HTTP API | `packages/contracts-http/openapi.yaml` | `contracts/openapi/tenant-api.yaml` + `ops-api.yaml` → types trong `packages/api-generated` |
-| Domain/realtime events | `backend_doc/contracts/asyncapi.yaml` | `contracts/asyncapi/tenant-events.yaml` (ops-events còn là stub) |
+| Domain/realtime events | `backend_doc/contracts/asyncapi.yaml` | `contracts/asyncapi/tenant-events.yaml` + `ops-events.yaml` (ops from `channels.opsEvents`) |
 | Permission matrix | `backend_doc/matrices/permission_matrix.csv` | `contracts/permissions/permission-matrix.yaml` + union type `PermissionKey` |
 | Error catalog | `backend_doc/matrices/error_catalog.csv` | `contracts/errors/error-catalog.yaml` + union type `ErrorCode` |
 
