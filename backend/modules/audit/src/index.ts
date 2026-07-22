@@ -19,6 +19,7 @@ export {
   type AuditLogStore,
   type AuditLogEntry
 } from "./application/list-audit.js";
+export { PostgresAuditLogStore } from "./infrastructure/persistence/postgres-audit-log-store.js";
 export {
   createAuditLogsController,
   createAuditExportsController
