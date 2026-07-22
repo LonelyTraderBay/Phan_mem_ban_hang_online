@@ -124,13 +124,10 @@ function toReprocess(row: ReprocessRow): ReprocessRequestRecord {
 /**
  * HYBRID Postgres operations adapter.
  * Persisted: feature_flag_overrides, system_alerts, reprocess_requests, tenant_ai_controls.
- * Stubbed: listTenants (TENANT_ROOT RLS blocks platform list), getAiHealth (synthetic),
- * getTenantHealth (healthy stub if tenant row visible under tenant context).
+ * Health: tenant probes from outbox/webhook/outbound; AI via ops_ai_health_snapshot DEFINER.
+ * listTenants: ops_list_tenants DEFINER (migration 000026).
  */
 export class PostgresOperationsRepository implements OperationsRepository {
-  /** Process-local idempotency map — also mirrored to DB idempotency_key via track. */
-  private readonly idempotency = new Map<string, string>();
-
   constructor(private readonly db: AppDatabase) {}
 
   /**
@@ -149,15 +146,87 @@ export class PostgresOperationsRepository implements OperationsRepository {
   async getTenantHealth(tenantId: string): Promise<TenantHealthRecord | null> {
     const ctx = adapterSecurityContext(tenantId);
     return withTenantTransaction(this.db, ctx, async (trx) => {
-      const result = await sql<{ id: string }>`
-        select id from app.tenants where id = ${tenantId}::uuid limit 1
+      const tenant = await sql<{ id: string; status: string }>`
+        select id::text, status from app.tenants where id = ${tenantId}::uuid limit 1
       `.execute(trx);
-      if (!result.rows[0]) return null;
-      // Synthetic healthy stub — no real probe metrics table yet.
+      if (!tenant.rows[0]) return null;
+
+      const metrics = await sql<{
+        queue_depth: string;
+        webhook_backlog: string;
+        webhook_dead_letter: string;
+        outbound_backlog: string;
+        open_alerts: string;
+        open_critical_alerts: string;
+      }>`
+        select
+          (
+            select count(*)::text from app.outbox_events
+            where tenant_id = ${tenantId}::uuid and published_at is null
+          ) as queue_depth,
+          (
+            select count(*)::text from app.webhook_events
+            where tenant_id = ${tenantId}::uuid
+              and status in ('received', 'failed')
+          ) as webhook_backlog,
+          (
+            select count(*)::text from app.webhook_events
+            where tenant_id = ${tenantId}::uuid and status = 'dead_letter'
+          ) as webhook_dead_letter,
+          (
+            select count(*)::text from app.outbound_messages
+            where tenant_id = ${tenantId}::uuid
+              and status in ('queued', 'sending', 'failed')
+          ) as outbound_backlog,
+          (
+            select count(*)::text from app.system_alerts
+            where target_tenant_id = ${tenantId}::uuid and status = 'open'
+          ) as open_alerts,
+          (
+            select count(*)::text from app.system_alerts
+            where target_tenant_id = ${tenantId}::uuid
+              and status = 'open'
+              and severity = 'critical'
+          ) as open_critical_alerts
+      `.execute(trx);
+
+      const row = metrics.rows[0]!;
+      const queueDepth = Number(row.queue_depth);
+      const webhookBacklog = Number(row.webhook_backlog);
+      const webhookDeadLetter = Number(row.webhook_dead_letter);
+      const outboundBacklog = Number(row.outbound_backlog);
+      const openAlerts = Number(row.open_alerts);
+      const openCritical = Number(row.open_critical_alerts);
+
+      let status: TenantHealthRecord["status"] = "healthy";
+      if (
+        tenant.rows[0]!.status !== "active" ||
+        webhookDeadLetter > 0 ||
+        openCritical > 0
+      ) {
+        status = "unhealthy";
+      } else if (
+        queueDepth > 100 ||
+        webhookBacklog > 50 ||
+        outboundBacklog > 50 ||
+        openAlerts > 0
+      ) {
+        status = "degraded";
+      }
+
       return {
         tenantId,
-        status: "healthy",
-        detail: { queue_depth: 0, webhook_backlog: 0, source: "stub" }
+        status,
+        detail: {
+          queue_depth: queueDepth,
+          webhook_backlog: webhookBacklog,
+          webhook_dead_letter: webhookDeadLetter,
+          outbound_backlog: outboundBacklog,
+          open_alerts: openAlerts,
+          open_critical_alerts: openCritical,
+          tenant_status: tenant.rows[0]!.status,
+          source: "db_probe"
+        }
       };
     });
   }
@@ -295,9 +364,6 @@ export class PostgresOperationsRepository implements OperationsRepository {
     const tenantCtx = request.targetTenantId ?? PLATFORM_OPS_TENANT;
     const ctx = adapterSecurityContext(tenantCtx);
     const idempotencyKey = request.idempotencyKey?.trim() || null;
-    if (idempotencyKey) {
-      this.idempotency.set(idempotencyKey, request.id);
-    }
     try {
       return await withTenantTransaction(this.db, ctx, async (trx) => {
         const result = await sql<ReprocessRow>`
@@ -322,24 +388,14 @@ export class PostgresOperationsRepository implements OperationsRepository {
       if (!isUniqueViolation(error) || !idempotencyKey) throw error;
       const existing = await this.findReprocessByIdempotency(idempotencyKey);
       if (!existing) throw error;
-      this.idempotency.set(idempotencyKey, existing.id);
       return existing;
     }
   }
 
   async findReprocessByIdempotency(key: string): Promise<ReprocessRequestRecord | null> {
-    const mappedId = this.idempotency.get(key);
+    // reprocess_requests RLS USING (true) — no process-local Map.
     const ctx = adapterSecurityContext(PLATFORM_OPS_TENANT);
     return withTenantTransaction(this.db, ctx, async (trx) => {
-      if (mappedId) {
-        const byId = await sql<ReprocessRow>`
-          select id, target_type, target_id, target_tenant_id, reason, status, created_at
-          from app.reprocess_requests
-          where id = ${mappedId}::uuid
-          limit 1
-        `.execute(trx);
-        if (byId.rows[0]) return toReprocess(byId.rows[0]);
-      }
       const result = await sql<ReprocessRow>`
         select id, target_type, target_id, target_tenant_id, reason, status, created_at
         from app.reprocess_requests
@@ -352,11 +408,10 @@ export class PostgresOperationsRepository implements OperationsRepository {
   }
 
   /**
-   * Duck-typed hook used by createReprocessRequest: sync Map + persist DB key.
-   * Returns a Promise so callers can await; InMemory stays sync.
+   * Duck-typed hook for createReprocessRequest.
+   * Key is set on insert; this is a no-op safety UPDATE for older callers.
    */
   trackReprocessIdempotency(key: string, id: string): Promise<void> {
-    this.idempotency.set(key, id);
     const ctx = adapterSecurityContext(PLATFORM_OPS_TENANT);
     return withTenantTransaction(this.db, ctx, async (trx) => {
       try {
@@ -368,26 +423,52 @@ export class PostgresOperationsRepository implements OperationsRepository {
         `.execute(trx);
       } catch (error) {
         if (!isUniqueViolation(error)) throw error;
-        const existing = await sql<{ id: string }>`
-          select id from app.reprocess_requests
-          where idempotency_key = ${key}
-          limit 1
-        `.execute(trx);
-        if (existing.rows[0]) {
-          this.idempotency.set(key, existing.rows[0].id);
-        }
       }
     });
   }
 
-  /** Hardcoded stub — mirrors InMemory; no live provider probe yet. */
+  /** Platform AI health via SECURITY DEFINER (migration 000027). */
   async getAiHealth(): Promise<Record<string, unknown>> {
+    const result = await sql<{
+      provider_latency_p95_ms: number | string;
+      blocked_output_rate: number | string;
+      budget_exceeded_tenants: number | string;
+      sample_logs: number | string;
+      sample_blocked: number | string;
+      ai_disabled_tenants: number | string;
+    }>`
+      select * from app.ops_ai_health_snapshot()
+    `.execute(this.db);
+    const row = result.rows[0];
+    if (!row) {
+      return {
+        status: "healthy",
+        provider_latency_p95_ms: 0,
+        blocked_output_rate: 0,
+        budget_exceeded_tenants: 0,
+        source: "db_probe"
+      };
+    }
+    const latency = Number(row.provider_latency_p95_ms);
+    const blockedRate = Number(row.blocked_output_rate);
+    const budgetExceeded = Number(row.budget_exceeded_tenants);
+    const disabled = Number(row.ai_disabled_tenants);
+    let status = "healthy";
+    if (budgetExceeded > 0 || blockedRate >= 0.25 || disabled > 5) {
+      status = "degraded";
+    }
+    if (blockedRate >= 0.5) {
+      status = "unhealthy";
+    }
     return {
-      status: "healthy",
-      provider_latency_p95_ms: 1200,
-      blocked_output_rate: 0.02,
-      budget_exceeded_tenants: 0,
-      source: "stub"
+      status,
+      provider_latency_p95_ms: Math.round(latency),
+      blocked_output_rate: Number(blockedRate.toFixed(4)),
+      budget_exceeded_tenants: budgetExceeded,
+      ai_disabled_tenants: disabled,
+      sample_logs_24h: Number(row.sample_logs),
+      sample_blocked_24h: Number(row.sample_blocked),
+      source: "db_probe"
     };
   }
 }

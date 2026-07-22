@@ -51,11 +51,26 @@
 - [x] Wire `app.module.ts` when `DATABASE_URL`
 - [x] Typecheck + focused smoke tests (`describe.skip` integration without DB)
 
+## Staging runbook (migrate + invite smoke)
+
+```bash
+# From backend/
+export DATABASE_URL='postgres://app_runtime:...@staging-host:5432/ai_sales'
+SMOKE_MIGRATE=1 node tools/smoke-invite-accept.mjs
+# With provisioned tenant/actor/role for full invite→accept:
+SMOKE_MIGRATE=1 SMOKE_TENANT_ID=... SMOKE_ACTOR_ID=... SMOKE_OWNER_ROLE_ID=... \
+  node tools/smoke-invite-accept.mjs
+# Or HTTP against running API:
+API_BASE=https://api.staging... SMOKE_TENANT_ID=... SMOKE_ACTOR_ID=... SMOKE_OWNER_ROLE_ID=... \
+  node tools/smoke-invite-accept.mjs
+```
+
+Apply at least migrations `000024`…`000027`.
+
 ## Gaps (v1)
 
-- **Ops HYBRID:** `getTenantHealth` / `getAiHealth` synthetic stubs; desktop / hardening stay stub (application layer)
-- Knowledge / AI: process-local idempotency Maps (migrate `app.idempotency_records`)
-- Ops reprocess: process-local Map + DB `idempotency_key` via `trackReprocessIdempotency`
+- **Ops:** desktop / hardening stay stub (application layer); health now DB-probed (`000027` AI snapshot)
+- Knowledge / AI / Order / Payment / …: process-local idempotency Maps (migrate `app.idempotency_records`) — Ops reprocess Map removed (DB unique only)
 - AI: `tenant_ai_controls` stores full switch/budget JSON in `metadata`; column fields are denormalized
 - AI eval runs: GLOBAL table + `tenant_id` column (no RLS) — filter in adapter
 - Channel: OAuth tenant lookup + webhook dedupe (null-tenant) process-local Maps; idempotency Maps
