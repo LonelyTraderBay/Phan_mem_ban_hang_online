@@ -30,6 +30,11 @@ import {
   InMemoryKnowledgeRepository
 } from "@ai-sales/module-knowledge";
 import {
+  createChannelController,
+  InMemoryChannelRepository,
+  stubFacebookAdapter
+} from "@ai-sales/module-channel";
+import {
   createAcceptInvitationController,
   createMeController,
   createMfaVerifyController,
@@ -66,6 +71,7 @@ const importApplyPort = createInMemoryImportApplyPort(catalogRepo);
 const customerRepo = new InMemoryCustomerRepository();
 const inventoryRepo = new InMemoryInventoryRepository();
 const knowledgeRepo = new InMemoryKnowledgeRepository();
+const channelRepo = new InMemoryChannelRepository();
 
 function buildOidcConfig(): OidcClientConfig | null {
   const config = loadConfig(process.env);
@@ -118,7 +124,8 @@ function buildControllers(): Type<unknown>[] {
       }),
       createCustomersController({ repo: customerRepo }),
       createInventoryController({ repo: inventoryRepo }),
-      createKnowledgeController({ repo: knowledgeRepo })
+      createKnowledgeController({ repo: knowledgeRepo }),
+      createChannelController({ repo: channelRepo, adapter: stubFacebookAdapter })
     );
 
     const oidc = buildOidcConfig();

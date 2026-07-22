@@ -39,6 +39,7 @@
 | **BE-CUS / BE-CAT / BE-IMP** | **P3 CODE EXIT (in-memory)** | CUS/CAT/IMP application Done; FE sync + Postgres adapters follow |
 | **BE-INV-001…008** | **GREEN (done)** | Inventory schema (`000015`) + in-memory application + HTTP controller — `docs/tickets/BE-INV-*.md` (`done`) |
 | **BE-KNW-001…006** | **GREEN (done)** | Knowledge schema (`000016`) + in-memory application + HTTP controller — `docs/tickets/BE-KNW-*.md` (`done`) |
+| **BE-CHN-001…011** | **GREEN (done)** | Channel schema (`000017`) + in-memory application + HTTP controller — `docs/tickets/BE-CHN-*.md` (`done`) |
 | **Orders / Payments / F02+** | **RED until phase** | Chỉ khi phase hiện tại Done + artefacts còn consistent |
 
 ## Kickoff order (bắt buộc)
@@ -72,7 +73,8 @@
 26. FE P3 slices + `contracts:sync` — Done (Wave 2)
 27. BE-INV-001…008 inventory schema + in-memory application — Done (`000015`)
 28. BE-KNW-001…006 knowledge schema + in-memory application — Done (`000016`)
-29. P5 Channel → P6 Conversation → P7 Order/Pay/Fulfill → P8+ per phase order
+29. BE-CHN-001…011 channel schema + in-memory application — Done (`000017`)
+30. P6 Conversation → P7 Order/Pay/Fulfill → P8+ per phase order
 ```
 
 Money/tax/billing: luôn cite [`../business/HO_DEFAULTS_v1.md`](../business/HO_DEFAULTS_v1.md).

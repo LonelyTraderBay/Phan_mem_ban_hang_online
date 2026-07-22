@@ -68,6 +68,9 @@ importers:
       '@ai-sales/module-catalog':
         specifier: workspace:*
         version: link:../../modules/catalog
+      '@ai-sales/module-channel':
+        specifier: workspace:*
+        version: link:../../modules/channel
       '@ai-sales/module-customer':
         specifier: workspace:*
         version: link:../../modules/customer
@@ -220,6 +223,18 @@ importers:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@nestjs/common':
+        specifier: 11.1.28
+        version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      fastify:
+        specifier: 5.10.0
+        version: 5.10.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/conversation:
     dependencies:

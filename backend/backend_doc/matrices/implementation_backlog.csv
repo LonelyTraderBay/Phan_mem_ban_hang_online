@@ -70,17 +70,17 @@ phase,task_id,title,deliverable_or_details,status,primary_paths
 19.6 Phase P4,BE-KNW-004,Chunk/embed generation/versioning,,Done,modules/knowledge/
 19.6 Phase P4,BE-KNW-005,Published/effective-only tenant retrieval API,,Done,modules/knowledge/
 19.6 Phase P4,BE-KNW-006,Ingestion health/retry/rebuild/test search,,Done,modules/knowledge/
-19.7 Phase P5,BE-CHN-001,Provider adapter interfaces + normalized schemas,,Not Started,modules/channel/
-19.7 Phase P5,BE-CHN-002,Channel account/credential/health schema,,Not Started,modules/channel/
-19.7 Phase P5,BE-CHN-003,OAuth state/PKCE where applicable/callback/token vault,,Not Started,modules/channel/
-19.7 Phase P5,BE-CHN-004,Raw-body webhook signature verification,,Not Started,modules/channel/
-19.7 Phase P5,BE-CHN-005,Webhook storage/dedupe/fast ACK,,Not Started,modules/channel/
-19.7 Phase P5,BE-CHN-006,Normalize message/comment/identity events,,Not Started,modules/channel/
-19.7 Phase P5,BE-CHN-007,Queue retry/backoff/DLQ/reprocess,,Not Started,modules/channel/
-19.7 Phase P5,BE-CHN-008,Outbound message state/attempt/provider send,,Not Started,modules/channel/
-19.7 Phase P5,BE-CHN-009,Per-account/provider rate limiting/circuit breaker,,Not Started,modules/channel/
-19.7 Phase P5,BE-CHN-010,Token/scope/health monitoring and alerts,,Not Started,modules/channel/
-19.7 Phase P5,BE-CHN-011,Provider fixture/contract/replay test suite,,Not Started,modules/channel/
+19.7 Phase P5,BE-CHN-001,Provider adapter interfaces + normalized schemas,,Done,modules/channel/
+19.7 Phase P5,BE-CHN-002,Channel account/credential/health schema,,Done,modules/channel/
+19.7 Phase P5,BE-CHN-003,OAuth state/PKCE where applicable/callback/token vault,,Done,modules/channel/
+19.7 Phase P5,BE-CHN-004,Raw-body webhook signature verification,,Done,modules/channel/
+19.7 Phase P5,BE-CHN-005,Webhook storage/dedupe/fast ACK,,Done,modules/channel/
+19.7 Phase P5,BE-CHN-006,Normalize message/comment/identity events,,Done,modules/channel/
+19.7 Phase P5,BE-CHN-007,Queue retry/backoff/DLQ/reprocess,,Done,modules/channel/
+19.7 Phase P5,BE-CHN-008,Outbound message state/attempt/provider send,,Done,modules/channel/
+19.7 Phase P5,BE-CHN-009,Per-account/provider rate limiting/circuit breaker,,Done,modules/channel/
+19.7 Phase P5,BE-CHN-010,Token/scope/health monitoring and alerts,,Done,modules/channel/
+19.7 Phase P5,BE-CHN-011,Provider fixture/contract/replay test suite,,Done,modules/channel/
 19.8 Phase P6,BE-CON-001,Conversation/message/attachment/assignment/note schema,,Not Started,modules/conversation/
 19.8 Phase P6,BE-CON-002,Inbound normalized event -> identity/conversation/message upsert,,Not Started,modules/conversation/
 19.8 Phase P6,BE-CON-003,List/detail/message cursor APIs + indexes,,Not Started,modules/conversation/

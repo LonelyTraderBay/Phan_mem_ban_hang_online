@@ -4,7 +4,7 @@ title: Token/scope/health monitoring and alerts
 owner: Backend AI Agent
 phase: P5
 risk: high
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

@@ -4,7 +4,7 @@ title: Queue retry/backoff/DLQ/reprocess
 owner: Backend AI Agent
 phase: P5
 risk: high
-status: doc-frozen
+status: done
 ---
 
 # Business outcome
