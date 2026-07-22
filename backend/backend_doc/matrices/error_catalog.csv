@@ -25,6 +25,7 @@ RESOURCE_NOT_FOUND,404,resource,0,Không tìm thấy dữ liệu yêu cầu.,Mis
 RESOURCE_VERSION_MISMATCH,412,concurrency,1,Dữ liệu đã thay đổi. Vui lòng tải lại.,ETag/version mismatch. Spec alias ROLE_VERSION_CONFLICT maps to this code.
 VALIDATION_FAILED,422,validation,0,Dữ liệu không hợp lệ.,Field/business validation errors
 CUSTOMER_IDENTITY_CONFLICT,409,customers,0,Định danh khách hàng đã gắn với hồ sơ khác.,Tenant-scoped identity already attached to another customer (attach/dedupe — BE-CUS-003)
+CUSTOMER_MERGE_CONFLICT,409,customers,0,Không thể gộp khách hàng ở trạng thái hiện tại.,Survivor/source not active or already merged (BE-CUS-004)
 REQUEST_TOO_LARGE,413,validation,0,Dữ liệu gửi lên quá lớn.,Request/file size limit
 UNSUPPORTED_MEDIA_TYPE,415,validation,0,Định dạng dữ liệu không được hỗ trợ.,Unsupported content type
 IDEMPOTENCY_KEY_REQUIRED,400,idempotency,0,Thiếu mã chống gửi trùng.,Critical endpoint requires key

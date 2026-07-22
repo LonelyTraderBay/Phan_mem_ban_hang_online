@@ -24,7 +24,9 @@ import {
   formatEtag,
   getCustomer,
   listCustomers,
+  mergeCustomers,
   parseIfMatchVersion,
+  previewCustomerMerge,
   updateCustomer,
   type CustomerRepository
 } from "../../application/customers.js";
@@ -87,6 +89,7 @@ function mapCustomerError(error: unknown): never {
       case "IDEMPOTENCY_KEY_REQUIRED":
         throw new BadRequestException({ code: error.code, message: error.message });
       case "CUSTOMER_IDENTITY_CONFLICT":
+      case "CUSTOMER_MERGE_CONFLICT":
         throw new HttpException({ code: error.code, message: error.message }, 409);
       case "VALIDATION_FAILED":
       default:
@@ -137,6 +140,60 @@ export function createCustomersController(options: { readonly repo: CustomerRepo
           ...(body?.primary_email !== undefined ? { primaryEmail: body.primary_email } : {}),
           ...(body?.primary_phone !== undefined ? { primaryPhone: body.primary_phone } : {}),
           ...(body?.tags !== undefined ? { tags: body.tags } : {})
+        });
+        reply.header("ETag", formatEtag(result.version));
+        return { data: result.data, meta: result.meta };
+      } catch (error) {
+        mapCustomerError(error);
+      }
+    }
+
+    @Post("merge-preview")
+    async mergePreview(
+      @Body() body: { survivor_id?: string; merge_ids?: string[] },
+      @Headers() headers: HeaderBag,
+      @Res({ passthrough: true }) reply: FastifyReply
+    ) {
+      try {
+        const actor = parseActor(headers);
+        const result = await previewCustomerMerge({
+          repo: options.repo,
+          tenantId: actor.tenantId,
+          actorPermissions: actor.permissions,
+          survivorId: body?.survivor_id ?? "",
+          mergeIds: body?.merge_ids ?? []
+        });
+        reply.header("ETag", formatEtag(result.version));
+        return { data: result.data, meta: result.meta };
+      } catch (error) {
+        mapCustomerError(error);
+      }
+    }
+
+    @Post("merge")
+    async merge(
+      @Body()
+      body: {
+        survivor_id?: string;
+        merge_ids?: string[];
+        confirmation_token?: string;
+      },
+      @Headers() headers: HeaderBag,
+      @Res({ passthrough: true }) reply: FastifyReply
+    ) {
+      try {
+        const actor = parseActor(headers);
+        const correlationId = optionalHeader(headers, "x-correlation-id");
+        const result = await mergeCustomers({
+          repo: options.repo,
+          tenantId: actor.tenantId,
+          actorId: actor.actorId,
+          actorPermissions: actor.permissions,
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          survivorId: body?.survivor_id ?? "",
+          mergeIds: body?.merge_ids ?? [],
+          confirmationToken: body?.confirmation_token ?? "",
+          ...(correlationId !== undefined ? { correlationId } : {})
         });
         reply.header("ETag", formatEtag(result.version));
         return { data: result.data, meta: result.meta };
