@@ -27,6 +27,18 @@ check(typeof opsApi.paths === "object" && Object.keys(opsApi.paths).length > 0, 
 
 const tenantEvents = readYaml(`${frontendRoot}/contracts/asyncapi/tenant-events.yaml`);
 check(typeof tenantEvents.channels === "object", "tenant-events.yaml has a channels object");
+check(
+  typeof tenantEvents.channels?.domainEvents === "object",
+  "tenant-events.yaml has domainEvents channel",
+);
+
+const opsEvents = readYaml(`${frontendRoot}/contracts/asyncapi/ops-events.yaml`);
+check(typeof opsEvents.channels === "object", "ops-events.yaml has a channels object");
+check(
+  typeof opsEvents.channels?.opsEvents === "object" &&
+    Object.keys(opsEvents.channels.opsEvents.messages ?? {}).length > 0,
+  "ops-events.yaml has non-empty opsEvents messages (not stub)",
+);
 
 const permissionMatrix = readYaml(`${frontendRoot}/contracts/permissions/permission-matrix.yaml`);
 check(Array.isArray(permissionMatrix.permissions) && permissionMatrix.permissions.length > 0, "permission-matrix.yaml has a non-empty permissions array");

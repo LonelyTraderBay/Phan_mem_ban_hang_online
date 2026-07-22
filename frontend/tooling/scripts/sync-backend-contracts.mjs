@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
@@ -18,33 +18,46 @@ import YAML from "yaml";
 const frontendRoot = fileURLToPath(new URL("../..", import.meta.url));
 const backendRoot = resolveBackendRoot();
 
-// `backend/` is a sibling of the real frontend checkout, not of wherever this script's file
-// happens to sit — a fixed "../../../backend" relative to the script breaks when it's run from a
-// git worktree (Claude Code commonly runs from frontend/.claude/worktrees/<name>/, which nests
-// several extra directories deeper than a normal clone). `git rev-parse --git-common-dir` always
-// resolves to the real repo's .git directory, even from inside a worktree, so derive backendRoot
-// from that instead. Falls back to the old relative path if git isn't available for some reason.
-//
-// CI (.github/workflows/pr.yml) checks out LonelyTraderBay/backend into its own subdirectory
-// rather than as a true sibling directory (gitleaks-action needs $GITHUB_WORKSPACE itself to stay
-// a git repo, so the two repos can't share a nesting the way a local dev machine's
-// frontend/ + backend/ sibling layout does) — BACKEND_CONTRACTS_ROOT lets that CI job point here
-// explicitly instead of relying on relative-path guessing.
+// Prefer <frontend>/../backend (umbrella monorepo). BACKEND_CONTRACTS_ROOT overrides
+// for CI. Git-common-dir heuristics cover worktrees and legacy two-repo checkouts.
 function resolveBackendRoot() {
   if (process.env.BACKEND_CONTRACTS_ROOT) {
     return process.env.BACKEND_CONTRACTS_ROOT;
   }
+
+  const looksLikeBackend = (candidate) =>
+    existsSync(resolve(candidate, "packages/contracts-http/openapi.yaml"));
+
+  // Umbrella (and normal sibling checkout): frontend/../backend
+  const sibling = resolve(frontendRoot, "..", "backend");
+  if (looksLikeBackend(sibling)) {
+    return sibling;
+  }
+
+  // Worktree / alternate layouts: walk from git common dir
   try {
     const gitCommonDir = execFileSync(
       "git",
       ["rev-parse", "--path-format=absolute", "--git-common-dir"],
       { cwd: fileURLToPath(new URL(".", import.meta.url)), encoding: "utf8" },
     ).trim();
-    const mainFrontendRoot = dirname(gitCommonDir); // .git's parent is the real frontend/ checkout
-    return resolve(mainFrontendRoot, "..", "backend");
+    const gitRoot = dirname(gitCommonDir);
+
+    const underGitRoot = resolve(gitRoot, "backend");
+    if (looksLikeBackend(underGitRoot)) {
+      return underGitRoot;
+    }
+
+    // Legacy two-repo: git root is frontend/, sibling is ../backend
+    const siblingOfCheckout = resolve(gitRoot, "..", "backend");
+    if (looksLikeBackend(siblingOfCheckout)) {
+      return siblingOfCheckout;
+    }
   } catch {
-    return fileURLToPath(new URL("../../../backend", import.meta.url));
+    // fall through
   }
+
+  return fileURLToPath(new URL("../../../backend", import.meta.url));
 }
 
 const GENERATED_BANNER =
@@ -94,28 +107,102 @@ function splitOpenApi() {
 
 function syncAsyncApi() {
   const sourcePath = `${backendRoot}/backend_doc/contracts/asyncapi.yaml`;
-  const source = readFileSync(sourcePath, "utf8");
+  const sourceDoc = readYaml(sourcePath);
   mkdirSync(`${frontendRoot}/contracts/asyncapi`, { recursive: true });
-  writeFileSync(`${frontendRoot}/contracts/asyncapi/tenant-events.yaml`, GENERATED_BANNER + source, "utf8");
+
+  // Tenant file: full backend AsyncAPI minus ops channel (domain + realtime remain).
+  const tenantDoc = structuredClone(sourceDoc);
+  if (tenantDoc.channels?.opsEvents) delete tenantDoc.channels.opsEvents;
+  if (tenantDoc.operations?.publishOpsEvents) delete tenantDoc.operations.publishOpsEvents;
+  if (tenantDoc.operations?.consumeOpsEvents) delete tenantDoc.operations.consumeOpsEvents;
+  writeYaml(
+    `${frontendRoot}/contracts/asyncapi/tenant-events.yaml`,
+    GENERATED_BANNER,
+    tenantDoc,
+  );
   console.log(`wrote ${frontendRoot}/contracts/asyncapi/tenant-events.yaml`);
 
-  // No ops-scoped async events exist in the backend contract yet (verified at scaffold time) —
-  // this stub documents intent rather than pretending a split happened.
-  const stub = {
-    asyncapi: "3.1.0",
-    info: {
-      title: "Ops Events (STUB)",
-      version: "0.0.0",
-      description:
-        "No Super Admin/Operations-specific async events exist in the backend contract yet. " +
-        "This file is a placeholder so packages/realtime and codegen tooling have a stable " +
-        "two-file shape matching contracts/openapi's tenant/ops split. Populate when backend " +
-        "ships ops-scoped events.",
-    },
-    channels: {},
-    operations: {},
+  // Ops file: opsEvents channel + referenced components only (stable two-file shape).
+  const opsChannel = sourceDoc.channels?.opsEvents;
+  if (!opsChannel || !opsChannel.messages || Object.keys(opsChannel.messages).length === 0) {
+    throw new Error(
+      "backend asyncapi.yaml missing populated channels.opsEvents — W2 freeze required",
+    );
+  }
+
+  const opsMessageNames = Object.keys(opsChannel.messages);
+  const opsMessages = {};
+  const opsSchemas = {
+    Actor: sourceDoc.components?.schemas?.Actor,
+    EventEnvelopeBase: sourceDoc.components?.schemas?.EventEnvelopeBase,
   };
-  writeYaml(`${frontendRoot}/contracts/asyncapi/ops-events.yaml`, GENERATED_BANNER, stub);
+  for (const name of opsMessageNames) {
+    const msg = sourceDoc.components?.messages?.[name];
+    if (!msg) throw new Error(`Missing components.messages.${name} for ops event`);
+    opsMessages[name] = msg;
+    const payloadRef = msg.payload?.$ref;
+    if (typeof payloadRef === "string") {
+      const schemaName = payloadRef.split("/").pop();
+      opsSchemas[schemaName] = sourceDoc.components.schemas[schemaName];
+      const eventSchema = sourceDoc.components.schemas[schemaName];
+      // Pull nested *Data schema refs from allOf
+      const allOf = eventSchema?.allOf || [];
+      for (const part of allOf) {
+        const dataRef = part?.properties?.data?.$ref;
+        if (typeof dataRef === "string") {
+          const dataName = dataRef.split("/").pop();
+          opsSchemas[dataName] = sourceDoc.components.schemas[dataName];
+        }
+      }
+    }
+  }
+
+  const opsDoc = {
+    asyncapi: sourceDoc.asyncapi || "3.1.0",
+    info: {
+      title: "AI Sales Operating System — Ops Events",
+      version: sourceDoc.info?.version || "2.0.0",
+      description:
+        "Operations / Super Admin scoped events (enterprise doc-freeze W2). Generated from backend asyncapi.yaml channels.opsEvents.",
+    },
+    servers: sourceDoc.servers,
+    channels: {
+      opsEvents: {
+        address: opsChannel.address || "ops.events",
+        description: opsChannel.description,
+        messages: Object.fromEntries(
+          opsMessageNames.map((n) => [n, { $ref: `#/components/messages/${n}` }]),
+        ),
+      },
+    },
+    operations: {
+      publishOpsEvents: {
+        action: "send",
+        channel: { $ref: "#/channels/opsEvents" },
+        messages: opsMessageNames.map((n) => ({
+          $ref: `#/channels/opsEvents/messages/${n}`,
+        })),
+      },
+      consumeOpsEvents: {
+        action: "receive",
+        channel: { $ref: "#/channels/opsEvents" },
+        messages: opsMessageNames.map((n) => ({
+          $ref: `#/channels/opsEvents/messages/${n}`,
+        })),
+      },
+    },
+    components: {
+      schemas: Object.fromEntries(
+        Object.entries(opsSchemas).filter(([, v]) => v != null),
+      ),
+      messages: opsMessages,
+    },
+  };
+
+  writeYaml(`${frontendRoot}/contracts/asyncapi/ops-events.yaml`, GENERATED_BANNER, opsDoc);
+  console.log(
+    `wrote ${frontendRoot}/contracts/asyncapi/ops-events.yaml (${opsMessageNames.length} messages)`,
+  );
 }
 
 function parseCsvSimple(text) {
