@@ -98,6 +98,7 @@ function mapCatalogError(error: unknown): never {
   if (error instanceof CatalogError) {
     switch (error.code) {
       case "INSUFFICIENT_PERMISSION":
+      case "COST_PERMISSION_REQUIRED":
         throw new ForbiddenException({ code: error.code, message: error.message });
       case "RESOURCE_NOT_FOUND":
         throw new HttpException({ code: error.code, message: error.message }, 404);
@@ -355,6 +356,7 @@ export function createCatalogController(options: { readonly repo: CatalogReposit
           repo: options.repo,
           tenantId: actor.tenantId,
           actorPermissions: actor.permissions,
+          actorId: actor.actorId,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
           productId,
           sku: body?.sku ?? "",
@@ -383,6 +385,7 @@ export function createCatalogController(options: { readonly repo: CatalogReposit
           repo: options.repo,
           tenantId: actor.tenantId,
           actorPermissions: actor.permissions,
+          actorId: actor.actorId,
           variantId,
           expectedVersion: resolveExpectedVersion(headers, body?.expected_version),
           unitPriceMinor: body?.unit_price_minor ?? null,

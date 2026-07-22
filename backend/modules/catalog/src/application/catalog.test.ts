@@ -8,9 +8,12 @@ import {
   createProduct,
   createVariant,
   getProduct,
+  getVariantPricing,
   listCategories,
   listProducts,
   listVariants,
+  listVariantPriceHistory,
+  setVariantCost,
   updateCategory,
   updateProduct,
   updateVariant
@@ -19,9 +22,11 @@ import { InMemoryCatalogRepository } from "../infrastructure/persistence/in-memo
 
 const tenantA = parseUuidV7("018f65fd-7c6a-7cc8-9f68-9f5f2c7b7c1b");
 const tenantB = parseUuidV7("018f65fd-7c6a-7cc8-9f68-9f5f2c7b7c2b");
+const actorId = parseUuidV7("018f65fd-7c6a-7cc8-9f68-9f5f2c7b7c3b");
 
 const writePerms = ["catalog.read", "catalog.write"];
 const readOnlyPerms = ["catalog.read"];
+const costWritePerms = ["catalog.read", "catalog.write", "catalog.cost.write", "catalog.cost.read"];
 
 function seed() {
   return new InMemoryCatalogRepository();
@@ -377,6 +382,7 @@ describe("BE-CAT-002 variants", () => {
       repo,
       tenantId: tenantA,
       actorPermissions: writePerms,
+      actorId,
       variantId: variant.data.id,
       expectedVersion: variant.data.version,
       unitPriceMinor: 60000
@@ -403,5 +409,162 @@ describe("BE-CAT-002 variants", () => {
       sku: "CAP-001"
     });
     expect(reused.data.status).toBe("active");
+  });
+});
+
+describe("BE-CAT-003 cost/price permission + history/audit", () => {
+  it("omits cost_minor without catalog.cost.read", async () => {
+    const repo = seed();
+    const product = await createProduct({
+      repo,
+      tenantId: tenantA,
+      actorPermissions: costWritePerms,
+      idempotencyKey: "p-cost-1",
+      name: "Widget"
+    });
+    const variant = await createVariant({
+      repo,
+      tenantId: tenantA,
+      actorPermissions: costWritePerms,
+      actorId,
+      idempotencyKey: "v-cost-1",
+      productId: product.data.id,
+      sku: "W-1",
+      unitPriceMinor: 110000,
+      costMinor: 50000
+    });
+    const masked = await getVariantPricing({
+      repo,
+      tenantId: tenantA,
+      actorPermissions: writePerms,
+      variantId: variant.data.id
+    });
+    expect(masked.data.unit_price_minor).toBe(110000);
+    expect(masked.data.prices_tax_inclusive).toBe(true);
+    expect("cost_minor" in masked.data).toBe(false);
+
+    const full = await getVariantPricing({
+      repo,
+      tenantId: tenantA,
+      actorPermissions: costWritePerms,
+      variantId: variant.data.id
+    });
+    expect(full.data.cost_minor).toBe(50000);
+  });
+
+  it("denies create with cost without catalog.cost.write", async () => {
+    const repo = seed();
+    const product = await createProduct({
+      repo,
+      tenantId: tenantA,
+      actorPermissions: writePerms,
+      idempotencyKey: "p-deny-cost",
+      name: "No Cost"
+    });
+    await expect(
+      createVariant({
+        repo,
+        tenantId: tenantA,
+        actorPermissions: writePerms,
+        actorId,
+        idempotencyKey: "v-deny-cost",
+        productId: product.data.id,
+        sku: "NC-1",
+        costMinor: 1000
+      })
+    ).rejects.toMatchObject({ code: "COST_PERMISSION_REQUIRED" });
+  });
+
+  it("setVariantCost appends history + audit; price update records history", async () => {
+    const repo = seed();
+    const product = await createProduct({
+      repo,
+      tenantId: tenantA,
+      actorPermissions: costWritePerms,
+      idempotencyKey: "p-hist",
+      name: "Hist"
+    });
+    const variant = await createVariant({
+      repo,
+      tenantId: tenantA,
+      actorPermissions: costWritePerms,
+      actorId,
+      idempotencyKey: "v-hist",
+      productId: product.data.id,
+      sku: "H-1",
+      unitPriceMinor: 100000,
+      costMinor: 40000
+    });
+    const priced = await updateVariant({
+      repo,
+      tenantId: tenantA,
+      actorPermissions: writePerms,
+      actorId,
+      variantId: variant.data.id,
+      expectedVersion: variant.data.version,
+      unitPriceMinor: 120000,
+      reason: "promo end"
+    });
+    await setVariantCost({
+      repo,
+      tenantId: tenantA,
+      actorPermissions: costWritePerms,
+      actorId,
+      variantId: variant.data.id,
+      expectedVersion: priced.data.version,
+      costMinor: 45000,
+      reason: "supplier increase"
+    });
+
+    const history = await listVariantPriceHistory({
+      repo,
+      tenantId: tenantA,
+      actorPermissions: costWritePerms,
+      variantId: variant.data.id
+    });
+    expect(history.data.length).toBeGreaterThanOrEqual(3);
+    expect(repo.audits.some((a) => a.action === "catalog.price.update")).toBe(true);
+    expect(repo.audits.some((a) => a.action === "catalog.cost.update")).toBe(true);
+
+    const maskedHistory = await listVariantPriceHistory({
+      repo,
+      tenantId: tenantA,
+      actorPermissions: writePerms,
+      variantId: variant.data.id
+    });
+    expect(maskedHistory.data.every((row) => !("old_cost_minor" in row))).toBe(true);
+    expect(maskedHistory.data.every((row) => !("new_cost_minor" in row))).toBe(true);
+  });
+
+  it("setVariantCost without catalog.cost.write -> COST_PERMISSION_REQUIRED", async () => {
+    const repo = seed();
+    const product = await createProduct({
+      repo,
+      tenantId: tenantA,
+      actorPermissions: writePerms,
+      idempotencyKey: "p-cost-deny",
+      name: "X"
+    });
+    const variant = await createVariant({
+      repo,
+      tenantId: tenantA,
+      actorPermissions: writePerms,
+      actorId,
+      idempotencyKey: "v-cost-deny",
+      productId: product.data.id,
+      sku: "X-1",
+      unitPriceMinor: 1000
+    });
+    await expect(
+      setVariantCost({
+        repo,
+        tenantId: tenantA,
+        actorPermissions: writePerms,
+        actorId,
+        variantId: variant.data.id,
+        expectedVersion: variant.data.version,
+        costMinor: 500
+      })
+    ).rejects.toMatchObject({ code: "COST_PERMISSION_REQUIRED" });
   });
 });

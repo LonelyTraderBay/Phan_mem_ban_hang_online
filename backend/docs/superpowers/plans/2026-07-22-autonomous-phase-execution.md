@@ -35,7 +35,7 @@ Dừng vòng lặp khi: BLOCKED (thiếu HO rule tiền/bảo mật), hoặc h�
 
 1. [x] BE-CUS-003 Identity attach/dedupe
 2. [x] BE-CUS-004 Merge preview/merge transaction/history
-3. [ ] BE-CAT-003 Cost/price permission + history/audit
+3. [x] BE-CAT-003 Cost/price permission + history/audit
 4. [ ] BE-CAT-004 Private media upload/scan/signed URL
 5. [ ] BE-IMP-001 … BE-IMP-005 (lần lượt)
 

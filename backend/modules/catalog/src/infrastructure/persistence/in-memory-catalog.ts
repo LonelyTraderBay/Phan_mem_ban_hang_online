@@ -1,9 +1,11 @@
-import type { UuidV7 } from "@ai-sales/domain-kernel";
+import { generateUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
 import {
   CatalogError,
+  type CatalogAuditRecord,
   type CatalogRepository,
   type CatalogResource,
-  type CatalogStatus
+  type CatalogStatus,
+  type PriceHistoryRecord
 } from "../../application/catalog.js";
 
 interface StoredCategory {
@@ -39,7 +41,7 @@ interface StoredVariant {
   sku: string;
   unitPriceMinor: number;
   currency: string;
-  /** Internal only — CAT-003 will decide how/whether to expose cost. */
+  /** Field-level protected — expose via getVariantPricing + catalog.cost.read. */
   costMinor: number | null;
   barcode: string | null;
   status: "active" | "archived";
@@ -52,6 +54,8 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   readonly categories = new Map<string, StoredCategory>();
   readonly products = new Map<string, StoredProduct>();
   readonly variants = new Map<string, StoredVariant>();
+  readonly priceHistory: PriceHistoryRecord[] = [];
+  readonly audits: CatalogAuditRecord[] = [];
   private readonly idempotency = new Map<string, CatalogResource>();
 
   private toCategoryResource(c: StoredCategory): CatalogResource {
@@ -392,12 +396,80 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       .map((v) => this.toVariantResource(v));
   }
 
+  async getVariantPricing(args: {
+    readonly tenantId: string;
+    readonly variantId: string;
+  }): Promise<{
+    readonly id: string;
+    readonly tenant_id: string;
+    readonly unit_price_minor: number;
+    readonly currency: string;
+    readonly cost_minor: number | null;
+    readonly version: number;
+  } | null> {
+    const variant = this.variants.get(args.variantId);
+    if (!variant || variant.tenantId !== args.tenantId) return null;
+    return {
+      id: variant.id,
+      tenant_id: variant.tenantId,
+      unit_price_minor: variant.unitPriceMinor,
+      currency: variant.currency,
+      cost_minor: variant.costMinor,
+      version: variant.version
+    };
+  }
+
+  async listPriceHistory(args: {
+    readonly tenantId: string;
+    readonly variantId: string;
+  }): Promise<readonly PriceHistoryRecord[]> {
+    return this.priceHistory.filter(
+      (h) => h.tenantId === args.tenantId && h.variantId === args.variantId
+    );
+  }
+
+  async recordInitialPriceHistory(args: {
+    readonly tenantId: string;
+    readonly variantId: string;
+    readonly newPriceMinor: number;
+    readonly newCostMinor: number | null;
+    readonly actorId: string;
+    readonly source: string;
+  }): Promise<void> {
+    const at = new Date().toISOString();
+    this.priceHistory.push({
+      id: generateUuidV7(),
+      tenantId: args.tenantId,
+      variantId: args.variantId,
+      oldPriceMinor: null,
+      newPriceMinor: args.newPriceMinor,
+      oldCostMinor: null,
+      newCostMinor: args.newCostMinor,
+      reason: null,
+      source: args.source,
+      actorId: args.actorId,
+      effectiveAt: at
+    });
+    this.audits.push({
+      action: "catalog.price_history.append",
+      tenantId: args.tenantId,
+      actorId: args.actorId,
+      variantId: args.variantId,
+      detail: { source: args.source, new_price_minor: args.newPriceMinor },
+      at
+    });
+  }
+
   async updateVariant(args: {
     readonly tenantId: string;
     readonly variantId: string;
     readonly expectedVersion: number;
     readonly unitPriceMinor: number | null | undefined;
+    readonly costMinor: number | null | undefined;
     readonly status: "active" | "archived" | null | undefined;
+    readonly actorId: string;
+    readonly reason: string | null;
+    readonly source: string;
   }): Promise<CatalogResource> {
     const variant = this.variants.get(args.variantId);
     if (!variant || variant.tenantId !== args.tenantId || variant.status === "archived") {
@@ -406,10 +478,54 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     if (variant.version !== args.expectedVersion) {
       throw new CatalogError("Variant version conflict.", "RESOURCE_VERSION_MISMATCH");
     }
-    if (args.unitPriceMinor != null) variant.unitPriceMinor = args.unitPriceMinor;
+
+    const oldPrice = variant.unitPriceMinor;
+    const oldCost = variant.costMinor;
+    let priceChanged = false;
+    let costChanged = false;
+
+    if (args.unitPriceMinor != null && args.unitPriceMinor !== variant.unitPriceMinor) {
+      variant.unitPriceMinor = args.unitPriceMinor;
+      priceChanged = true;
+    }
+    if (args.costMinor !== undefined && args.costMinor !== variant.costMinor) {
+      variant.costMinor = args.costMinor;
+      costChanged = true;
+    }
     if (args.status != null) variant.status = args.status;
     variant.version += 1;
     variant.updatedAt = new Date();
+
+    if (priceChanged || costChanged) {
+      const at = variant.updatedAt.toISOString();
+      this.priceHistory.push({
+        id: generateUuidV7(),
+        tenantId: args.tenantId,
+        variantId: variant.id,
+        oldPriceMinor: priceChanged ? oldPrice : null,
+        newPriceMinor: priceChanged ? variant.unitPriceMinor : null,
+        oldCostMinor: costChanged ? oldCost : null,
+        newCostMinor: costChanged ? variant.costMinor : null,
+        reason: args.reason,
+        source: args.source,
+        actorId: args.actorId,
+        effectiveAt: at
+      });
+      this.audits.push({
+        action: costChanged ? "catalog.cost.update" : "catalog.price.update",
+        tenantId: args.tenantId,
+        actorId: args.actorId,
+        variantId: variant.id,
+        detail: {
+          source: args.source,
+          price_changed: priceChanged,
+          cost_changed: costChanged,
+          reason: args.reason
+        },
+        at
+      });
+    }
+
     return this.toVariantResource(variant);
   }
 

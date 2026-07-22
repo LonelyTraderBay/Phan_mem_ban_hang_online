@@ -9,18 +9,23 @@ export {
   createProduct,
   createVariant,
   getProduct,
+  getVariantPricing,
   listCategories,
   listProducts,
   listVariants,
+  listVariantPriceHistory,
   requireCatalogPermission,
+  setVariantCost,
   updateCategory,
   updateProduct,
   updateVariant,
+  type CatalogAuditRecord,
   type CatalogErrorCode,
   type CatalogPermission,
   type CatalogRepository,
   type CatalogResource,
-  type CatalogStatus
+  type CatalogStatus,
+  type PriceHistoryRecord
 } from "./application/catalog.js";
 
 export { InMemoryCatalogRepository } from "./infrastructure/persistence/in-memory-catalog.js";
