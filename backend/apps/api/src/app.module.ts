@@ -36,13 +36,15 @@ import {
 } from "@ai-sales/module-knowledge";
 import {
   createChannelController,
-  InMemoryChannelRepository,
+  PostgresChannelRepository,
   queueOutboundMessage,
-  stubFacebookAdapter
+  stubFacebookAdapter,
+  type ChannelRepository
 } from "@ai-sales/module-channel";
 import {
   createConversationController,
-  InMemoryConversationRepository,
+  PostgresConversationRepository,
+  type ConversationRepository,
   type OutboundQueuePort
 } from "@ai-sales/module-conversation";
 import {
@@ -117,12 +119,69 @@ const membersRolesRepo = new InMemoryMembersRolesRepository();
 const auditLogStore = new InMemoryAuditLogStore();
 const supportGrantStore = new InMemorySupportGrantStore();
 const knowledgeRepo = new InMemoryKnowledgeRepository();
-const channelRepo = new InMemoryChannelRepository();
-const conversationRepo = new InMemoryConversationRepository();
 const aiOrchestrationRepo = new InMemoryAiOrchestrationRepository();
 const analyticsRepo = new InMemoryAnalyticsRepository();
 const billingRepo = new InMemoryBillingRepository();
 const operationsRepo = new InMemoryOperationsRepository();
+
+function buildConversationOutboundPort(channelRepo: ChannelRepository): OutboundQueuePort {
+  return {
+    async queueReply(args) {
+      const queued = await queueOutboundMessage({
+        repo: channelRepo,
+        tenantId: args.tenantId,
+        actorId: args.actorId,
+        channelAccountId: args.channelAccountId,
+        idempotencyKey: args.idempotencyKey,
+        contentType: "text",
+        text: args.text
+      });
+      return { outboundMessageId: queued.id, status: "queued" };
+    }
+  };
+}
+
+function buildConversationLookupPort(
+  conversationRepo: ConversationRepository
+): ConversationLookupPort {
+  return {
+    async conversationExists(args) {
+      const conv = await conversationRepo.getConversation({
+        tenantId: args.tenantId,
+        conversationId: args.conversationId
+      });
+      return conv !== null;
+    }
+  };
+}
+
+function buildAiOutboundPort(
+  conversationRepo: ConversationRepository,
+  channelRepo: ChannelRepository
+): OutboundSendPort {
+  return {
+    async queueSuggestionSend(args) {
+      const conv = await conversationRepo.getConversation({
+        tenantId: args.tenantId,
+        conversationId: args.conversationId
+      });
+      if (!conv?.channelAccountId) {
+        // Fail closed: never report success when nothing was enqueued.
+        throw new Error("Conversation has no channel account for outbound send.");
+      }
+      const queued = await queueOutboundMessage({
+        repo: channelRepo,
+        tenantId: args.tenantId,
+        actorId: args.actorId,
+        channelAccountId: conv.channelAccountId,
+        idempotencyKey: args.idempotencyKey,
+        contentType: "text",
+        text: args.text
+      });
+      return { jobId: queued.id, status: "queued" };
+    }
+  };
+}
 
 function buildCatalogPricingPort(catalogRepo: CatalogRepository): CatalogPricingPort {
   return {
@@ -220,31 +279,6 @@ const inventoryRestockPort: InventoryRestockPort = {
   }
 };
 
-const conversationOutboundPort: OutboundQueuePort = {
-  async queueReply(args) {
-    const queued = await queueOutboundMessage({
-      repo: channelRepo,
-      tenantId: args.tenantId,
-      actorId: args.actorId,
-      channelAccountId: args.channelAccountId,
-      idempotencyKey: args.idempotencyKey,
-      contentType: "text",
-      text: args.text
-    });
-    return { outboundMessageId: queued.id, status: "queued" };
-  }
-};
-
-const conversationLookupPort: ConversationLookupPort = {
-  async conversationExists(args) {
-    const conv = await conversationRepo.getConversation({
-      tenantId: args.tenantId,
-      conversationId: args.conversationId
-    });
-    return conv !== null;
-  }
-};
-
 const aiKnowledgePort = createKnowledgeRetrievalClient({
   async search(args) {
     return searchPublishedKnowledge({
@@ -255,29 +289,6 @@ const aiKnowledgePort = createKnowledgeRetrievalClient({
     });
   }
 });
-
-const aiOutboundPort: OutboundSendPort = {
-  async queueSuggestionSend(args) {
-    const conv = await conversationRepo.getConversation({
-      tenantId: args.tenantId,
-      conversationId: args.conversationId
-    });
-    if (!conv?.channelAccountId) {
-      // Fail closed: never report success when nothing was enqueued.
-      throw new Error("Conversation has no channel account for outbound send.");
-    }
-    const queued = await queueOutboundMessage({
-      repo: channelRepo,
-      tenantId: args.tenantId,
-      actorId: args.actorId,
-      channelAccountId: conv.channelAccountId,
-      idempotencyKey: args.idempotencyKey,
-      contentType: "text",
-      text: args.text
-    });
-    return { jobId: queued.id, status: "queued" };
-  }
-};
 
 function buildOidcConfig(): OidcClientConfig | null {
   const config = loadConfig(process.env);
@@ -317,11 +328,16 @@ function buildControllers(): Type<unknown>[] {
     const orderRepoPg = new PostgresOrderRepository(db);
     const paymentRepoPg = new PostgresPaymentRepository(db);
     const fulfillmentRepoPg = new PostgresFulfillmentRepository(db);
+    const channelRepoPg = new PostgresChannelRepository(db);
+    const conversationRepoPg = new PostgresConversationRepository(db);
     const importApplyPort = createInMemoryImportApplyPort(catalogRepo);
     const catalogPricingPort = buildCatalogPricingPort(catalogRepo);
     const reservationPort = buildReservationPort(inventoryRepo);
     const orderLookupPort = buildOrderLookupPort(orderRepoPg);
     const orderEligibilityPort = buildOrderEligibilityPort(orderRepoPg);
+    const conversationOutboundPort = buildConversationOutboundPort(channelRepoPg);
+    const conversationLookupPort = buildConversationLookupPort(conversationRepoPg);
+    const aiOutboundPort = buildAiOutboundPort(conversationRepoPg, channelRepoPg);
     const idempotency = new PostgresIdempotencyStore(db);
     const tenantRepo = new PostgresTenantProvisionRepository(db);
     controllers.push(
@@ -343,8 +359,11 @@ function buildControllers(): Type<unknown>[] {
       createCustomersController({ repo: customerRepo }),
       createInventoryController({ repo: inventoryRepo }),
       createKnowledgeController({ repo: knowledgeRepo }),
-      createChannelController({ repo: channelRepo, adapter: stubFacebookAdapter }),
-      createConversationController({ repo: conversationRepo, outbound: conversationOutboundPort }),
+      createChannelController({ repo: channelRepoPg, adapter: stubFacebookAdapter }),
+      createConversationController({
+        repo: conversationRepoPg,
+        outbound: conversationOutboundPort
+      }),
       createOrderController({
         repo: orderRepoPg,
         catalog: catalogPricingPort,

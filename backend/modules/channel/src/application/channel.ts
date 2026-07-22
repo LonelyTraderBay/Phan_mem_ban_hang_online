@@ -540,7 +540,7 @@ export async function connectChannel(options: {
     actorId: options.actorId
   });
   const { codeVerifier, codeChallenge } = generatePkcePair();
-  const stateToken = generateOAuthStateToken();
+  const stateToken = generateOAuthStateToken(options.tenantId);
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
   await options.repo.saveOAuthState({
     tenantId: options.tenantId,
