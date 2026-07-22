@@ -46,7 +46,14 @@
 | **BE-FUL-001…002** | **GREEN (done)** | Shipment/pack/ship/deliver (`000020`) — `docs/tickets/BE-FUL-*.md` (`done`) |
 | **BE-RET-001** | **GREEN (done)** | Return/receive/inspect/restock/refund flow stub (`000020`) — `docs/tickets/BE-RET-001.md` (`done`) |
 | **BE-AI-001…016** | **GREEN (done)** | AI orchestration schema (`000021`) + in-memory application + HTTP controller + ai-service stub — `docs/tickets/BE-AI-*.md` (`done`) |
-| **P9 Analytics / F02+** | **RED until phase** | Chỉ khi phase hiện tại Done + artefacts còn consistent |
+| **BE-DAT-001…010** | **GREEN (done)** | Analytics schema (`000022`) + in-memory application + HTTP controller — `docs/tickets/BE-DAT-*.md` (`done`) |
+| **BE-BIL-001…003** | **GREEN (done)** | Billing schema (`000023`) + HO_DEFAULTS_v1 plans/entitlements + in-memory application — `docs/tickets/BE-BIL-*.md` (`done`) |
+| **BE-OPS-001…005** | **GREEN (done)** | Operations super-admin APIs + in-memory application — `docs/tickets/BE-OPS-*.md` (`done`) |
+| **BE-DSK-001…005** | **GREEN (done)** | Desktop contract stubs (identity devices / fulfillment packing / ops telemetry) — `docs/tickets/BE-DSK-*.md` (`done`) |
+| **BE-HRD-002…008** | **GREEN (done)** | Hardening rehearsal stubs (`tools/hardening/*`) — code-complete; staging execution HO |
+| **BE-FND-015** | **BLOCKED-HO** | Staging infra — cloud spend / Human Owner only |
+| **BE-HRD-001/004/009/010** | **BLOCKED-HO** | Pentest, PITR drill, pilot tenant, production readiness — HO signoff |
+| **P9 Analytics / F02+** | **CODE EXIT (in-memory)** | P9–P10 BE domains code-complete; Postgres adapters + staging HO follow |
 
 ## Kickoff order (bắt buộc)
 
@@ -85,7 +92,11 @@
 32. BE-PAY-001…003 payment schema + manual payment + callback stub — Done (`000020`)
 33. BE-FUL-001…002 + BE-RET-001 fulfillment/returns — Done (`000020`)
 34. BE-AI-001…016 AI orchestration — Done (`000021`)
-35. P9 Analytics → per phase order
+35. BE-DAT-001…010 Analytics — Done (`000022`)
+36. BE-BIL-001…003 Billing — Done (`000023`)
+37. BE-OPS-001…005 + BE-DSK-001…005 Operations/desktop — Done (`000023`)
+38. BE-HRD-002…008 Hardening rehearsal stubs — Done (`tools/hardening/`)
+39. BE-FND-015 / BE-HRD-001/004/009/010 — BLOCKED-HO (staging / production signoff)
 ```
 
 Money/tax/billing: luôn cite [`../business/HO_DEFAULTS_v1.md`](../business/HO_DEFAULTS_v1.md).

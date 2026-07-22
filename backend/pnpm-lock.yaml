@@ -65,9 +65,15 @@ importers:
       '@ai-sales/module-ai-orchestration':
         specifier: workspace:*
         version: link:../../modules/ai-orchestration
+      '@ai-sales/module-analytics':
+        specifier: workspace:*
+        version: link:../../modules/analytics
       '@ai-sales/module-audit':
         specifier: workspace:*
         version: link:../../modules/audit
+      '@ai-sales/module-billing':
+        specifier: workspace:*
+        version: link:../../modules/billing
       '@ai-sales/module-catalog':
         specifier: workspace:*
         version: link:../../modules/catalog
@@ -92,6 +98,9 @@ importers:
       '@ai-sales/module-knowledge':
         specifier: workspace:*
         version: link:../../modules/knowledge
+      '@ai-sales/module-operations':
+        specifier: workspace:*
+        version: link:../../modules/operations
       '@ai-sales/module-order':
         specifier: workspace:*
         version: link:../../modules/order
@@ -192,6 +201,18 @@ importers:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@nestjs/common':
+        specifier: 11.1.28
+        version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      fastify:
+        specifier: 5.10.0
+        version: 5.10.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/audit:
     dependencies:
@@ -229,6 +250,18 @@ importers:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@nestjs/common':
+        specifier: 11.1.28
+        version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      fastify:
+        specifier: 5.10.0
+        version: 5.10.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/catalog:
     dependencies:
@@ -394,6 +427,18 @@ importers:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@nestjs/common':
+        specifier: 11.1.28
+        version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      fastify:
+        specifier: 5.10.0
+        version: 5.10.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/order:
     dependencies:

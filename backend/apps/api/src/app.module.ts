@@ -1,4 +1,5 @@
 import { Module, type DynamicModule, type Type } from "@nestjs/common";
+import { generateUuidV7 } from "@ai-sales/domain-kernel";
 import { isOidcConfigured, loadConfig } from "@ai-sales/config";
 import { createDatabase } from "@ai-sales/database";
 import { PostgresIdempotencyStore } from "@ai-sales/idempotency";
@@ -47,6 +48,18 @@ import {
   type ConversationLookupPort,
   type OutboundSendPort
 } from "@ai-sales/module-ai-orchestration";
+import {
+  createAnalyticsController,
+  InMemoryAnalyticsRepository
+} from "@ai-sales/module-analytics";
+import {
+  createBillingController,
+  InMemoryBillingRepository
+} from "@ai-sales/module-billing";
+import {
+  createOperationsController,
+  InMemoryOperationsRepository
+} from "@ai-sales/module-operations";
 import {
   searchPublishedKnowledge
 } from "@ai-sales/module-knowledge";
@@ -115,6 +128,9 @@ const orderRepo = new InMemoryOrderRepository();
 const paymentRepo = new InMemoryPaymentRepository();
 const fulfillmentRepo = new InMemoryFulfillmentRepository();
 const aiOrchestrationRepo = new InMemoryAiOrchestrationRepository();
+const analyticsRepo = new InMemoryAnalyticsRepository();
+const billingRepo = new InMemoryBillingRepository();
+const operationsRepo = new InMemoryOperationsRepository();
 
 const catalogPricingPort: CatalogPricingPort = {
   async getVariantPricing(args) {
@@ -331,6 +347,24 @@ function buildControllers(): Type<unknown>[] {
         conversations: conversationLookupPort,
         knowledge: aiKnowledgePort,
         outbound: aiOutboundPort
+      }),
+      createAnalyticsController({ repo: analyticsRepo }),
+      createBillingController({ repo: billingRepo }),
+      createOperationsController({
+        repo: operationsRepo,
+        createSupportGrant: async (args) => {
+          const grant = await supportGrantStore.create({
+            id: generateUuidV7(),
+            tenantId: args.tenantId,
+            granteeUserId: generateUuidV7(),
+            reason: args.reason,
+            ticketRef: null,
+            scope: "read",
+            expiresAt: new Date(args.expiresAt),
+            approvedBy: null
+          });
+          return { id: grant.id, status: "active" };
+        }
       })
     );
 

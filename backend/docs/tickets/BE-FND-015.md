@@ -98,10 +98,10 @@ Derive from BE domain test matrices / blueprint §13 where present; otherwise wr
 
 # Completion manifest
 
-- Contracts changed:
-- Migration:
-- Tests/evidence:
-- Known risks:
+- Contracts changed: none (OpenAPI frozen)
+- Migration: none — requires managed staging dependencies (RDS/Redis/object store HA)
+- Tests/evidence: n/a
+- Known risks: **BLOCKED-HO** — Human Owner cloud spend + staging topology signoff required. Do not fake staging infra.
 
 # Freeze provenance
 

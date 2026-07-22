@@ -134,22 +134,22 @@ authoritative for AI coding agents — do not re-open without ADR.
 
 | Table | Class | RLS/migration status | Notes |
 |---|---|---|---|
-| `event_logs` | TENANT_OWNED | Not started | Projection, not a source of truth — doesn't replace outbox |
-| `daily_tenant_metrics` | TENANT_OWNED | Not started | Fact table |
-| `daily_channel_metrics` | TENANT_OWNED | Not started | Fact table |
-| `daily_sales_agent_metrics` | TENANT_OWNED | Not started | Fact table |
-| `daily_product_metrics` | TENANT_OWNED | Not started | Fact table |
-| `conversation_conversion_facts` | TENANT_OWNED | Not started | Fact table |
-| `order_profit_facts` | TENANT_OWNED | Not started | Fact table |
+| `event_logs` | TENANT_OWNED | **Done** (`000022`) | Projection, not a source of truth — doesn't replace outbox |
+| `daily_tenant_metrics` | TENANT_OWNED | **Done** (`000022`) | Fact table |
+| `daily_channel_metrics` | TENANT_OWNED | **Done** (`000022`) | Fact table |
+| `daily_sales_agent_metrics` | TENANT_OWNED | **Done** (`000022`) | Fact table |
+| `daily_product_metrics` | TENANT_OWNED | **Done** (`000022`) | Fact table |
+| `conversation_conversion_facts` | TENANT_OWNED | **Done** (`000022`) | Fact table |
+| `order_profit_facts` | TENANT_OWNED | **Done** (`000022`) | Fact table |
 | `ai_quality_facts` | TENANT_OWNED | Done (`000021`) | Fact table |
-| `plans` | GLOBAL | Not started | Seed ids: `plan_free` \| `plan_pro` \| `plan_business` (HO_DEFAULTS_v1) |
-| `subscriptions` | TENANT_OWNED | Not started | Over-limit: soft_warn → hard_block, no auto-upgrade (HO_DEFAULTS) |
-| `usage_meters` | TENANT_OWNED | Not started | |
-| `feature_flags` | GLOBAL | Not started | |
-| `feature_flag_overrides` | TENANT_OVERRIDE | Not started | Global key + `tenant_id` |
-| `system_alerts` | GLOBAL | Not started | Platform SRE alert; `ops.*` only — never tenant role |
+| `plans` | GLOBAL | **Done** (`000023`) | Seed ids: `plan_free` \| `plan_pro` \| `plan_business` (HO_DEFAULTS_v1) |
+| `subscriptions` | TENANT_OWNED | **Done** (`000023`) | Over-limit: soft_warn → hard_block, no auto-upgrade (HO_DEFAULTS) |
+| `usage_meters` | TENANT_OWNED | **Done** (`000023`) | |
+| `feature_flags` | GLOBAL | **Done** (`000023`) | |
+| `feature_flag_overrides` | TENANT_OVERRIDE | **Done** (`000023`) | Global key + `tenant_id` |
+| `system_alerts` | GLOBAL | **Done** (`000023`) | Platform SRE alert; `ops.*` only — never tenant role |
 | `support_tickets` | TENANT_OWNED | Not started | |
-| `reprocess_requests` | GLOBAL | Not started | Ops API (`ops.reprocess`); optional nullable `target_tenant_id` filter column (not RLS ownership) |
+| `reprocess_requests` | GLOBAL | **Done** (`000023`) | Ops API (`ops.reprocess`); optional nullable `target_tenant_id` filter column (not RLS ownership) |
 | `job_runs` | SYSTEM_INTERNAL | Not started | Not exposed through user APIs (§6.1) |
 | `audit_logs` | TENANT_OWNED (nullable tenant) [ledger] | Not started | Domain ledger (§7.12.5); converge with skeleton `audit_events` via expand/contract |
 

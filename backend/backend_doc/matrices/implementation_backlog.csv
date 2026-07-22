@@ -24,25 +24,25 @@ phase,task_id,title,deliverable_or_details,status,primary_paths
 19.3 Phase P1,BE-FND-012,Audit append port,"transaction-aware writer, redaction",Done,modules/audit/
 19.3 Phase P1,BE-FND-013,Observability,"OTel logs/traces/metrics, health endpoints",Done,packages/observability/;apps/api/
 19.3 Phase P1,BE-FND-014,CI/CD,"PR/main/staging pipeline, scans, SBOM/image signing",In Progress,.github/workflows/ci.yml
-19.3 Phase P1,BE-FND-015,Staging infra,HA-appropriate managed dependencies baseline,Not Started,infra/;docs/release/
+19.3 Phase P1,BE-FND-015,Staging infra,HA-appropriate managed dependencies baseline,Blocked-HO,infra/;docs/release/
 19.3 Phase P1,BE-FND-016,Walking skeleton,"`/health`, temporary authenticated test flow, DB/RLS/outbox trace",Done,modules/audit/;apps/api/;infra/migrations/
 19.3 Phase P1,BE-FND-017,Audit module reference tests,permission-negative + write-path/redaction on walking skeleton; full 5-category suite,Done,modules/audit/
 19.3 Phase P1,BE-FND-018,test-utils invariant helpers,createTenantIsolationFixture/assertCrossTenantDenied/replayIdempotencyKey/money helpers,Done,packages/test-utils/
 19.4 Phase P2,BE-IDN-001,Create identity/tenant/membership/role/session/device schema + RLS,,Done,modules/identity/;modules/tenant/;infra/migrations/000005_identity_schema.sql
-19.4 Phase P2,BE-IDN-002,Tenant provisioning/default roles/owner invitation,,Not Started,modules/identity/;modules/tenant/
-19.4 Phase P2,BE-IDN-003,OIDC BFF login + session cookie + CSRF (Web Admin),,Not Started,modules/identity/;modules/tenant/;docs/collaboration/gap-009-oidc-bff-contract.md
-19.4 Phase P2,BE-IDN-004,Access JWT key rotation/validation/audience,,Not Started,modules/identity/;modules/tenant/
-19.4 Phase P2,BE-IDN-005,Refresh token family/rotation/reuse detection,,Not Started,modules/identity/;modules/tenant/
-19.4 Phase P2,BE-IDN-006,Logout/session/device revoke + SSE/session event hooks,,Not Started,modules/identity/;modules/tenant/
-19.4 Phase P2,BE-IDN-007,Password forgot/reset single-use flow,,Not Started,modules/identity/;modules/tenant/
-19.4 Phase P2,BE-IDN-008,TOTP MFA/recovery codes/step-up,,Not Started,modules/identity/;modules/tenant/
-19.4 Phase P2,BE-IDN-009,Tenant switch and request context resolution,,Not Started,modules/identity/;modules/tenant/
-19.4 Phase P2,BE-IDN-010,Member invitation/accept/suspend/revoke,,Not Started,modules/identity/;modules/tenant/
-19.4 Phase P2,BE-IDN-011,Role/permission APIs/cache/version invalidation,,Not Started,modules/identity/;modules/tenant/
-19.4 Phase P2,BE-IDN-012,Field-level authorization policy utilities,,Not Started,modules/identity/;modules/tenant/
-19.4 Phase P2,BE-IDN-013,Audit list/export with permission/redaction,,Not Started,modules/identity/;modules/tenant/
-19.4 Phase P2,BE-IDN-014,Support access grant model/API baseline,,Not Started,modules/identity/;modules/tenant/
-19.4 Phase P2,BE-IDN-015,Auth/RBAC/tenant isolation security suite,,Not Started,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-002,Tenant provisioning/default roles/owner invitation,,Done,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-003,OIDC BFF login + session cookie + CSRF (Web Admin),,Done,modules/identity/;modules/tenant/;docs/collaboration/gap-009-oidc-bff-contract.md
+19.4 Phase P2,BE-IDN-004,Access JWT key rotation/validation/audience,,Done,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-005,Refresh token family/rotation/reuse detection,,Done,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-006,Logout/session/device revoke + SSE/session event hooks,,Done,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-007,Password forgot/reset single-use flow,,Done,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-008,TOTP MFA/recovery codes/step-up,,Done,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-009,Tenant switch and request context resolution,,Done,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-010,Member invitation/accept/suspend/revoke,,Done,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-011,Role/permission APIs/cache/version invalidation,,Done,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-012,Field-level authorization policy utilities,,Done,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-013,Audit list/export with permission/redaction,,Done,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-014,Support access grant model/API baseline,,Done,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-015,Auth/RBAC/tenant isolation security suite,,Done,modules/identity/;modules/tenant/
 19.5 Phase P3,BE-CUS-001,Customer/identity/address/tag/consent/note schema + encryption/blind index,,Done,modules/customer/;infra/migrations/000011_customer_schema.sql
 19.5 Phase P3,BE-CUS-002,Customer CRUD/search/PII field masking,,Done,modules/customer/;modules/customer/src/application/customers.ts
 19.5 Phase P3,BE-CUS-003,Identity attach/dedupe rules,,Done,modules/customer/;infra/migrations/000013_customer_identity_dedupe.sql
@@ -123,36 +123,36 @@ phase,task_id,title,deliverable_or_details,status,primary_paths
 19.10 Phase P8,BE-AI-014,P0/P1 eval sets/red-team regression,,Done,modules/ai-orchestration/;apps/ai-service/
 19.10 Phase P8,BE-AI-015,Budget/rate/concurrency/fallback/kill switches,,Done,modules/ai-orchestration/;apps/ai-service/
 19.10 Phase P8,BE-AI-016,Online quality/cost/safety dashboards,,Done,modules/ai-orchestration/;apps/ai-service/
-19.11 Phase P9,BE-DAT-001,Business event schema/taxonomy completeness review,,Not Started,modules/analytics/
-19.11 Phase P9,BE-DAT-002,Event log/projection consumer/inbox/watermark,,Not Started,modules/analytics/
-19.11 Phase P9,BE-DAT-003,Order/revenue/profit facts,,Not Started,modules/analytics/
-19.11 Phase P9,BE-DAT-004,Conversation/SLA/conversion facts,,Not Started,modules/analytics/
-19.11 Phase P9,BE-DAT-005,Channel/sales agent/product daily facts,,Not Started,modules/analytics/
-19.11 Phase P9,BE-DAT-006,AI quality/usage facts,,Not Started,modules/analytics/
-19.11 Phase P9,BE-DAT-007,Dashboard/report APIs/permission/freshness,,Not Started,modules/analytics/
-19.11 Phase P9,BE-DAT-008,Export jobs/private signed output,,Not Started,modules/analytics/
-19.11 Phase P9,BE-DAT-009,Daily reconciliation/late event/backfill,,Not Started,modules/analytics/
-19.11 Phase P9,BE-DAT-010,Query/load/index/read replica assessment,,Not Started,modules/analytics/
-19.12 Phase P10,BE-BIL-001,Plan/subscription/entitlement/usage schemas,,Not Started,modules/billing/
-19.12 Phase P10,BE-BIL-002,Usage event metering/idempotency/reconciliation,,Not Started,modules/billing/
-19.12 Phase P10,BE-BIL-003,Soft/hard limit policy and API,,Not Started,modules/billing/
-19.12 Phase P10,BE-OPS-001,Tenant/system health aggregation,,Not Started,modules/operations/
-19.12 Phase P10,BE-OPS-002,Feature flags/kill switches with expiry/audit,,Not Started,modules/operations/
-19.12 Phase P10,BE-OPS-003,Support access grants and scoped service token,,Not Started,modules/operations/
-19.12 Phase P10,BE-OPS-004,Reprocess webhook/import/job APIs,,Not Started,modules/operations/
-19.12 Phase P10,BE-OPS-005,System alerts/actions audit,,Not Started,modules/operations/
-19.12 Phase P10,BE-DSK-001,Device registration/revoke/version policy,,Not Started,modules/operations/
-19.12 Phase P10,BE-DSK-002,SSE/notification contract for Windows,,Not Started,modules/operations/
-19.12 Phase P10,BE-DSK-003,Print/packing payload and signed assets,,Not Started,modules/operations/
-19.12 Phase P10,BE-DSK-004,Offline draft server revalidation,,Not Started,modules/operations/
-19.12 Phase P10,BE-DSK-005,Crash telemetry ingestion if not vendor SDK,,Not Started,modules/operations/
-19.13 Phase P11,BE-HRD-001,Full ASVS/AI security verification and pentest,,Not Started,docs/;infra/;apps/
-19.13 Phase P11,BE-HRD-002,Capacity/load/soak/connection/reconnect storm tests,,Not Started,docs/;infra/;apps/
-19.13 Phase P11,BE-HRD-003,"Failure injection: DB failover, Redis restart, provider outage",,Not Started,docs/;infra/;apps/
-19.13 Phase P11,BE-HRD-004,Backup/PITR restore drill and measured RPO/RTO,,Not Started,docs/;infra/;apps/
-19.13 Phase P11,BE-HRD-005,Migration/rollback/canary rehearsal,,Not Started,docs/;infra/;apps/
-19.13 Phase P11,BE-HRD-006,SLO dashboards/burn alerts/on-call/runbooks,,Not Started,docs/;infra/;apps/
-19.13 Phase P11,BE-HRD-007,Data retention/privacy export/anonymize test,,Not Started,docs/;infra/;apps/
-19.13 Phase P11,BE-HRD-008,Reconciliation and repair procedure rehearsal,,Not Started,docs/;infra/;apps/
-19.13 Phase P11,BE-HRD-009,Pilot tenant onboarding/feature flag/capacity guard,,Not Started,docs/;infra/;apps/
-19.13 Phase P11,BE-HRD-010,Defect closure and production readiness review,,Not Started,docs/;infra/;apps/
+19.11 Phase P9,BE-DAT-001,Business event schema/taxonomy completeness review,,Done,modules/analytics/
+19.11 Phase P9,BE-DAT-002,Event log/projection consumer/inbox/watermark,,Done,modules/analytics/
+19.11 Phase P9,BE-DAT-003,Order/revenue/profit facts,,Done,modules/analytics/
+19.11 Phase P9,BE-DAT-004,Conversation/SLA/conversion facts,,Done,modules/analytics/
+19.11 Phase P9,BE-DAT-005,Channel/sales agent/product daily facts,,Done,modules/analytics/
+19.11 Phase P9,BE-DAT-006,AI quality/usage facts,,Done,modules/analytics/
+19.11 Phase P9,BE-DAT-007,Dashboard/report APIs/permission/freshness,,Done,modules/analytics/
+19.11 Phase P9,BE-DAT-008,Export jobs/private signed output,,Done,modules/analytics/
+19.11 Phase P9,BE-DAT-009,Daily reconciliation/late event/backfill,,Done,modules/analytics/
+19.11 Phase P9,BE-DAT-010,Query/load/index/read replica assessment,,Done,modules/analytics/
+19.12 Phase P10,BE-BIL-001,Plan/subscription/entitlement/usage schemas,,Done,modules/billing/
+19.12 Phase P10,BE-BIL-002,Usage event metering/idempotency/reconciliation,,Done,modules/billing/
+19.12 Phase P10,BE-BIL-003,Soft/hard limit policy and API,,Done,modules/billing/
+19.12 Phase P10,BE-OPS-001,Tenant/system health aggregation,,Done,modules/operations/
+19.12 Phase P10,BE-OPS-002,Feature flags/kill switches with expiry/audit,,Done,modules/operations/
+19.12 Phase P10,BE-OPS-003,Support access grants and scoped service token,,Done,modules/operations/
+19.12 Phase P10,BE-OPS-004,Reprocess webhook/import/job APIs,,Done,modules/operations/
+19.12 Phase P10,BE-OPS-005,System alerts/actions audit,,Done,modules/operations/
+19.12 Phase P10,BE-DSK-001,Device registration/revoke/version policy,,Done,modules/operations/
+19.12 Phase P10,BE-DSK-002,SSE/notification contract for Windows,,Done,modules/operations/
+19.12 Phase P10,BE-DSK-003,Print/packing payload and signed assets,,Done,modules/operations/
+19.12 Phase P10,BE-DSK-004,Offline draft server revalidation,,Done,modules/operations/
+19.12 Phase P10,BE-DSK-005,Crash telemetry ingestion if not vendor SDK,,Done,modules/operations/
+19.13 Phase P11,BE-HRD-001,Full ASVS/AI security verification and pentest,,Blocked-HO,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-002,Capacity/load/soak/connection/reconnect storm tests,,Done,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-003,"Failure injection: DB failover, Redis restart, provider outage",,Done,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-004,Backup/PITR restore drill and measured RPO/RTO,,Blocked-HO,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-005,Migration/rollback/canary rehearsal,,Done,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-006,SLO dashboards/burn alerts/on-call/runbooks,,Done,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-007,Data retention/privacy export/anonymize test,,Done,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-008,Reconciliation and repair procedure rehearsal,,Done,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-009,Pilot tenant onboarding/feature flag/capacity guard,,Blocked-HO,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-010,Defect closure and production readiness review,,Blocked-HO,docs/;infra/;apps/
