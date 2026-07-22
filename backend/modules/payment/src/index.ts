@@ -20,4 +20,5 @@ export {
 } from "./application/payment.js";
 
 export { InMemoryPaymentRepository } from "./infrastructure/persistence/in-memory-payment.js";
+export { PostgresPaymentRepository } from "./infrastructure/persistence/postgres-payment.js";
 export { createPaymentController } from "./presentation/http/payment.controller.js";

@@ -14,8 +14,8 @@ import {
 import {
   createCatalogController,
   createInMemoryImportApplyPort,
-  InMemoryImportRepository,
-  PostgresCatalogRepository
+  PostgresCatalogRepository,
+  PostgresImportRepository
 } from "@ai-sales/module-catalog";
 import {
   createCustomersController,
@@ -75,13 +75,14 @@ import {
 } from "@ai-sales/module-fulfillment";
 import {
   createOrderController,
-  InMemoryOrderRepository,
+  PostgresOrderRepository,
   type CatalogPricingPort,
+  type OrderRepository,
   type ReservationPort
 } from "@ai-sales/module-order";
 import {
   createPaymentController,
-  InMemoryPaymentRepository,
+  PostgresPaymentRepository,
   type OrderLookupPort
 } from "@ai-sales/module-payment";
 import {
@@ -115,12 +116,9 @@ import { HealthController } from "./health.controller";
 const membersRolesRepo = new InMemoryMembersRolesRepository();
 const auditLogStore = new InMemoryAuditLogStore();
 const supportGrantStore = new InMemorySupportGrantStore();
-const importRepo = new InMemoryImportRepository();
 const knowledgeRepo = new InMemoryKnowledgeRepository();
 const channelRepo = new InMemoryChannelRepository();
 const conversationRepo = new InMemoryConversationRepository();
-const orderRepo = new InMemoryOrderRepository();
-const paymentRepo = new InMemoryPaymentRepository();
 const fulfillmentRepo = new InMemoryFulfillmentRepository();
 const aiOrchestrationRepo = new InMemoryAiOrchestrationRepository();
 const analyticsRepo = new InMemoryAnalyticsRepository();
@@ -185,33 +183,37 @@ function buildReservationPort(inventoryRepo: InventoryRepository): ReservationPo
   };
 }
 
-const orderLookupPort: OrderLookupPort = {
-  async getOrderGrandTotal(args) {
-    const order = await orderRepo.getOrder({
-      tenantId: args.tenantId,
-      orderId: args.orderId
-    });
-    if (!order) return null;
-    return { grandTotalMinor: order.grandTotalMinor, currency: order.currency };
-  }
-};
+function buildOrderLookupPort(repo: OrderRepository): OrderLookupPort {
+  return {
+    async getOrderGrandTotal(args) {
+      const order = await repo.getOrder({
+        tenantId: args.tenantId,
+        orderId: args.orderId
+      });
+      if (!order) return null;
+      return { grandTotalMinor: order.grandTotalMinor, currency: order.currency };
+    }
+  };
+}
 
-const orderEligibilityPort: OrderEligibilityPort = {
-  async isOrderConfirmed(args) {
-    const order = await orderRepo.getOrder({
-      tenantId: args.tenantId,
-      orderId: args.orderId
-    });
-    return order?.status === "confirmed";
-  },
-  async getOrderItemIds(args) {
-    const order = await orderRepo.getOrder({
-      tenantId: args.tenantId,
-      orderId: args.orderId
-    });
-    return order?.items.map((i) => i.id) ?? [];
-  }
-};
+function buildOrderEligibilityPort(repo: OrderRepository): OrderEligibilityPort {
+  return {
+    async isOrderConfirmed(args) {
+      const order = await repo.getOrder({
+        tenantId: args.tenantId,
+        orderId: args.orderId
+      });
+      return order?.status === "confirmed";
+    },
+    async getOrderItemIds(args) {
+      const order = await repo.getOrder({
+        tenantId: args.tenantId,
+        orderId: args.orderId
+      });
+      return order?.items.map((i) => i.id) ?? [];
+    }
+  };
+}
 
 const inventoryRestockPort: InventoryRestockPort = {
   async restockStub() {
@@ -312,9 +314,14 @@ function buildControllers(): Type<unknown>[] {
     const catalogRepo = new PostgresCatalogRepository(db);
     const customerRepo = new PostgresCustomerRepository(db);
     const inventoryRepo = new PostgresInventoryRepository(db);
+    const importRepoPg = new PostgresImportRepository(db);
+    const orderRepoPg = new PostgresOrderRepository(db);
+    const paymentRepoPg = new PostgresPaymentRepository(db);
     const importApplyPort = createInMemoryImportApplyPort(catalogRepo);
     const catalogPricingPort = buildCatalogPricingPort(catalogRepo);
     const reservationPort = buildReservationPort(inventoryRepo);
+    const orderLookupPort = buildOrderLookupPort(orderRepoPg);
+    const orderEligibilityPort = buildOrderEligibilityPort(orderRepoPg);
     const idempotency = new PostgresIdempotencyStore(db);
     const tenantRepo = new PostgresTenantProvisionRepository(db);
     controllers.push(
@@ -330,7 +337,7 @@ function buildControllers(): Type<unknown>[] {
       createSupportAccessController({ store: supportGrantStore }),
       createCatalogController({
         repo: catalogRepo,
-        importRepo,
+        importRepo: importRepoPg,
         importApplyPort
       }),
       createCustomersController({ repo: customerRepo }),
@@ -339,11 +346,11 @@ function buildControllers(): Type<unknown>[] {
       createChannelController({ repo: channelRepo, adapter: stubFacebookAdapter }),
       createConversationController({ repo: conversationRepo, outbound: conversationOutboundPort }),
       createOrderController({
-        repo: orderRepo,
+        repo: orderRepoPg,
         catalog: catalogPricingPort,
         reservation: reservationPort
       }),
-      createPaymentController({ repo: paymentRepo, orders: orderLookupPort }),
+      createPaymentController({ repo: paymentRepoPg, orders: orderLookupPort }),
       createFulfillmentController({
         repo: fulfillmentRepo,
         orders: orderEligibilityPort,

@@ -63,4 +63,5 @@ export {
   createInMemoryImportApplyPort,
   InMemoryImportRepository
 } from "./infrastructure/persistence/in-memory-import.js";
+export { PostgresImportRepository } from "./infrastructure/persistence/postgres-import.js";
 export { createCatalogController } from "./presentation/http/catalog.controller.js";
