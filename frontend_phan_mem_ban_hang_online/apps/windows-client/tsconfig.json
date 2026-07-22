@@ -1,0 +1,7 @@
+{
+  "extends": "@ai-sales/tsconfig/vite-app.json",
+  "compilerOptions": {
+    "rootDir": "src"
+  },
+  "include": ["src"]
+}

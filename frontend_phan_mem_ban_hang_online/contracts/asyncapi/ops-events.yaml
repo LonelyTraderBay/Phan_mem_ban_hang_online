@@ -1,0 +1,12 @@
+# GENERATED — do not hand-edit. Source: backend openapi.yaml (split by path prefix).
+# Run 'pnpm contracts:sync' to refresh.
+asyncapi: 3.1.0
+info:
+  title: Ops Events (STUB)
+  version: 0.0.0
+  description: No Super Admin/Operations-specific async events exist in the
+    backend contract yet. This file is a placeholder so packages/realtime and
+    codegen tooling have a stable two-file shape matching contracts/openapi's
+    tenant/ops split. Populate when backend ships ops-scoped events.
+channels: {}
+operations: {}

@@ -1,0 +1,29 @@
+.venv-headroom/
+.headroom/
+scripts/headroom/logs/
+.cursor/mcp.json
+
+__pycache__/
+*.py[cod]
+
+# Node / monorepo
+node_modules/
+dist/
+build/
+coverage/
+storybook-static/
+playwright-report/
+test-results/
+.turbo/
+*.tsbuildinfo
+.env
+.env.local
+apps/windows-client/src-tauri/target/
+
+# Editor
+.vscode/*
+!.vscode/settings.json
+
+# Claude Code local-only files
+.claude/settings.local.json
+.claude/data/

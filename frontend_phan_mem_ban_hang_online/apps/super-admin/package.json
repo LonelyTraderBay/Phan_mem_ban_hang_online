@@ -1,0 +1,39 @@
+{
+  "name": "@ai-sales/super-admin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Super Admin / Operations app — separate app, origin, and session from web-admin (ADR-FE-004, spec 8.1).",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5174",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@ai-sales/api-client": "workspace:*",
+    "@ai-sales/auth": "workspace:*",
+    "@ai-sales/config": "workspace:*",
+    "@ai-sales/i18n": "workspace:*",
+    "@ai-sales/permissions": "workspace:*",
+    "@ai-sales/realtime": "workspace:*",
+    "@ai-sales/state": "workspace:*",
+    "@ai-sales/telemetry": "workspace:*",
+    "@ai-sales/ui": "workspace:*",
+    "@tanstack/react-query": "5.62.7",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-router": "7.1.1"
+  },
+  "devDependencies": {
+    "@ai-sales/eslint-config": "workspace:*",
+    "@ai-sales/tsconfig": "workspace:*",
+    "@types/react": "19.0.7",
+    "@types/react-dom": "19.0.3",
+    "@vitejs/plugin-react": "4.3.4",
+    "typescript": "6.0.3",
+    "vite": "6.0.7",
+    "vitest": "4.1.9"
+  }
+}

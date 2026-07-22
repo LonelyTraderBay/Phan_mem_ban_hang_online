@@ -1,0 +1,46 @@
+{
+  "name": "ai-sales-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Enterprise frontend workspace for the AI Sales Operating System.",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": "24.18.0",
+    "pnpm": "11.9.0"
+  },
+  "scripts": {
+    "check:node": "node tooling/scripts/check-node-version.mjs",
+    "dev:web-admin": "turbo run dev --filter=@ai-sales/web-admin",
+    "dev:super-admin": "turbo run dev --filter=@ai-sales/super-admin",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "storybook": "turbo run storybook --filter=@ai-sales/ui",
+    "contracts:validate": "node tooling/scripts/validate-contracts.mjs",
+    "contracts:sync": "node tooling/scripts/sync-backend-contracts.mjs",
+    "codegen:api": "turbo run codegen --filter=@ai-sales/api-generated",
+    "codegen:check-clean": "node tooling/scripts/check-codegen-clean.mjs",
+    "test:coverage": "turbo run test -- --coverage",
+    "bundle:budget": "node tooling/scripts/check-bundle-budget.mjs",
+    "changeset": "changeset",
+    "verify": "pnpm check:node && pnpm contracts:validate && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@changesets/cli": "2.27.11",
+    "@playwright/test": "1.49.1",
+    "@eslint/js": "10.0.1",
+    "eslint": "10.6.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-import": "2.31.0",
+    "globals": "17.7.0",
+    "prettier": "3.8.5",
+    "turbo": "2.3.3",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.62.0",
+    "vitest": "4.1.9",
+    "@vitest/coverage-v8": "4.1.9",
+    "yaml": "2.9.0"
+  }
+}

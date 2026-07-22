@@ -1,0 +1,35 @@
+{
+  "name": "@ai-sales/auth",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Session bootstrap, auth state machine, refresh, cross-tab sync, tenant switching, route guards (spec 9.x, FE-F01 foundation).",
+  "type": "module",
+  "sideEffects": false,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ai-sales/api-client": "workspace:*",
+    "@ai-sales/config": "workspace:*",
+    "@ai-sales/state": "workspace:*",
+    "zod": "3.24.1",
+    "zustand": "5.0.2"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@ai-sales/eslint-config": "workspace:*",
+    "@ai-sales/test-utils": "workspace:*",
+    "@ai-sales/tsconfig": "workspace:*",
+    "@tanstack/react-query": "5.62.7",
+    "@types/react": "19.0.7",
+    "react": "19.0.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}

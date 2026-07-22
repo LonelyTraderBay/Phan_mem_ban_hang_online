@@ -1,0 +1,7 @@
+{
+  "app.loading": "Loading...",
+  "app.error.generic": "Something went wrong. Please try again.",
+  "app.error.forbidden": "You do not have access to this item.",
+  "app.error.offline": "No network connection.",
+  "app.empty.generic": "No data to display."
+}

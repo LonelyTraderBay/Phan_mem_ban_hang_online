@@ -1,0 +1,12 @@
+---
+description: Use Headroom MCP tools to compress large context before analysis
+alwaysApply: true
+---
+
+When working with large content, use the Headroom MCP tools to save context tokens:
+
+- Before analyzing file contents over 500 lines, long grep/search output, build logs, or JSON dumps, call `headroom_compress` on the raw text first.
+- Work from the compressed result; use `headroom_retrieve` with the returned hash when you need the original full content or to search within it.
+- After long sessions with multiple compressions, call `headroom_stats` to report token savings.
+
+Do not skip compression for very large tool outputs when Headroom MCP is available.

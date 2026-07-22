@@ -1,0 +1,1471 @@
+# GENERATED — do not hand-edit. Source: backend openapi.yaml (split by path prefix).
+# Run 'pnpm contracts:sync' to refresh.
+openapi: 3.1.1
+info:
+  title: AI Sales Operating System Backend API (Operations)
+  version: 2.0.0
+  description: Contract starter generated from Backend Enterprise Implementation
+    Blueprint v2.0. Each sprint MUST refine operation-specific schemas/examples
+    before freeze.
+servers:
+  - url: https://api.example.com/api/v1
+    description: Production
+  - url: https://api.staging.example.com/api/v1
+    description: Staging
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+  - name: Tenant
+  - name: Members
+  - name: Roles
+  - name: Sessions
+  - name: Audit
+  - name: Customers
+  - name: Catalog
+  - name: Imports
+  - name: Inventory
+  - name: Knowledge
+  - name: Channels
+  - name: Webhooks
+  - name: Conversations
+  - name: Realtime
+  - name: AI
+  - name: Orders
+  - name: Payments
+  - name: Shipments
+  - name: Returns
+  - name: Analytics
+  - name: Billing
+  - name: Operations
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    RequestId:
+      name: X-Request-Id
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      schema:
+        type: string
+        maxLength: 128
+    CsrfToken:
+      name: X-CSRF-Token
+      in: header
+      required: false
+      description: Required for browser requests authenticated by the BFF session
+        cookie. The value must match the non-HttpOnly csrf_token cookie
+        (double-submit). Not required for OAuth/PKCE bearer clients. Missing or
+        mismatched values return 403 CSRF_TOKEN_INVALID.
+      schema:
+        type: string
+        minLength: 32
+        maxLength: 256
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 128
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      schema:
+        type: string
+      example: '"v3"'
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+        maxLength: 2048
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+  headers:
+    XRequestId:
+      schema:
+        type: string
+      description: Server request ID
+    XCorrelationId:
+      schema:
+        type: string
+      description: Business correlation ID
+    ETag:
+      schema:
+        type: string
+      description: Resource version ETag
+  schemas:
+    Meta:
+      type: object
+      additionalProperties: false
+      required:
+        - request_id
+      properties:
+        request_id:
+          type: string
+        correlation_id:
+          type:
+            - string
+            - "null"
+    PageInfo:
+      type: object
+      additionalProperties: false
+      required:
+        - has_more
+      properties:
+        next_cursor:
+          type:
+            - string
+            - "null"
+        has_more:
+          type: boolean
+    FieldError:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - message
+      properties:
+        field:
+          type:
+            - string
+            - "null"
+        code:
+          type: string
+        message:
+          type: string
+        meta:
+          type: object
+          additionalProperties: true
+    Problem:
+      type: object
+      additionalProperties: true
+      required:
+        - type
+        - title
+        - status
+        - code
+        - request_id
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+        code:
+          type: string
+        detail:
+          type:
+            - string
+            - "null"
+        instance:
+          type:
+            - string
+            - "null"
+        request_id:
+          type: string
+        correlation_id:
+          type:
+            - string
+            - "null"
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/FieldError"
+    GenericResource:
+      type: object
+      additionalProperties: true
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    GenericDataResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/GenericResource"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GenericListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page_info
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/GenericResource"
+        page_info:
+          $ref: "#/components/schemas/PageInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    GenericCommandRequest:
+      type: object
+      additionalProperties: true
+      description: Starter placeholder. Replace with operation-specific schema before
+        contract freeze.
+    JobResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - job_id
+            - status
+          properties:
+            job_id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum:
+                - queued
+                - running
+                - completed
+                - failed
+                - cancelled
+            status_url:
+              type:
+                - string
+                - "null"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    MfaVerifyRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - challenge_id
+        - code
+      properties:
+        challenge_id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          pattern: ^[0-9]{6}$
+          description: Single-use TOTP or approved recovery-code challenge response.
+    EmptyCommandRequest:
+      type: object
+      additionalProperties: false
+      description: Empty body for cookie-authenticated commands that take no fields.
+      properties: {}
+    EmptyOkResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+        meta:
+          $ref: "#/components/schemas/Meta"
+    SwitchTenantRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant_id
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+    PasswordForgotRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+    PasswordResetRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - token
+        - new_password
+      properties:
+        token:
+          type: string
+          minLength: 16
+          maxLength: 256
+        new_password:
+          type: string
+          minLength: 8
+          maxLength: 256
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        password:
+          type: string
+          minLength: 8
+          maxLength: 256
+        tenant_code:
+          type:
+            - string
+            - "null"
+          maxLength: 100
+        device:
+          type:
+            - object
+            - "null"
+          additionalProperties: false
+          properties:
+            device_id:
+              type: string
+            platform:
+              type: string
+            app_version:
+              type: string
+    SessionBootstrapUser:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - display_name
+        - locale
+        - timezone
+      properties:
+        id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        locale:
+          type: string
+          minLength: 2
+          maxLength: 35
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+    SessionBootstrapTenant:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - currency
+        - timezone
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+    SessionBootstrapSession:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - version
+        - expires_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+        expires_at:
+          type: string
+          format: date-time
+        reauth_required_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+    SessionBootstrapDevice:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - trusted
+      properties:
+        id:
+          type: string
+          format: uuid
+        trusted:
+          type: boolean
+    SessionBootstrapData:
+      type: object
+      additionalProperties: false
+      required:
+        - user
+        - tenant
+        - session
+        - device
+        - permissions
+        - feature_flags
+      properties:
+        user:
+          $ref: "#/components/schemas/SessionBootstrapUser"
+        tenant:
+          $ref: "#/components/schemas/SessionBootstrapTenant"
+        session:
+          $ref: "#/components/schemas/SessionBootstrapSession"
+        device:
+          $ref: "#/components/schemas/SessionBootstrapDevice"
+        permissions:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Specific permission strings ? never a single role name.
+        feature_flags:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: false
+            required:
+              - enabled
+            properties:
+              enabled:
+                type: boolean
+              variant:
+                type: string
+        entitlements:
+          type: object
+          additionalProperties:
+            type: number
+    SessionBootstrapResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          $ref: "#/components/schemas/SessionBootstrapData"
+        meta:
+          $ref: "#/components/schemas/Meta"
+    AuthResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - mfa_required
+          properties:
+            access_token:
+              type:
+                - string
+                - "null"
+              description: Populated for OAuth/PKCE-based clients only (Windows desktop
+                client, per frontend ADR-FE-014). Web Admin never reads this
+                field — sessions are HttpOnly-cookie-only and JavaScript never
+                sees a token (per frontend ADR-FE-013).
+            expires_in:
+              type:
+                - integer
+                - "null"
+            mfa_required:
+              type: boolean
+            mfa_challenge_id:
+              type:
+                - string
+                - "null"
+            session_id:
+              type:
+                - string
+                - "null"
+              format: uuid
+        meta:
+          $ref: "#/components/schemas/Meta"
+    AcceptInvitationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          minLength: 16
+          maxLength: 256
+        password:
+          type:
+            - string
+            - "null"
+          minLength: 8
+          maxLength: 256
+    ProductCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 300
+        description:
+          type:
+            - string
+            - "null"
+          maxLength: 20000
+        category_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        brand:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+        status:
+          type: string
+          enum:
+            - draft
+            - active
+        attributes:
+          type: object
+          additionalProperties: true
+    ReservationItemRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - variant_id
+        - quantity
+      properties:
+        variant_id:
+          type: string
+          format: uuid
+        quantity:
+          type: string
+          pattern: ^\d+(\.\d{1,6})?$
+        preferred_warehouse_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+    CreateReservationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - owner
+        - expires_at
+        - items
+      properties:
+        owner:
+          type: object
+          additionalProperties: false
+          required:
+            - type
+            - id
+          properties:
+            type:
+              type: string
+              enum:
+                - order
+                - conversation
+                - manual
+            id:
+              type: string
+              format: uuid
+        expires_at:
+          type: string
+          format: date-time
+        allocation_strategy:
+          type: string
+          enum:
+            - preferred_only
+            - preferred_then_available
+            - any_available
+          default: preferred_then_available
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/ReservationItemRequest"
+    ReservationResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - id
+            - status
+            - expires_at
+            - allocations
+            - version
+          properties:
+            id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum:
+                - active
+                - released
+                - expired
+                - converted
+            expires_at:
+              type: string
+              format: date-time
+            version:
+              type: integer
+            allocations:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required:
+                  - variant_id
+                  - warehouse_id
+                  - quantity
+                properties:
+                  variant_id:
+                    type: string
+                    format: uuid
+                  warehouse_id:
+                    type: string
+                    format: uuid
+                  quantity:
+                    type: string
+                  available_after:
+                    type: string
+        meta:
+          $ref: "#/components/schemas/Meta"
+    OrderDraftCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - customer_id
+        - items
+      properties:
+        customer_id:
+          type: string
+          format: uuid
+        conversation_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - variant_id
+              - quantity
+            properties:
+              variant_id:
+                type: string
+                format: uuid
+              quantity:
+                type: string
+        shipping_address_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        notes:
+          type:
+            - string
+            - "null"
+          maxLength: 2000
+    ConfirmOrderRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - expected_order_version
+        - quote_version
+        - reservation_id
+        - customer_confirmation
+      properties:
+        expected_order_version:
+          type: integer
+          minimum: 1
+        quote_version:
+          type: string
+        reservation_id:
+          type: string
+          format: uuid
+        customer_confirmation:
+          type: object
+          additionalProperties: false
+          required:
+            - source
+            - confirmed_at
+          properties:
+            source:
+              type: string
+              enum:
+                - customer
+                - agent
+                - system-approved
+            confirmed_at:
+              type: string
+              format: date-time
+    SendMessageRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - content
+        - expected_conversation_version
+      properties:
+        content:
+          type: object
+          additionalProperties: false
+          required:
+            - type
+          properties:
+            type:
+              type: string
+              enum:
+                - text
+                - template
+                - attachment
+            text:
+              type:
+                - string
+                - "null"
+              maxLength: 10000
+            attachment_ids:
+              type: array
+              items:
+                type: string
+                format: uuid
+        reply_to_message_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        ai_suggestion_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        expected_conversation_version:
+          type: integer
+          minimum: 1
+    AISuggestionRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - conversation_id
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+        message_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        mode:
+          type: string
+          enum:
+            - copilot
+            - semi_auto
+            - autopilot
+          default: copilot
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://errors.example.com/validation-failed
+            title: Bad request
+            status: 400
+            code: VALIDATION_FAILED
+            request_id: req_example
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://errors.example.com/auth-invalid-credentials
+            title: Authentication required
+            status: 401
+            code: AUTH_INVALID_CREDENTIALS
+            request_id: req_example
+    Forbidden:
+      description: Permission denied
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://errors.example.com/insufficient-permission
+            title: Permission denied
+            status: 403
+            code: INSUFFICIENT_PERMISSION
+            request_id: req_example
+    NotFound:
+      description: Resource not found or not visible
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://errors.example.com/resource-not-found
+            title: Resource not found or not visible
+            status: 404
+            code: RESOURCE_NOT_FOUND
+            request_id: req_example
+    Conflict:
+      description: State, duplicate, or idempotency conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://errors.example.com/resource-state-conflict
+            title: State, duplicate, or idempotency conflict
+            status: 409
+            code: RESOURCE_STATE_CONFLICT
+            request_id: req_example
+    PreconditionFailed:
+      description: ETag/precondition mismatch
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://errors.example.com/resource-version-mismatch
+            title: ETag/precondition mismatch
+            status: 412
+            code: RESOURCE_VERSION_MISMATCH
+            request_id: req_example
+    Unprocessable:
+      description: Business validation failed
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://errors.example.com/validation-failed
+            title: Business validation failed
+            status: 422
+            code: VALIDATION_FAILED
+            request_id: req_example
+    TooManyRequests:
+      description: Rate or quota exceeded
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://errors.example.com/rate-limited
+            title: Rate or quota exceeded
+            status: 429
+            code: RATE_LIMITED
+            request_id: req_example
+    ServerError:
+      description: Unexpected server error
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://errors.example.com/internal-error
+            title: Unexpected server error
+            status: 500
+            code: INTERNAL_ERROR
+            request_id: req_example
+    ServiceUnavailable:
+      description: Dependency unavailable
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://errors.example.com/service-unavailable
+            title: Dependency unavailable
+            status: 503
+            code: SERVICE_UNAVAILABLE
+            request_id: req_example
+paths:
+  /super-admin/tenants:
+    get:
+      tags:
+        - Operations
+      summary: List tenants for operations
+      operationId: listTenantsForOperations
+      x-permission: ops.tenant.read
+      x-idempotency: not-required
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Success
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/XRequestId"
+            X-Correlation-Id:
+              $ref: "#/components/headers/XCorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /super-admin/tenants/{tenant_id}/health:
+    get:
+      tags:
+        - Operations
+      summary: Get tenant health
+      operationId: getTenantHealth
+      x-permission: ops.tenant_health
+      x-idempotency: not-required
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Success
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/XRequestId"
+            X-Correlation-Id:
+              $ref: "#/components/headers/XCorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericDataResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /super-admin/tenants/{tenant_id}/support-access:
+    post:
+      tags:
+        - Operations
+      summary: Create support access
+      operationId: createSupportAccess
+      x-permission: support.access
+      x-idempotency: required
+      x-csrf-protection: cookie-session-required
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "201":
+          description: Success
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/XRequestId"
+            X-Correlation-Id:
+              $ref: "#/components/headers/XCorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericDataResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenericCommandRequest"
+  /super-admin/tenants/{tenant_id}/feature-flags/{flag_key}:
+    post:
+      tags:
+        - Operations
+      summary: Set tenant feature flag
+      operationId: setTenantFeatureFlag
+      x-permission: ops.feature_flag
+      x-idempotency: required
+      x-csrf-protection: cookie-session-required
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: flag_key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/XRequestId"
+            X-Correlation-Id:
+              $ref: "#/components/headers/XCorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericDataResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenericCommandRequest"
+  /super-admin/tenants/{tenant_id}/disable-ai:
+    post:
+      tags:
+        - Operations
+      summary: Disable tenant a i
+      operationId: disableTenantAI
+      x-permission: ai.disable
+      x-idempotency: required
+      x-csrf-protection: cookie-session-required
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Success
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/XRequestId"
+            X-Correlation-Id:
+              $ref: "#/components/headers/XCorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericDataResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenericCommandRequest"
+  /super-admin/system-alerts:
+    get:
+      tags:
+        - Operations
+      summary: List system alerts
+      operationId: listSystemAlerts
+      x-permission: ops.alert.read
+      x-idempotency: not-required
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Success
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/XRequestId"
+            X-Correlation-Id:
+              $ref: "#/components/headers/XCorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /super-admin/reprocess-requests:
+    post:
+      tags:
+        - Operations
+      summary: Create reprocess request
+      operationId: createReprocessRequest
+      x-permission: ops.reprocess
+      x-idempotency: required
+      x-csrf-protection: cookie-session-required
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Success
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/XRequestId"
+            X-Correlation-Id:
+              $ref: "#/components/headers/XCorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenericCommandRequest"
+  /super-admin/ai-health:
+    get:
+      tags:
+        - Operations
+      summary: Get ai health
+      operationId: getAiHealth
+      x-permission: ops.ai_health.read
+      x-idempotency: not-required
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Success
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/XRequestId"
+            X-Correlation-Id:
+              $ref: "#/components/headers/XCorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericDataResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /super-admin/channel-health:
+    get:
+      tags:
+        - Operations
+      summary: Get channel health
+      operationId: getChannelHealth
+      x-permission: ops.channel_health.read
+      x-idempotency: not-required
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Success
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/XRequestId"
+            X-Correlation-Id:
+              $ref: "#/components/headers/XCorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericDataResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /super-admin/audit-logs:
+    get:
+      tags:
+        - Operations
+      summary: List audit logs for operations
+      operationId: listAuditLogsForOperations
+      x-permission: ops.audit.read
+      x-idempotency: not-required
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Success
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/XRequestId"
+            X-Correlation-Id:
+              $ref: "#/components/headers/XCorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/ServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"

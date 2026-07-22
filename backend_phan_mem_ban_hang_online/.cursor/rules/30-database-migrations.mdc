@@ -1,0 +1,15 @@
+---
+description: Database migrations, RLS, and Kysely usage
+globs: infra/migrations/**,packages/database/**
+alwaysApply: false
+---
+
+# Database and Migrations
+
+- Migrations are immutable once applied in shared environments; add new files, never edit old ones.
+- Every tenant-owned table: `tenant_id UUID NOT NULL`, RLS policy, tenant-scoped indexes.
+- Use composite tenant FKs to prevent cross-tenant references.
+- Set tenant context via `withTenantTransaction` and `set_config('app.tenant_id', ...)`.
+- Use `statement_timeout` on pools; wrap multi-step mutations in transactions.
+- Expand/contract pattern for risky schema changes.
+- Kysely types live in `packages/database` or module `infrastructure/persistence/` — keep domain free of SQL.

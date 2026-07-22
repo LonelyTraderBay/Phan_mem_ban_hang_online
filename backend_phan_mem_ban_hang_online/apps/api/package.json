@@ -1,0 +1,25 @@
+{
+  "name": "@ai-sales/api",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/main.ts",
+  "dependencies": {
+    "@ai-sales/config": "workspace:*",
+    "@ai-sales/database": "workspace:*",
+    "@ai-sales/idempotency": "workspace:*",
+    "@ai-sales/module-audit": "workspace:*",
+    "@ai-sales/observability": "workspace:*",
+    "@ai-sales/security": "workspace:*",
+    "@nestjs/common": "11.1.28",
+    "@nestjs/core": "11.1.28",
+    "@nestjs/platform-fastify": "11.1.27",
+    "fastify": "5.10.0",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "11.1.28",
+    "supertest": "7.2.2",
+    "@types/supertest": "7.2.1"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@ai-sales/telemetry",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Provider-neutral telemetry interface (errors, events, traces) with mandatory PII redaction (spec 15.x, 16.x, FE-F00-008).",
+  "type": "module",
+  "sideEffects": false,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ai-sales/config": "workspace:*",
+    "@sentry/react": "10.14.0"
+  },
+  "devDependencies": {
+    "@ai-sales/eslint-config": "workspace:*",
+    "@ai-sales/tsconfig": "workspace:*",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}

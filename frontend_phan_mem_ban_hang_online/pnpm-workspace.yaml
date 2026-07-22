@@ -1,0 +1,14 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "tooling/*"
+allowBuilds:
+  # esbuild's postinstall just downloads its platform-specific binary — required for
+  # esbuild to run at all, and a transitive dependency of Vite/Storybook/Vitest.
+  esbuild: true
+  # @swc/core's postinstall downloads its native binary — transitive dep of
+  # @storybook/test-runner (Jest-based).
+  '@swc/core': true
+  # msw's postinstall copies its browser Service Worker script — needed for
+  # packages/test-utils' msw/browser.ts (Storybook dev-without-backend).
+  msw: true

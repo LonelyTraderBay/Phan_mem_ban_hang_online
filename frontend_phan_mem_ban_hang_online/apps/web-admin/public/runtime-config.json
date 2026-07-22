@@ -1,0 +1,10 @@
+{
+  "environment": "local",
+  "apiBaseUrl": "/api",
+  "sseUrl": "/realtime/stream",
+  "oidcClientId": "web-admin",
+  "releaseVersion": "0.1.0",
+  "buildSha": "local-dev",
+  "telemetryEnabled": false,
+  "supportUrl": "/help"
+}

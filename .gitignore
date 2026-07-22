@@ -1,0 +1,30 @@
+# Root workspace ignores (nested package .gitignore still apply)
+**/node_modules/
+**/dist/
+**/build/
+**/coverage/
+**/.turbo/
+**/.pytest_cache/
+**/__pycache__/
+*.pyc
+**/.env
+**/.env.*
+!**/.env.example
+**/.gitnexus/
+**/.headroom/
+**/.understand-anything/
+**/playwright-report/
+**/test-results/
+*.tsbuildinfo
+pnpm-debug.log*
+
+# Local agent / editor state
+**/.claude/settings.local.json
+**/.claude/worktrees/
+**/.claude/data/
+**/.cursor/mcp.json
+**/.cursorrules
+
+# OS
+.DS_Store
+Thumbs.db

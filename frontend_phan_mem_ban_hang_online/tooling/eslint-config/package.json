@@ -1,0 +1,14 @@
+{
+  "name": "@ai-sales/eslint-config",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared flat ESLint configuration for the frontend workspace, encoding the import-boundary rules from spec section 4.3.",
+  "main": "index.mjs",
+  "dependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-import": "2.31.0",
+    "globals": "17.7.0",
+    "typescript-eslint": "8.62.0"
+  }
+}

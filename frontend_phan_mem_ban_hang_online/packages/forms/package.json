@@ -1,0 +1,31 @@
+{
+  "name": "@ai-sales/forms",
+  "version": "0.1.0",
+  "private": true,
+  "description": "React Hook Form + Zod wrapper and common field validators (spec 3.2 ADR-FE-010). Business-specific validation belongs in each feature's own schemas/, not here.",
+  "type": "module",
+  "sideEffects": false,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "3.10.0",
+    "react-hook-form": "7.54.2",
+    "zod": "3.24.1"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@ai-sales/eslint-config": "workspace:*",
+    "@ai-sales/tsconfig": "workspace:*",
+    "@types/react": "19.0.7",
+    "react": "19.0.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}

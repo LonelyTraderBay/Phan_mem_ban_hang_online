@@ -1,0 +1,10 @@
+export type {
+  paths as TenantApiPaths,
+  components as TenantApiComponents,
+  operations as TenantApiOperations,
+} from "./generated/tenant";
+export type {
+  paths as OpsApiPaths,
+  components as OpsApiComponents,
+  operations as OpsApiOperations,
+} from "./generated/ops";

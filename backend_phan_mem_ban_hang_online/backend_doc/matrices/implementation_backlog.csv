@@ -1,0 +1,158 @@
+﻿phase,task_id,title,deliverable_or_details,status,primary_paths
+19.2 Phase P0,BE-P0-001,XÃ¡c nháº­n capacity/SLO/cost assumptions,NFR sign-off,Done,docs/p0/capacity-slo-cost-assumptions.md
+19.2 Phase P0,BE-P0-002,Commit ADR-001â€¦ADR-010,`docs/adr/*.md`,Done,docs/adr/
+19.2 Phase P0,BE-P0-003,System context/data flow/trust boundary,diagrams + threat model seed,Done,docs/diagrams/;docs/threat-model/
+19.2 Phase P0,BE-P0-004,ERD v1 vÃ  table classification,ERD/data dictionary,Done,docs/data/table-classification-seed.md
+19.2 Phase P0,BE-P0-005,Permission matrix vÃ  default roles,CSV/seed plan,Done,backend_doc/matrices/permission_matrix.csv
+19.2 Phase P0,BE-P0-006,State machine transition matrices,reviewed spec/tests outline,Done,docs/domain/state-machine-transition-matrices.md
+19.2 Phase P0,BE-P0-007,OpenAPI/AsyncAPI skeleton + lint rules,contracts compile,Done,backend_doc/contracts/;packages/contracts-http/
+19.2 Phase P0,BE-P0-008,Error/idempotency/audit/event catalogs,machine-readable catalogs,Done,backend_doc/matrices/error_catalog.csv
+19.2 Phase P0,BE-P0-009,Environment/topology/release strategy,platform plan,Done,docs/release/environment-topology.md
+19.2 Phase P0,BE-P0-010,Security/AI threat model P0,risks/mitigations/tests,Done,docs/threat-model/p0-threat-model.md
+19.2 Phase P0,BE-P0-011,Epic decomposition vÃ  dependency board,implementation-ready backlog,Done,docs/p0/epic-dependency-board.md
+19.3 Phase P1,BE-FND-001,Monorepo/bootstrap,"pnpm workspace, apps/packages/modules, strict TS, boundary lint",Done,package.json;modules/;eslint.config.mjs
+19.3 Phase P1,BE-FND-002,Local stack,Docker Compose PostgreSQL/Redis/object emulator/OTel,Done,infra/docker/compose.yaml
+19.3 Phase P1,BE-FND-003,Config package,"typed schema, fail-fast, secret redaction",Done,packages/config/
+19.3 Phase P1,BE-FND-004,HTTP baseline,"Fastify/Nest, request/correlation ID, RFC9457 error, validation",Done,apps/api/
+19.3 Phase P1,BE-FND-005,OpenAPI pipeline,"lint, docs, generated client/types/mock",Done,tools/validate-contracts.mjs;packages/contracts-http/
+19.3 Phase P1,BE-FND-006,Database package,"Kysely/pg pool, transaction runner, statement timeout",In Progress,packages/database/
+19.3 Phase P1,BE-FND-007,Migration framework,"role/schema/bootstrap, immutable migrations",Done,infra/migrations/
+19.3 Phase P1,BE-FND-008,Tenant transaction/RLS test harness,"context setter, runtime DB role, deny-default tests",Done,packages/database/;infra/migrations/
+19.3 Phase P1,BE-FND-009,Idempotency component,storage/service/interceptor + replay tests,Done,packages/idempotency/
+19.3 Phase P1,BE-FND-010,Outbox/inbox component,"schema, publisher, consumer base, DLQ",Done,packages/outbox/
+19.3 Phase P1,BE-FND-011,Queue/scheduler skeleton,"BullMQ queues, retry/lease/graceful shutdown",Done,apps/worker/;apps/scheduler/
+19.3 Phase P1,BE-FND-012,Audit append port,"transaction-aware writer, redaction",Done,modules/audit/
+19.3 Phase P1,BE-FND-013,Observability,"OTel logs/traces/metrics, health endpoints",Done,packages/observability/;apps/api/
+19.3 Phase P1,BE-FND-014,CI/CD,"PR/main/staging pipeline, scans, SBOM/image signing",In Progress,.github/workflows/ci.yml
+19.3 Phase P1,BE-FND-015,Staging infra,HA-appropriate managed dependencies baseline,Not Started,infra/;docs/release/
+19.3 Phase P1,BE-FND-016,Walking skeleton,"`/health`, temporary authenticated test flow, DB/RLS/outbox trace",Done,modules/audit/;apps/api/;infra/migrations/
+19.3 Phase P1,BE-FND-017,Audit module reference tests,"permission-negative + write-path/redaction on walking skeleton; full 5-category suite",Done,modules/audit/
+19.3 Phase P1,BE-FND-018,test-utils invariant helpers,"createTenantIsolationFixture/assertCrossTenantDenied/replayIdempotencyKey/money helpers",Done,packages/test-utils/
+19.4 Phase P2,BE-IDN-001,Create identity/tenant/membership/role/session/device schema + RLS,,Not Started,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-002,Tenant provisioning/default roles/owner invitation,,Not Started,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-003,OIDC BFF login + session cookie + CSRF (Web Admin),,Not Started,modules/identity/;modules/tenant/;docs/collaboration/gap-009-oidc-bff-contract.md
+19.4 Phase P2,BE-IDN-004,Access JWT key rotation/validation/audience,,Not Started,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-005,Refresh token family/rotation/reuse detection,,Not Started,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-006,Logout/session/device revoke + SSE/session event hooks,,Not Started,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-007,Password forgot/reset single-use flow,,Not Started,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-008,TOTP MFA/recovery codes/step-up,,Not Started,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-009,Tenant switch and request context resolution,,Not Started,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-010,Member invitation/accept/suspend/revoke,,Not Started,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-011,Role/permission APIs/cache/version invalidation,,Not Started,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-012,Field-level authorization policy utilities,,Not Started,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-013,Audit list/export with permission/redaction,,Not Started,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-014,Support access grant model/API baseline,,Not Started,modules/identity/;modules/tenant/
+19.4 Phase P2,BE-IDN-015,Auth/RBAC/tenant isolation security suite,,Not Started,modules/identity/;modules/tenant/
+19.5 Phase P3,BE-CUS-001,Customer/identity/address/tag/consent/note schema + encryption/blind index,,Not Started,modules/customer/
+19.5 Phase P3,BE-CUS-002,Customer CRUD/search/PII field masking,,Not Started,modules/customer/
+19.5 Phase P3,BE-CUS-003,Identity attach/dedupe rules,,Not Started,modules/customer/
+19.5 Phase P3,BE-CUS-004,Merge preview/merge transaction/history,,Not Started,modules/customer/
+19.5 Phase P3,BE-CAT-001,Category/product/variant/media schema + RLS/constraints,,Not Started,modules/catalog/
+19.5 Phase P3,BE-CAT-002,Product/category/variant CRUD + ETag,,Not Started,modules/catalog/
+19.5 Phase P3,BE-CAT-003,Cost/price permission + history/audit,,Not Started,modules/catalog/
+19.5 Phase P3,BE-CAT-004,Private media upload/scan/signed URL flow,,Not Started,modules/catalog/
+19.5 Phase P3,BE-IMP-001,Import upload/job/staging schema,,Not Started,modules/catalog/
+19.5 Phase P3,BE-IMP-002,"Parser, encoding/file limits, mapping detection",,Not Started,modules/catalog/
+19.5 Phase P3,BE-IMP-003,Validation/dedupe/preview/error report,,Not Started,modules/catalog/
+19.5 Phase P3,BE-IMP-004,Confirm/apply idempotent atomic merge,,Not Started,modules/catalog/
+19.5 Phase P3,BE-IMP-005,Large import resumability/cancellation/metrics,,Not Started,modules/catalog/
+19.6 Phase P4,BE-INV-001,Warehouse/balance/movement/reservation schema + constraints/RLS,,Not Started,modules/inventory/
+19.6 Phase P4,BE-INV-002,Balance query/read DTO/indexes,,Not Started,modules/inventory/
+19.6 Phase P4,BE-INV-003,Adjustment command/reason/approval/audit,,Not Started,modules/inventory/
+19.6 Phase P4,BE-INV-004,Reservation create with deterministic locks,,Not Started,modules/inventory/
+19.6 Phase P4,BE-INV-005,Release/extend/expire/convert state machine,,Not Started,modules/inventory/
+19.6 Phase P4,BE-INV-006,Expiry scheduler/worker/idempotency,,Not Started,modules/inventory/
+19.6 Phase P4,BE-INV-007,Inventory ledger/balance reconciliation,,Not Started,modules/inventory/
+19.6 Phase P4,BE-INV-008,High-contention/concurrency/property tests,,Not Started,modules/inventory/
+19.6 Phase P4,BE-KNW-001,Source/version/chunk lifecycle schema,,Not Started,modules/knowledge/
+19.6 Phase P4,BE-KNW-002,CRUD/review/approve/publish/archive APIs,,Not Started,modules/knowledge/
+19.6 Phase P4,BE-KNW-003,File extraction sandbox/content checksum,,Not Started,modules/knowledge/
+19.6 Phase P4,BE-KNW-004,Chunk/embed generation/versioning,,Not Started,modules/knowledge/
+19.6 Phase P4,BE-KNW-005,Published/effective-only tenant retrieval API,,Not Started,modules/knowledge/
+19.6 Phase P4,BE-KNW-006,Ingestion health/retry/rebuild/test search,,Not Started,modules/knowledge/
+19.7 Phase P5,BE-CHN-001,Provider adapter interfaces + normalized schemas,,Not Started,modules/channel/
+19.7 Phase P5,BE-CHN-002,Channel account/credential/health schema,,Not Started,modules/channel/
+19.7 Phase P5,BE-CHN-003,OAuth state/PKCE where applicable/callback/token vault,,Not Started,modules/channel/
+19.7 Phase P5,BE-CHN-004,Raw-body webhook signature verification,,Not Started,modules/channel/
+19.7 Phase P5,BE-CHN-005,Webhook storage/dedupe/fast ACK,,Not Started,modules/channel/
+19.7 Phase P5,BE-CHN-006,Normalize message/comment/identity events,,Not Started,modules/channel/
+19.7 Phase P5,BE-CHN-007,Queue retry/backoff/DLQ/reprocess,,Not Started,modules/channel/
+19.7 Phase P5,BE-CHN-008,Outbound message state/attempt/provider send,,Not Started,modules/channel/
+19.7 Phase P5,BE-CHN-009,Per-account/provider rate limiting/circuit breaker,,Not Started,modules/channel/
+19.7 Phase P5,BE-CHN-010,Token/scope/health monitoring and alerts,,Not Started,modules/channel/
+19.7 Phase P5,BE-CHN-011,Provider fixture/contract/replay test suite,,Not Started,modules/channel/
+19.8 Phase P6,BE-CON-001,Conversation/message/attachment/assignment/note schema,,Not Started,modules/conversation/
+19.8 Phase P6,BE-CON-002,Inbound normalized event -> identity/conversation/message upsert,,Not Started,modules/conversation/
+19.8 Phase P6,BE-CON-003,List/detail/message cursor APIs + indexes,,Not Started,modules/conversation/
+19.8 Phase P6,BE-CON-004,Multidimensional state handlers,,Not Started,modules/conversation/
+19.8 Phase P6,BE-CON-005,Assignment/history/internal notes,,Not Started,modules/conversation/
+19.8 Phase P6,BE-CON-006,Reply command -> outbound queue,,Not Started,modules/conversation/
+19.8 Phase P6,BE-CON-007,SLA calendar/calculation/breach scheduler,,Not Started,modules/conversation/
+19.8 Phase P6,BE-CON-008,Lead score v1 with rule version/provenance,,Not Started,modules/conversation/
+19.8 Phase P6,BE-CON-009,Human takeover/AI mode/escalation,,Not Started,modules/conversation/
+19.8 Phase P6,BE-CON-010,SSE authorization/fan-out/replay/resync,,Not Started,modules/conversation/
+19.8 Phase P6,BE-CON-011,Attachment download security/malware state,,Not Started,modules/conversation/
+19.8 Phase P6,BE-CON-012,End-to-end webhook-to-inbox/reply-to-provider test,,Not Started,modules/conversation/
+19.9 Phase P7,BE-ORD-001,Order/item/history schema + money value objects,,Not Started,modules/order/
+19.9 Phase P7,BE-ORD-002,Deterministic calculation/rounding/discount/tax rules,,Not Started,modules/order/
+19.9 Phase P7,BE-ORD-003,Create/update/recalculate draft + quote version,,Not Started,modules/order/
+19.9 Phase P7,BE-ORD-004,Reservation ownership/integration,,Not Started,modules/order/
+19.9 Phase P7,BE-ORD-005,Confirm transaction and snapshots,,Not Started,modules/order/
+19.9 Phase P7,BE-ORD-006,Cancel/expire/compensating inventory flows,,Not Started,modules/order/
+19.9 Phase P7,BE-ORD-007,Duplicate fingerprint/warning/idempotency,,Not Started,modules/order/
+19.9 Phase P7,BE-PAY-001,Payment/payment-attempt/refund schema/lifecycle,,Not Started,modules/payment/
+19.9 Phase P7,BE-PAY-002,Manual payment record/confirm/reconcile,,Not Started,modules/payment/
+19.9 Phase P7,BE-PAY-003,Provider callback adapter baseline when selected,,Not Started,modules/payment/
+19.9 Phase P7,BE-FUL-001,Shipment/item/tracking/packing-slip data,,Not Started,modules/fulfillment/
+19.9 Phase P7,BE-FUL-002,Pack/ship/deliver transitions,,Not Started,modules/fulfillment/
+19.9 Phase P7,BE-RET-001,Return/receive/inspect/restock/refund flow,,Not Started,modules/fulfillment/
+19.9 Phase P7,BE-ORD-008,Concurrency/property/reconciliation test suites,,Not Started,modules/order/
+19.10 Phase P8,BE-AI-001,"FastAPI skeleton, model gateway, OTel, health/timeouts",,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-002,Prompt/model/tool/retrieval config version model,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-003,Context builder/minimization/untrusted-content separation,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-004,Intent/risk classifier interface and deterministic fallback,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-005,Tenant-filtered knowledge retrieval client,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-006,Tool registry/policy gateway/R0â€“R5 enforcement,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-007,Catalog/inventory/policy/customer/order read tools,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-008,Draft/reservation/message mutation tools with idempotency/approval,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-009,Structured suggestion schema + bounded repair,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-010,QC/claim/source/freshness validators,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-011,AI-R001â€¦AI-R010 enforcement and blocked output records,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-012,Suggestion/log/review/send APIs,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-013,Prompt lifecycle/eval runner/activation/rollback,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-014,P0/P1 eval sets/red-team regression,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-015,Budget/rate/concurrency/fallback/kill switches,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.10 Phase P8,BE-AI-016,Online quality/cost/safety dashboards,,Not Started,modules/ai-orchestration/;apps/ai-service/
+19.11 Phase P9,BE-DAT-001,Business event schema/taxonomy completeness review,,Not Started,modules/analytics/
+19.11 Phase P9,BE-DAT-002,Event log/projection consumer/inbox/watermark,,Not Started,modules/analytics/
+19.11 Phase P9,BE-DAT-003,Order/revenue/profit facts,,Not Started,modules/analytics/
+19.11 Phase P9,BE-DAT-004,Conversation/SLA/conversion facts,,Not Started,modules/analytics/
+19.11 Phase P9,BE-DAT-005,Channel/sales agent/product daily facts,,Not Started,modules/analytics/
+19.11 Phase P9,BE-DAT-006,AI quality/usage facts,,Not Started,modules/analytics/
+19.11 Phase P9,BE-DAT-007,Dashboard/report APIs/permission/freshness,,Not Started,modules/analytics/
+19.11 Phase P9,BE-DAT-008,Export jobs/private signed output,,Not Started,modules/analytics/
+19.11 Phase P9,BE-DAT-009,Daily reconciliation/late event/backfill,,Not Started,modules/analytics/
+19.11 Phase P9,BE-DAT-010,Query/load/index/read replica assessment,,Not Started,modules/analytics/
+19.12 Phase P10,BE-BIL-001,Plan/subscription/entitlement/usage schemas,,Not Started,modules/billing/
+19.12 Phase P10,BE-BIL-002,Usage event metering/idempotency/reconciliation,,Not Started,modules/billing/
+19.12 Phase P10,BE-BIL-003,Soft/hard limit policy and API,,Not Started,modules/billing/
+19.12 Phase P10,BE-OPS-001,Tenant/system health aggregation,,Not Started,modules/operations/
+19.12 Phase P10,BE-OPS-002,Feature flags/kill switches with expiry/audit,,Not Started,modules/operations/
+19.12 Phase P10,BE-OPS-003,Support access grants and scoped service token,,Not Started,modules/operations/
+19.12 Phase P10,BE-OPS-004,Reprocess webhook/import/job APIs,,Not Started,modules/operations/
+19.12 Phase P10,BE-OPS-005,System alerts/actions audit,,Not Started,modules/operations/
+19.12 Phase P10,BE-DSK-001,Device registration/revoke/version policy,,Not Started,modules/operations/
+19.12 Phase P10,BE-DSK-002,SSE/notification contract for Windows,,Not Started,modules/operations/
+19.12 Phase P10,BE-DSK-003,Print/packing payload and signed assets,,Not Started,modules/operations/
+19.12 Phase P10,BE-DSK-004,Offline draft server revalidation,,Not Started,modules/operations/
+19.12 Phase P10,BE-DSK-005,Crash telemetry ingestion if not vendor SDK,,Not Started,modules/operations/
+19.13 Phase P11,BE-HRD-001,Full ASVS/AI security verification and pentest,,Not Started,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-002,Capacity/load/soak/connection/reconnect storm tests,,Not Started,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-003,"Failure injection: DB failover, Redis restart, provider outage",,Not Started,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-004,Backup/PITR restore drill and measured RPO/RTO,,Not Started,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-005,Migration/rollback/canary rehearsal,,Not Started,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-006,SLO dashboards/burn alerts/on-call/runbooks,,Not Started,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-007,Data retention/privacy export/anonymize test,,Not Started,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-008,Reconciliation and repair procedure rehearsal,,Not Started,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-009,Pilot tenant onboarding/feature flag/capacity guard,,Not Started,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-010,Defect closure and production readiness review,,Not Started,docs/;infra/;apps/

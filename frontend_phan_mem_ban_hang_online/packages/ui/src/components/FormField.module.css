@@ -1,0 +1,21 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ai-sales-spacing-1);
+}
+
+.label {
+  font-size: var(--ai-sales-font-size-sm);
+  font-weight: var(--ai-sales-font-weight-medium);
+  color: var(--ai-sales-color-text-secondary);
+}
+
+.error {
+  font-size: var(--ai-sales-font-size-sm);
+  color: var(--ai-sales-color-danger-text);
+}
+
+.hint {
+  font-size: var(--ai-sales-font-size-sm);
+  color: var(--ai-sales-color-text-muted);
+}

@@ -1,0 +1,32 @@
+.viewport {
+  position: fixed;
+  bottom: var(--ai-sales-spacing-4);
+  right: var(--ai-sales-spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ai-sales-spacing-2);
+  z-index: var(--ai-sales-z-toast);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.root {
+  background-color: var(--ai-sales-color-surface-raised);
+  border-radius: var(--ai-sales-radius-md);
+  box-shadow: var(--ai-sales-shadow-md);
+  padding: var(--ai-sales-spacing-3) var(--ai-sales-spacing-4);
+  border-left: 4px solid var(--ai-sales-color-action-primary);
+}
+
+.root[data-variant="success"] {
+  border-left-color: var(--ai-sales-color-success-base);
+}
+.root[data-variant="danger"] {
+  border-left-color: var(--ai-sales-color-danger-base);
+}
+
+.title {
+  font-weight: var(--ai-sales-font-weight-semibold);
+  color: var(--ai-sales-color-text-primary);
+}

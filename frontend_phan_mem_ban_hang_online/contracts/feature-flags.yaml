@@ -1,0 +1,12 @@
+# Frontend-owned feature flag registry (ADR-FE-017: typed flags, bootstrap from server, default
+# off). Unlike contracts/openapi and contracts/permissions, this file is NOT synced from the
+# backend — there is no backend feature-flag source yet, so this is hand-maintained here.
+flags:
+  - key: ai_copilot
+    owner: ai-team
+    default: false
+    variants: [draft_only, approval, enabled]
+    kill_switch: true
+    expiry_date: null
+    apps: [web-admin, windows-client]
+    telemetry_required: true

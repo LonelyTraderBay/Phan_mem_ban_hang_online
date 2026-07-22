@@ -1,0 +1,25 @@
+.input {
+  font-family: var(--ai-sales-font-base);
+  font-size: var(--ai-sales-font-size-base);
+  color: var(--ai-sales-color-text-primary);
+  background-color: var(--ai-sales-color-surface-base);
+  border: 1px solid var(--ai-sales-color-border-default);
+  border-radius: var(--ai-sales-radius-md);
+  padding: var(--ai-sales-spacing-2) var(--ai-sales-spacing-3);
+  width: 100%;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--ai-sales-color-focus-ring);
+  outline-offset: 1px;
+  border-color: var(--ai-sales-color-border-focus);
+}
+
+.input:disabled {
+  color: var(--ai-sales-color-text-disabled);
+  cursor: not-allowed;
+}
+
+.invalid {
+  border-color: var(--ai-sales-color-danger-base);
+}

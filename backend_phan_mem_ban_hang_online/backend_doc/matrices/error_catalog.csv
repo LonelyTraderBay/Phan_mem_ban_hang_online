@@ -1,0 +1,86 @@
+code,http_status,category,retryable,user_message_vi,description
+AUTH_INVALID_CREDENTIALS,401,auth,0,Thông tin đăng nhập không hợp lệ.,Enumeration-safe login failure
+AUTH_MFA_REQUIRED,401,auth,0,Cần xác thực hai lớp.,MFA challenge required
+AUTH_MFA_INVALID,401,auth,0,Mã xác thực không hợp lệ.,Invalid/replayed MFA code
+AUTH_TOKEN_EXPIRED,401,auth,1,Phiên truy cập đã hết hạn.,Access token expired; refresh may be possible. Spec alias AUTH_SESSION_EXPIRED maps to this code.
+AUTH_REFRESH_REUSED,401,auth,0,Phiên đăng nhập đã bị thu hồi vì lý do bảo mật.,Refresh token reuse detected
+AUTH_SESSION_REVOKED,401,auth,0,Phiên đăng nhập đã bị thu hồi.,Session/device revoked
+AUTH_RECENT_AUTH_REQUIRED,403,auth,0,Vui lòng xác thực lại để tiếp tục.,Step-up/recent auth required
+AUTH_OIDC_STATE_INVALID,401,auth,0,Phiên đăng nhập IdP không hợp lệ. Vui lòng thử lại.,OIDC state/nonce mismatch or missing (GAP-009)
+AUTH_OIDC_EXCHANGE_FAILED,401,auth,0,Không thể hoàn tất đăng nhập IdP. Vui lòng thử lại.,Authorization code exchange failed at BFF (GAP-009)
+AUTH_OIDC_PROVIDER_ERROR,401,auth,0,Nhà cung cấp đăng nhập từ chối hoặc báo lỗi.,IdP returned error= on callback (GAP-009)
+CSRF_TOKEN_INVALID,403,auth,0,Yêu cầu bị từ chối vì thiếu hoặc sai mã bảo vệ CSRF.,Missing/mismatched X-CSRF-Token for cookie-session mutations
+TENANT_INACTIVE,403,tenant,0,Không gian làm việc hiện không hoạt động.,Tenant suspended/closed
+TENANT_CONTEXT_INVALID,401,tenant,0,Ngữ cảnh không gian làm việc không hợp lệ.,Token/session tenant mismatch
+MEMBERSHIP_INACTIVE,403,tenant,0,Tài khoản không còn hoạt động trong không gian này.,Membership inactive
+INVITATION_TOKEN_INVALID,409,tenant,0,Lời mời không hợp lệ hoặc đã hết hạn.,Invitation token missing/already accepted/revoked/expired — umbrella; prefer specific INVITE_* when known
+INVITE_EXPIRED,409,tenant,0,Lời mời đã hết hạn.,Invitation past expires_at
+INVITE_REVOKED,409,tenant,0,Lời mời đã bị thu hồi.,Invitation revoked by admin
+INVITE_ALREADY_ACCEPTED,409,tenant,0,Lời mời đã được chấp nhận.,Invitation already consumed
+USER_LAST_OWNER,409,tenant,0,Không thể gỡ hoặc thu hồi chủ sở hữu cuối cùng.,Would leave tenant with zero owners
+ROLE_WOULD_REMOVE_LAST_ADMIN,409,authorization,0,Không thể gỡ quyền quản trị cuối cùng.,Role change would remove last admin-capable membership
+DEVICE_ALREADY_REVOKED,409,auth,0,Thiết bị/phiên này đã bị thu hồi.,Idempotent revoke of already-revoked device/session
+INSUFFICIENT_PERMISSION,403,authorization,0,Bạn không có quyền thực hiện thao tác này.,Required permission missing
+RESOURCE_NOT_FOUND,404,resource,0,Không tìm thấy dữ liệu yêu cầu.,Missing or not visible under tenant context
+RESOURCE_VERSION_MISMATCH,412,concurrency,1,Dữ liệu đã thay đổi. Vui lòng tải lại.,ETag/version mismatch. Spec alias ROLE_VERSION_CONFLICT maps to this code.
+VALIDATION_FAILED,422,validation,0,Dữ liệu không hợp lệ.,Field/business validation errors
+REQUEST_TOO_LARGE,413,validation,0,Dữ liệu gửi lên quá lớn.,Request/file size limit
+UNSUPPORTED_MEDIA_TYPE,415,validation,0,Định dạng dữ liệu không được hỗ trợ.,Unsupported content type
+IDEMPOTENCY_KEY_REQUIRED,400,idempotency,0,Thiếu mã chống gửi trùng.,Critical endpoint requires key
+IDEMPOTENCY_KEY_REUSED,409,idempotency,0,Mã chống gửi trùng đã được dùng cho nội dung khác.,"Same key, different request hash"
+IDEMPOTENCY_IN_PROGRESS,409,idempotency,1,Yêu cầu tương tự đang được xử lý.,Existing key still processing
+RATE_LIMITED,429,rate_limit,1,Bạn thao tác quá nhanh. Vui lòng thử lại sau.,Rate limit exceeded
+QUOTA_EXCEEDED,429,billing,0,Đã vượt giới hạn sử dụng.,Plan/usage quota exceeded
+FEATURE_DISABLED,409,feature,0,Tính năng hiện chưa được bật.,Feature flag/entitlement disabled
+SKU_DUPLICATE,409,catalog,0,Mã SKU đã tồn tại.,Tenant-scoped canonical SKU duplicate
+BARCODE_DUPLICATE,409,catalog,0,Mã vạch đã tồn tại.,Barcode duplicate
+CATEGORY_CYCLE,422,catalog,0,Cấu trúc danh mục tạo vòng lặp.,Category parent cycle
+PRODUCT_ARCHIVED,409,catalog,0,Sản phẩm đã được lưu trữ.,Mutation/use not allowed
+COST_PERMISSION_REQUIRED,403,catalog,0,Bạn không có quyền xem hoặc sửa giá vốn.,Field-level cost permission
+IMPORT_FILE_INVALID,422,import,0,Tệp nhập không hợp lệ.,Invalid type/content/encoding
+IMPORT_MAPPING_INVALID,422,import,0,Ánh xạ cột không hợp lệ.,Mapping validation failed
+IMPORT_PREVIEW_STALE,409,import,1,Bản xem trước đã thay đổi. Vui lòng kiểm tra lại.,Checksum/version mismatch
+IMPORT_JOB_STATE_INVALID,409,import,0,Trạng thái tác vụ nhập không cho phép thao tác này.,Invalid transition
+IMPORT_APPLY_FAILED,500,import,1,Không thể áp dụng dữ liệu nhập.,Apply failed; inspect job report
+INVENTORY_BALANCE_NOT_FOUND,404,inventory,0,Không tìm thấy tồn kho cho sản phẩm này.,Balance row missing
+INVENTORY_INSUFFICIENT,409,inventory,0,Không đủ tồn kho khả dụng.,Reservation/confirm quantity exceeds available
+INVENTORY_RESERVATION_EXPIRED,409,inventory,0,Phiếu giữ hàng đã hết hạn.,Reservation no longer active
+INVENTORY_RESERVATION_STATE_INVALID,409,inventory,0,Trạng thái giữ hàng không hợp lệ.,Invalid reservation transition
+INVENTORY_RESERVATION_OWNER_MISMATCH,409,inventory,0,Phiếu giữ hàng không thuộc đối tượng yêu cầu.,Owner mismatch
+ORDER_STATE_INVALID,409,order,0,Trạng thái đơn hàng không cho phép thao tác này.,Invalid order transition
+ORDER_QUOTE_STALE,409,order,1,Báo giá đã cũ. Vui lòng tính lại đơn hàng.,Quote/resource versions changed
+ORDER_TOTAL_CHANGED,409,order,1,Tổng tiền đã thay đổi. Vui lòng xác nhận lại.,Authoritative recalculation differs
+ORDER_DUPLICATE_SUSPECTED,409,order,0,Đơn hàng có khả năng bị trùng.,Duplicate fingerprint warning/policy
+ORDER_CANCELLATION_NOT_ALLOWED,409,order,0,Đơn hàng hiện không thể hủy.,Payment/fulfillment policy blocks cancellation
+PAYMENT_AMOUNT_MISMATCH,409,payment,0,Số tiền thanh toán không khớp.,Reconciliation required
+PAYMENT_STATE_INVALID,409,payment,0,Trạng thái thanh toán không hợp lệ.,Invalid payment transition
+REFUND_APPROVAL_REQUIRED,409,payment,0,Yêu cầu hoàn tiền cần được phê duyệt.,Human approval required
+SHIPMENT_STATE_INVALID,409,shipment,0,Trạng thái giao hàng không hợp lệ.,Invalid fulfillment transition
+RETURN_STATE_INVALID,409,return,0,Trạng thái trả hàng không hợp lệ.,Invalid return transition
+CHANNEL_NOT_CONNECTED,409,channel,0,Kênh chưa được kết nối.,No active channel account
+CHANNEL_TOKEN_EXPIRED,409,channel,0,Kết nối kênh đã hết hạn. Vui lòng kết nối lại.,Token expired/revoked
+CHANNEL_PERMISSION_MISSING,409,channel,0,Kết nối kênh thiếu quyền cần thiết.,Provider scope missing
+WEBHOOK_SIGNATURE_INVALID,401,webhook,0,Chữ ký webhook không hợp lệ.,Reject before processing
+WEBHOOK_DUPLICATE,200,webhook,0,Sự kiện đã được ghi nhận.,"Duplicate provider event, no duplicate effect"
+PROVIDER_RATE_LIMITED,429,provider,1,Nhà cung cấp đang giới hạn tốc độ.,Honor Retry-After/backoff
+PROVIDER_UNAVAILABLE,503,provider,1,Dịch vụ kết nối tạm thời không khả dụng.,Timeout/5xx/circuit open
+MESSAGE_SEND_BLOCKED,409,message,0,Tin nhắn bị chặn bởi chính sách.,Policy/QC/channel block
+MESSAGE_SEND_AMBIGUOUS,503,message,1,Chưa xác định được trạng thái gửi tin.,Provider timeout with unknown outcome
+CONVERSATION_STATE_INVALID,409,conversation,0,Trạng thái hội thoại không cho phép thao tác này.,Invalid transition/version
+HUMAN_TAKEOVER_ACTIVE,409,conversation,0,Hội thoại đang do nhân viên tiếp quản.,AI auto action blocked
+SSE_RESYNC_REQUIRED,409,realtime,1,Cần tải lại dữ liệu để đồng bộ.,Replay window exceeded
+AI_DISABLED,409,ai,0,AI hiện đang tắt.,Tenant/global kill switch
+AI_BUDGET_EXCEEDED,429,ai,0,Đã vượt ngân sách AI.,Tenant/global cost/token budget
+AI_PROVIDER_UNAVAILABLE,503,ai,1,Dịch vụ AI tạm thời không khả dụng.,Provider timeout/outage
+AI_OUTPUT_INVALID,502,ai,1,Kết quả AI không đúng định dạng.,Structured output failed validation
+AI_OUTPUT_BLOCKED,409,ai,0,Kết quả AI bị chặn bởi quy tắc an toàn.,AI-R rule violation
+AI_APPROVAL_REQUIRED,409,ai,0,Hành động AI cần người phê duyệt.,Risk class requires approval
+AI_APPROVAL_EXPIRED,409,ai,0,Phê duyệt đã hết hạn.,Approval TTL expired
+AI_APPROVAL_PAYLOAD_CHANGED,409,ai,0,Nội dung hành động đã thay đổi sau phê duyệt.,Payload hash mismatch
+AI_TOOL_NOT_ALLOWED,403,ai,0,Công cụ AI không được phép.,Tool allowlist/permission/mode denial
+AI_TOOL_FAILED,503,ai,1,Công cụ AI tạm thời thất bại.,Tool/provider/domain transient failure
+AI_SOURCE_REQUIRED,409,ai,0,Không có nguồn đủ tin cậy để trả lời.,Published evidence required
+AI_SOURCE_STALE,409,ai,1,Nguồn dữ liệu đã cũ.,Freshness window exceeded
+AI_PROMPT_VERSION_NOT_APPROVED,409,ai,0,Phiên bản AI chưa được phê duyệt.,Prompt/model config lifecycle gate
+AI_EVALUATION_FAILED,409,ai,0,Phiên bản AI chưa đạt đánh giá bắt buộc.,Release thresholds failed
+

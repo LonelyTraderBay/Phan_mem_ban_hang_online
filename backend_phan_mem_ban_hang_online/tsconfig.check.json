@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node", "vitest/globals"]
+  },
+  "include": [
+    "apps/**/*.ts",
+    "packages/**/*.ts",
+    "modules/**/*.ts",
+    "tools/**/*.ts",
+    "eslint.config.mjs"
+  ],
+  "exclude": ["node_modules", "dist", "coverage"]
+}

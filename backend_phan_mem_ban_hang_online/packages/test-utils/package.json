@@ -1,0 +1,12 @@
+{
+  "name": "@ai-sales/test-utils",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@ai-sales/auth-context": "workspace:*",
+    "@ai-sales/domain-kernel": "workspace:*",
+    "@ai-sales/idempotency": "workspace:*"
+  }
+}

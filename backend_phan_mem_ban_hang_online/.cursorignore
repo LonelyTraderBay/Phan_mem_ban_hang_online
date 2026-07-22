@@ -1,0 +1,6 @@
+pnpm-lock.yaml
+**/uv.lock
+graphify-out/**
+coverage/**
+dist/**
+node_modules/**

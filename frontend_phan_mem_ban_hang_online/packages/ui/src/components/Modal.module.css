@@ -1,0 +1,28 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--ai-sales-color-surface-overlay);
+  z-index: var(--ai-sales-z-modal);
+}
+
+.content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--ai-sales-color-surface-raised);
+  border-radius: var(--ai-sales-radius-lg);
+  padding: var(--ai-sales-spacing-6);
+  box-shadow: var(--ai-sales-shadow-lg);
+  z-index: var(--ai-sales-z-modal);
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow: auto;
+}
+
+.title {
+  font-size: var(--ai-sales-font-size-lg);
+  font-weight: var(--ai-sales-font-weight-semibold);
+  color: var(--ai-sales-color-text-primary);
+  margin: 0 0 var(--ai-sales-spacing-4) 0;
+}

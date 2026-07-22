@@ -1,0 +1,6 @@
+# Blueprint §27–28 — Standards baseline and execution conclusion
+
+**Source:** `backend_doc/01_BACKEND_ENTERPRISE_IMPLEMENTATION_BLUEPRINT_v2.0.md` §27 Standards baseline and technical references, §28 Execution conclusion
+
+- §27 is a reference list of external standards the blueprint builds on: OWASP ASVS 5.0.0, OWASP LLMSVS, OWASP GenAI Top 10, NIST SSDF (SP 800-218 / 800-218A), NIST AI RMF, RFC 9700 (OAuth 2.0 Security BCP), RFC 9457 (Problem Details), RFC 9562 (UUIDv7), RFC 3339/9557 (timestamps), OpenAPI 3.1.1, JSON Schema 2020-12, AsyncAPI 3.1.0, CloudEvents 1.0.x, OpenTelemetry/OTLP, PostgreSQL Row Security Policies, SLSA. Version/tooling must be re-verified each review cycle; this section adds no normative rule beyond pointing at the source standard.
+- §28 is a short closing statement, not new content: phases only open once the prior phase's exit gate is met, and Phase P0 approval lets P1 start without re-litigating architecture. Final operating order restated as a checklist: contract before code; invariant before endpoint; constraint/transaction before retry; tenant/security before convenience; outbox/reconciliation before dashboard; evaluation/approval before AI automation; observability/restore/rollback before production. This section is genuinely thin — there is nothing beyond this to index.
