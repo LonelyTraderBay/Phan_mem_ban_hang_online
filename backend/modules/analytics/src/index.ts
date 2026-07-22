@@ -19,4 +19,5 @@ export {
 export { BUSINESS_EVENT_TYPES, isKnownBusinessEventType } from "./domain/event-taxonomy.js";
 export { assessQueryLoad } from "./domain/query-assessment.js";
 export { InMemoryAnalyticsRepository } from "./infrastructure/persistence/in-memory-analytics.js";
+export { PostgresAnalyticsRepository } from "./infrastructure/persistence/postgres-analytics.js";
 export { createAnalyticsController } from "./presentation/http/analytics.controller.js";

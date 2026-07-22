@@ -5,9 +5,12 @@
   "type": "module",
   "main": "src/index.ts",
   "dependencies": {
+    "@ai-sales/auth-context": "workspace:*",
+    "@ai-sales/database": "workspace:*",
     "@ai-sales/domain-kernel": "workspace:*",
     "@ai-sales/module-knowledge": "workspace:*",
     "@ai-sales/security": "workspace:*",
+    "kysely": "0.29.4",
     "@nestjs/common": "11.1.28",
     "fastify": "5.10.0",
     "reflect-metadata": "0.2.2"

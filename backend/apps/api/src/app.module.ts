@@ -32,7 +32,8 @@ import {
 import type { CatalogRepository } from "@ai-sales/module-catalog";
 import {
   createKnowledgeController,
-  InMemoryKnowledgeRepository
+  PostgresKnowledgeRepository,
+  searchPublishedKnowledge
 } from "@ai-sales/module-knowledge";
 import {
   createChannelController,
@@ -50,13 +51,13 @@ import {
 import {
   createAiOrchestrationController,
   createKnowledgeRetrievalClient,
-  InMemoryAiOrchestrationRepository,
+  PostgresAiOrchestrationRepository,
   type ConversationLookupPort,
   type OutboundSendPort
 } from "@ai-sales/module-ai-orchestration";
 import {
   createAnalyticsController,
-  InMemoryAnalyticsRepository
+  PostgresAnalyticsRepository
 } from "@ai-sales/module-analytics";
 import {
   createBillingController,
@@ -66,9 +67,6 @@ import {
   createOperationsController,
   InMemoryOperationsRepository
 } from "@ai-sales/module-operations";
-import {
-  searchPublishedKnowledge
-} from "@ai-sales/module-knowledge";
 import {
   createFulfillmentController,
   PostgresFulfillmentRepository,
@@ -118,9 +116,6 @@ import { HealthController } from "./health.controller";
 const membersRolesRepo = new InMemoryMembersRolesRepository();
 const auditLogStore = new InMemoryAuditLogStore();
 const supportGrantStore = new InMemorySupportGrantStore();
-const knowledgeRepo = new InMemoryKnowledgeRepository();
-const aiOrchestrationRepo = new InMemoryAiOrchestrationRepository();
-const analyticsRepo = new InMemoryAnalyticsRepository();
 const billingRepo = new InMemoryBillingRepository();
 const operationsRepo = new InMemoryOperationsRepository();
 
@@ -279,17 +274,6 @@ const inventoryRestockPort: InventoryRestockPort = {
   }
 };
 
-const aiKnowledgePort = createKnowledgeRetrievalClient({
-  async search(args) {
-    return searchPublishedKnowledge({
-      repo: knowledgeRepo,
-      tenantId: args.tenantId,
-      query: args.query,
-      ...(args.topK !== undefined ? { topK: args.topK } : {})
-    });
-  }
-});
-
 function buildOidcConfig(): OidcClientConfig | null {
   const config = loadConfig(process.env);
   if (!isOidcConfigured(config)) return null;
@@ -330,6 +314,9 @@ function buildControllers(): Type<unknown>[] {
     const fulfillmentRepoPg = new PostgresFulfillmentRepository(db);
     const channelRepoPg = new PostgresChannelRepository(db);
     const conversationRepoPg = new PostgresConversationRepository(db);
+    const knowledgeRepoPg = new PostgresKnowledgeRepository(db);
+    const aiOrchestrationRepoPg = new PostgresAiOrchestrationRepository(db);
+    const analyticsRepoPg = new PostgresAnalyticsRepository(db);
     const importApplyPort = createInMemoryImportApplyPort(catalogRepo);
     const catalogPricingPort = buildCatalogPricingPort(catalogRepo);
     const reservationPort = buildReservationPort(inventoryRepo);
@@ -338,6 +325,16 @@ function buildControllers(): Type<unknown>[] {
     const conversationOutboundPort = buildConversationOutboundPort(channelRepoPg);
     const conversationLookupPort = buildConversationLookupPort(conversationRepoPg);
     const aiOutboundPort = buildAiOutboundPort(conversationRepoPg, channelRepoPg);
+    const aiKnowledgePort = createKnowledgeRetrievalClient({
+      async search(args) {
+        return searchPublishedKnowledge({
+          repo: knowledgeRepoPg,
+          tenantId: args.tenantId,
+          query: args.query,
+          ...(args.topK !== undefined ? { topK: args.topK } : {})
+        });
+      }
+    });
     const idempotency = new PostgresIdempotencyStore(db);
     const tenantRepo = new PostgresTenantProvisionRepository(db);
     controllers.push(
@@ -358,7 +355,7 @@ function buildControllers(): Type<unknown>[] {
       }),
       createCustomersController({ repo: customerRepo }),
       createInventoryController({ repo: inventoryRepo }),
-      createKnowledgeController({ repo: knowledgeRepo }),
+      createKnowledgeController({ repo: knowledgeRepoPg }),
       createChannelController({ repo: channelRepoPg, adapter: stubFacebookAdapter }),
       createConversationController({
         repo: conversationRepoPg,
@@ -376,12 +373,12 @@ function buildControllers(): Type<unknown>[] {
         inventory: inventoryRestockPort
       }),
       createAiOrchestrationController({
-        repo: aiOrchestrationRepo,
+        repo: aiOrchestrationRepoPg,
         conversations: conversationLookupPort,
         knowledge: aiKnowledgePort,
         outbound: aiOutboundPort
       }),
-      createAnalyticsController({ repo: analyticsRepo }),
+      createAnalyticsController({ repo: analyticsRepoPg }),
       createBillingController({ repo: billingRepo }),
       // Support-access create stays on createSupportAccessController only
       // (avoids duplicate POST .../support-access that overwrote grantee identity).

@@ -42,4 +42,5 @@ export {
   InMemoryAiOrchestrationRepository,
   type AiOrchestrationRepository
 } from "./infrastructure/persistence/in-memory-ai-orchestration.js";
+export { PostgresAiOrchestrationRepository } from "./infrastructure/persistence/postgres-ai-orchestration.js";
 export { createAiOrchestrationController } from "./presentation/http/ai-orchestration.controller.js";
