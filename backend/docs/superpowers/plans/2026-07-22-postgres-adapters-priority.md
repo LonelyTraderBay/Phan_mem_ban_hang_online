@@ -1,8 +1,8 @@
 # Postgres adapters — thứ tự ưu tiên
 
 **Date:** 2026-07-22  
-**Branch:** `cursor/postgres-adapters-imp-ord-pay` (wave 2)  
-**Pattern:** RLS + `withTenantTransaction` (không SECURITY DEFINER cho CUS/CAT/INV/IMP/ORD/PAY)
+**Branch:** `cursor/postgres-adapters-fulfillment-returns` (wave 3)  
+**Pattern:** RLS + `withTenantTransaction` (không SECURITY DEFINER)
 
 ## Ưu tiên
 
@@ -12,7 +12,8 @@
 4. **Import** — schema `000014` (under catalog module)
 5. **Order** — schema `000019`
 6. **Payment** — schema `000020` (payments/refunds/attempts)
-7. (sau) Fulfillment / Returns / Conversation / Channel / …
+7. **Fulfillment / Returns** — schema `000020` (shipments/returns)
+8. (sau) Conversation / Channel / Knowledge / AI / Analytics / Billing / Ops …
 
 ## Quy tắc
 
@@ -29,14 +30,16 @@
 - [x] **Import (IMP)** — `PostgresImportRepository` (apply port vẫn dùng catalog Postgres)
 - [x] **Order (ORD)** — `PostgresOrderRepository` + status history
 - [x] **Payment (PAY)** — `PostgresPaymentRepository` + refunds + provider attempts dedupe
-- [x] Wire `app.module.ts` when `DATABASE_URL` (orderLookup/eligibility ports bind Postgres order)
+- [x] **Fulfillment / Returns (FUL/RET)** — `PostgresFulfillmentRepository` (shipments + returns)
+- [x] Wire `app.module.ts` when `DATABASE_URL`
 - [x] Typecheck + focused smoke tests (`describe.skip` integration without DB)
 
 ## Gaps (v1)
 
-- Fulfillment / Returns / Conversation / Channel / Knowledge / AI / Analytics / Billing / Ops vẫn InMemory
+- Conversation / Channel / Knowledge / AI / Analytics / Billing / Ops vẫn InMemory
 - Idempotency adapter: process-local Map — migrate sang `app.idempotency_records`
 - Media upload intents: process-local Map (chưa có bảng upload)
 - Reconciliation jobs: process-local Map (chưa có bảng job)
 - Payment reconciliations table unused (no repository method)
 - Import object storage (`file_key` / `error_report_key`) left nullable
+- InventoryRestockPort vẫn no-op; `completeReturn` truyền `orderItemId` vào `variantId` (cần lookup order_item→variant)

@@ -27,4 +27,5 @@ export {
 } from "./application/fulfillment.js";
 
 export { InMemoryFulfillmentRepository } from "./infrastructure/persistence/in-memory-fulfillment.js";
+export { PostgresFulfillmentRepository } from "./infrastructure/persistence/postgres-fulfillment.js";
 export { createFulfillmentController } from "./presentation/http/fulfillment.controller.js";
