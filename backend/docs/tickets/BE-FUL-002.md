@@ -4,7 +4,7 @@ title: Pack/ship/deliver transitions
 owner: Backend AI Agent
 phase: P7
 risk: medium
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

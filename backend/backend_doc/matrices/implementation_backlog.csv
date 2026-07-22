@@ -93,20 +93,20 @@ phase,task_id,title,deliverable_or_details,status,primary_paths
 19.8 Phase P6,BE-CON-010,SSE authorization/fan-out/replay/resync,,Done,modules/conversation/
 19.8 Phase P6,BE-CON-011,Attachment download security/malware state,,Done,modules/conversation/
 19.8 Phase P6,BE-CON-012,End-to-end webhook-to-inbox/reply-to-provider test,,Done,modules/conversation/
-19.9 Phase P7,BE-ORD-001,Order/item/history schema + money value objects,,Not Started,modules/order/
-19.9 Phase P7,BE-ORD-002,Deterministic calculation/rounding/discount/tax rules,,Not Started,modules/order/
-19.9 Phase P7,BE-ORD-003,Create/update/recalculate draft + quote version,,Not Started,modules/order/
-19.9 Phase P7,BE-ORD-004,Reservation ownership/integration,,Not Started,modules/order/
-19.9 Phase P7,BE-ORD-005,Confirm transaction and snapshots,,Not Started,modules/order/
-19.9 Phase P7,BE-ORD-006,Cancel/expire/compensating inventory flows,,Not Started,modules/order/
-19.9 Phase P7,BE-ORD-007,Duplicate fingerprint/warning/idempotency,,Not Started,modules/order/
-19.9 Phase P7,BE-PAY-001,Payment/payment-attempt/refund schema/lifecycle,,Not Started,modules/payment/
-19.9 Phase P7,BE-PAY-002,Manual payment record/confirm/reconcile,,Not Started,modules/payment/
-19.9 Phase P7,BE-PAY-003,Provider callback adapter baseline when selected,,Not Started,modules/payment/
-19.9 Phase P7,BE-FUL-001,Shipment/item/tracking/packing-slip data,,Not Started,modules/fulfillment/
-19.9 Phase P7,BE-FUL-002,Pack/ship/deliver transitions,,Not Started,modules/fulfillment/
-19.9 Phase P7,BE-RET-001,Return/receive/inspect/restock/refund flow,,Not Started,modules/fulfillment/
-19.9 Phase P7,BE-ORD-008,Concurrency/property/reconciliation test suites,,Not Started,modules/order/
+19.9 Phase P7,BE-ORD-001,Order/item/history schema + money value objects,,Done,modules/order/
+19.9 Phase P7,BE-ORD-002,Deterministic calculation/rounding/discount/tax rules,,Done,modules/order/
+19.9 Phase P7,BE-ORD-003,Create/update/recalculate draft + quote version,,Done,modules/order/
+19.9 Phase P7,BE-ORD-004,Reservation ownership/integration,,Done,modules/order/
+19.9 Phase P7,BE-ORD-005,Confirm transaction and snapshots,,Done,modules/order/
+19.9 Phase P7,BE-ORD-006,Cancel/expire/compensating inventory flows,,Done,modules/order/
+19.9 Phase P7,BE-ORD-007,Duplicate fingerprint/warning/idempotency,,Done,modules/order/
+19.9 Phase P7,BE-PAY-001,Payment/payment-attempt/refund schema/lifecycle,,Done,modules/payment/
+19.9 Phase P7,BE-PAY-002,Manual payment record/confirm/reconcile,,Done,modules/payment/
+19.9 Phase P7,BE-PAY-003,Provider callback adapter baseline when selected,,Done,modules/payment/
+19.9 Phase P7,BE-FUL-001,Shipment/item/tracking/packing-slip data,,Done,modules/fulfillment/
+19.9 Phase P7,BE-FUL-002,Pack/ship/deliver transitions,,Done,modules/fulfillment/
+19.9 Phase P7,BE-RET-001,Return/receive/inspect/restock/refund flow,,Done,modules/fulfillment/
+19.9 Phase P7,BE-ORD-008,Concurrency/property/reconciliation test suites,,Done,modules/order/
 19.10 Phase P8,BE-AI-001,"FastAPI skeleton, model gateway, OTel, health/timeouts",,Not Started,modules/ai-orchestration/;apps/ai-service/
 19.10 Phase P8,BE-AI-002,Prompt/model/tool/retrieval config version model,,Not Started,modules/ai-orchestration/;apps/ai-service/
 19.10 Phase P8,BE-AI-003,Context builder/minimization/untrusted-content separation,,Not Started,modules/ai-orchestration/;apps/ai-service/

@@ -41,6 +41,28 @@ import {
   type OutboundQueuePort
 } from "@ai-sales/module-conversation";
 import {
+  createFulfillmentController,
+  InMemoryFulfillmentRepository,
+  type InventoryRestockPort,
+  type OrderEligibilityPort
+} from "@ai-sales/module-fulfillment";
+import {
+  convertInventoryReservation,
+  createInventoryReservation,
+  releaseInventoryReservation
+} from "@ai-sales/module-inventory";
+import {
+  createOrderController,
+  InMemoryOrderRepository,
+  type CatalogPricingPort,
+  type ReservationPort
+} from "@ai-sales/module-order";
+import {
+  createPaymentController,
+  InMemoryPaymentRepository,
+  type OrderLookupPort
+} from "@ai-sales/module-payment";
+import {
   createAcceptInvitationController,
   createMeController,
   createMfaVerifyController,
@@ -79,6 +101,96 @@ const inventoryRepo = new InMemoryInventoryRepository();
 const knowledgeRepo = new InMemoryKnowledgeRepository();
 const channelRepo = new InMemoryChannelRepository();
 const conversationRepo = new InMemoryConversationRepository();
+const orderRepo = new InMemoryOrderRepository();
+const paymentRepo = new InMemoryPaymentRepository();
+const fulfillmentRepo = new InMemoryFulfillmentRepository();
+
+const catalogPricingPort: CatalogPricingPort = {
+  async getVariantPricing(args) {
+    const row = await catalogRepo.getVariantPricing(args);
+    if (!row) return null;
+    const variant = (await catalogRepo.listVariants(args.tenantId)).find((v) => v.id === args.variantId);
+    return {
+      unitPriceMinor: row.unit_price_minor,
+      currency: row.currency,
+      costMinor: row.cost_minor,
+      sku: variant?.name ?? null
+    };
+  }
+};
+
+const reservationPort: ReservationPort = {
+  async createReservation(args) {
+    const expiresAt = args.expiresAt;
+    const result = await createInventoryReservation({
+      repo: inventoryRepo,
+      tenantId: args.tenantId,
+      actorId: args.actorId,
+      actorPermissions: ["inventory.reserve", "internal.order.confirm"],
+      idempotencyKey: args.idempotencyKey,
+      ownerType: "order",
+      ownerId: args.orderId,
+      expiresAt,
+      items: args.items.map((i) => ({ variant_id: i.variantId, quantity: i.quantity }))
+    });
+    return { reservationId: result.data.id as string };
+  },
+  async convertReservation(args) {
+    await convertInventoryReservation({
+      repo: inventoryRepo,
+      tenantId: args.tenantId,
+      reservationId: args.reservationId,
+      ownerId: args.orderId,
+      actorId: args.actorId,
+      actorPermissions: ["inventory.reserve", "internal.order.confirm"],
+      idempotencyKey: args.idempotencyKey
+    });
+  },
+  async releaseReservation(args) {
+    await releaseInventoryReservation({
+      repo: inventoryRepo,
+      tenantId: args.tenantId,
+      reservationId: args.reservationId,
+      actorId: args.actorId,
+      actorPermissions: ["inventory.reserve"],
+      idempotencyKey: args.idempotencyKey
+    });
+  }
+};
+
+const orderLookupPort: OrderLookupPort = {
+  async getOrderGrandTotal(args) {
+    const order = await orderRepo.getOrder({
+      tenantId: args.tenantId,
+      orderId: args.orderId
+    });
+    if (!order) return null;
+    return { grandTotalMinor: order.grandTotalMinor, currency: order.currency };
+  }
+};
+
+const orderEligibilityPort: OrderEligibilityPort = {
+  async isOrderConfirmed(args) {
+    const order = await orderRepo.getOrder({
+      tenantId: args.tenantId,
+      orderId: args.orderId
+    });
+    return order?.status === "confirmed";
+  },
+  async getOrderItemIds(args) {
+    const order = await orderRepo.getOrder({
+      tenantId: args.tenantId,
+      orderId: args.orderId
+    });
+    return order?.items.map((i) => i.id) ?? [];
+  }
+};
+
+const inventoryRestockPort: InventoryRestockPort = {
+  async restockStub() {
+    /* BE-RET-001 stub — inventory adjustment wiring follows Postgres adapter */
+  }
+};
 
 const conversationOutboundPort: OutboundQueuePort = {
   async queueReply(args) {
@@ -148,7 +260,18 @@ function buildControllers(): Type<unknown>[] {
       createInventoryController({ repo: inventoryRepo }),
       createKnowledgeController({ repo: knowledgeRepo }),
       createChannelController({ repo: channelRepo, adapter: stubFacebookAdapter }),
-      createConversationController({ repo: conversationRepo, outbound: conversationOutboundPort })
+      createConversationController({ repo: conversationRepo, outbound: conversationOutboundPort }),
+      createOrderController({
+        repo: orderRepo,
+        catalog: catalogPricingPort,
+        reservation: reservationPort
+      }),
+      createPaymentController({ repo: paymentRepo, orders: orderLookupPort }),
+      createFulfillmentController({
+        repo: fulfillmentRepo,
+        orders: orderEligibilityPort,
+        inventory: inventoryRestockPort
+      })
     );
 
     const oidc = buildOidcConfig();

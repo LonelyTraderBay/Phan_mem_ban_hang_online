@@ -4,7 +4,7 @@ title: Return/receive/inspect/restock/refund flow
 owner: Backend AI Agent
 phase: P7
 risk: medium
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

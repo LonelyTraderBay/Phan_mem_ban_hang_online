@@ -4,7 +4,7 @@ title: Confirm transaction and snapshots
 owner: Backend AI Agent
 phase: P7
 risk: critical
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

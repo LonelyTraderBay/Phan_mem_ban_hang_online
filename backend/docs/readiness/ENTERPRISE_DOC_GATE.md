@@ -41,7 +41,11 @@
 | **BE-KNW-001…006** | **GREEN (done)** | Knowledge schema (`000016`) + in-memory application + HTTP controller — `docs/tickets/BE-KNW-*.md` (`done`) |
 | **BE-CHN-001…011** | **GREEN (done)** | Channel schema (`000017`) + in-memory application + HTTP controller — `docs/tickets/BE-CHN-*.md` (`done`) |
 | **BE-CON-001…012** | **GREEN (done)** | Conversation schema (`000018`) + in-memory application + HTTP controller — `docs/tickets/BE-CON-*.md` (`done`) |
-| **Orders / Payments / F02+** | **RED until phase** | Chỉ khi phase hiện tại Done + artefacts còn consistent |
+| **BE-ORD-001…008** | **GREEN (done)** | Order schema (`000019`) + money calc HO_DEFAULTS_v1 + in-memory application — `docs/tickets/BE-ORD-*.md` (`done`) |
+| **BE-PAY-001…003** | **GREEN (done)** | Payment schema (`000020`) + manual payment + provider callback stub — `docs/tickets/BE-PAY-*.md` (`done`) |
+| **BE-FUL-001…002** | **GREEN (done)** | Shipment/pack/ship/deliver (`000020`) — `docs/tickets/BE-FUL-*.md` (`done`) |
+| **BE-RET-001** | **GREEN (done)** | Return/receive/inspect/restock/refund flow stub (`000020`) — `docs/tickets/BE-RET-001.md` (`done`) |
+| **P8 AI / F02+** | **RED until phase** | Chỉ khi phase hiện tại Done + artefacts còn consistent |
 
 ## Kickoff order (bắt buộc)
 
@@ -76,7 +80,10 @@
 28. BE-KNW-001…006 knowledge schema + in-memory application — Done (`000016`)
 29. BE-CHN-001…011 channel schema + in-memory application — Done (`000017`)
 30. BE-CON-001…012 conversation schema + in-memory application — Done (`000018`)
-31. P7 Order/Pay/Fulfill → P8+ per phase order
+31. BE-ORD-001…008 order schema + money calc + in-memory application — Done (`000019`)
+32. BE-PAY-001…003 payment schema + manual payment + callback stub — Done (`000020`)
+33. BE-FUL-001…002 + BE-RET-001 fulfillment/returns — Done (`000020`)
+34. P8 AI → per phase order
 ```
 
 Money/tax/billing: luôn cite [`../business/HO_DEFAULTS_v1.md`](../business/HO_DEFAULTS_v1.md).

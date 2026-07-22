@@ -4,7 +4,7 @@ title: Manual payment record/confirm/reconcile
 owner: Backend AI Agent
 phase: P7
 risk: critical
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

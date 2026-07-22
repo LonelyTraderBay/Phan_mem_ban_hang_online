@@ -118,17 +118,17 @@ authoritative for AI coding agents — do not re-open without ADR.
 
 | Table | Class | RLS/migration status | Notes |
 |---|---|---|---|
-| `orders` | TENANT_OWNED | Not started | Unique `order_code` per tenant; HO_DEFAULTS: `tax_rate_bps=1000`, `prices_tax_inclusive=true` |
-| `order_items` | TENANT_OWNED | Not started | Immutable snapshot after confirm; unit prices tax-inclusive |
-| `order_status_history` | TENANT_OWNED [ledger] | Not started | |
-| `payments` | TENANT_OWNED | Not started | |
-| `payment_reconciliations` | TENANT_OWNED | Not started | |
-| `shipments` | TENANT_OWNED | Not started | |
-| `shipment_items` | TENANT_OWNED | Not started | |
+| `orders` | TENANT_OWNED | **Done** (`000019`) | Unique `order_code` per tenant; HO_DEFAULTS: `tax_rate_bps=1000`, `prices_tax_inclusive=true` |
+| `order_items` | TENANT_OWNED | **Done** (`000019`) | Immutable snapshot after confirm; unit prices tax-inclusive |
+| `order_status_history` | TENANT_OWNED [ledger] | **Done** (`000019`) | |
+| `payments` | TENANT_OWNED | **Done** (`000020`) | |
+| `payment_reconciliations` | TENANT_OWNED | **Done** (`000020`) | |
+| `shipments` | TENANT_OWNED | **Done** (`000020`) | |
+| `shipment_items` | TENANT_OWNED | **Done** (`000020`) | |
 | `shipping_labels` | TENANT_OWNED | Not started | |
-| `returns` | TENANT_OWNED | Not started | |
-| `return_items` | TENANT_OWNED | Not started | |
-| `refunds` | TENANT_OWNED | Not started | |
+| `returns` | TENANT_OWNED | **Done** (`000020`) | |
+| `return_items` | TENANT_OWNED | **Done** (`000020`) | |
+| `refunds` | TENANT_OWNED | **Done** (`000020`) | |
 
 ## Analytics / Billing / Ops (blueprint §7.12)
 

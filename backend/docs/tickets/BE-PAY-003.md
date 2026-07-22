@@ -4,7 +4,7 @@ title: Provider callback adapter baseline when selected
 owner: Backend AI Agent
 phase: P7
 risk: critical
-status: doc-frozen
+status: done
 ---
 
 # Business outcome
