@@ -38,9 +38,9 @@ API tới tracker ngoài.
 
 | ID | Ngày mở | Priority | Mô tả | Module/endpoint | Status | Ticket/PR |
 |---|---|---|---|---|---|---|
-| GAP-001 | 2026-07-21 | P2 | Catalog bulk-import/publish dùng chung `catalog.write`, chưa có permission riêng (tương tự cách `knowledge.write`/`knowledge.publish` đã tách) — chi tiết đầy đủ trong `frontend/docs/collaboration/OUTBOX.md` | F03 Product/Import | Open | — |
-| GAP-002 | 2026-07-21 | P2 | F11 Super Admin: chưa có ops-scoped key cho alert-acknowledge, AI kill switch, channel manage — cần quyết định dùng lại tenant-scoped key khi elevated hay tạo key `ops.*` riêng | F11 Super Admin | Open | — |
-| GAP-003 | 2026-07-21 | P1 | Lệch permission-key hệ thống ngoài phạm vi 2 lần rà đã làm (F01/F03/F09/F11) — danh sách đầy đủ ~30 key trong `frontend/docs/collaboration/OUTBOX.md`, phủ khắp F02/F04-F08/F10 (category, report, inventory movement, channel, conversation, ai, order, billing...). Cần 1 lượt rà riêng, mỗi key phải tra CSV rồi mới quyết rename hay thêm mới — không find-replace mù. **F01 slice closed 2026-07-21** (`role.write`→`role.manage`; `authenticated` = session gate) — see [`gap-003-f01-slice.md`](gap-003-f01-slice.md). Remaining non-F01 keys still Open. | F02, F04–F08, F10 | Open (F01 slice Closed) | gap-003-f01-slice.md |
+| GAP-001 | 2026-07-21 | P2 | Catalog bulk-import/publish dùng chung `catalog.write`, chưa có permission riêng (tương tự cách `knowledge.write`/`knowledge.publish` đã tách) — chi tiết đầy đủ trong `frontend/docs/collaboration/OUTBOX.md` | F03 Product/Import | **Closed 2026-07-22 (W3)** | `catalog.import` + `catalog.publish`; import mutations → `catalog.import` |
+| GAP-002 | 2026-07-21 | P2 | F11 Super Admin: chưa có ops-scoped key cho alert-acknowledge, AI kill switch, channel manage — cần quyết định dùng lại tenant-scoped key khi elevated hay tạo key `ops.*` riêng | F11 Super Admin | **Closed 2026-07-22 (W3)** | `ops.alert.acknowledge`, `ops.ai.disable`, `ops.channel.manage`; `disableTenantAI` → `ops.ai.disable` |
+| GAP-003 | 2026-07-21 | P1 | Lệch permission-key hệ thống ngoài phạm vi 2 lần rà đã làm (F01/F03/F09/F11) — danh sách đầy đủ ~30 key trong `frontend/docs/collaboration/OUTBOX.md`. **F01 slice closed 2026-07-21** — see `gap-003-f01-slice.md`. | F02, F04–F08, F10 | **Closed 2026-07-22 (W3)** | [`gap-003-remaining-resolution.md`](gap-003-remaining-resolution.md) |
 | GAP-004 | 2026-07-21 | P0 | `GET /me` (`getCurrentContext`) must return `SessionBootstrapResponse` (user/tenant/session/device/permissions/feature_flags/entitlements?) per FE auth schema §9.3 — was `GenericDataResponse` | Auth `/me` | Closed 2026-07-21 | OpenAPI restore |
 | GAP-005 | 2026-07-21 | P0 | F01 error codes missing from catalog: `INVITE_*`, `USER_LAST_OWNER`, `ROLE_WOULD_REMOVE_LAST_ADMIN`, `DEVICE_ALREADY_REVOKED`; `AUTH_SESSION_EXPIRED`→`AUTH_TOKEN_EXPIRED`; `ROLE_VERSION_CONFLICT`→`RESOURCE_VERSION_MISMATCH` | error_catalog.csv | Closed 2026-07-21 | — |
 | GAP-006 | 2026-07-21 | P0 | CSRF contract for cookie-authenticated mutations: reusable `X-CSRF-Token`, double-submit semantics, `x-csrf-protection` on protected writes | Auth mutations | Closed 2026-07-21 | BE-IDN-003 |
@@ -55,7 +55,7 @@ report lại qua quy trình gap chính thức:
 
 | Mục | Nguồn | Ghi chú |
 |---|---|---|
-| `asyncapi/ops-events.yaml` là stub, chưa có event ops-scoped thật | `frontend/docs/ARTEFACT_STATUS.md` | Chờ BE định nghĩa event cho Operations/Super Admin domain |
+| `asyncapi/ops-events.yaml` | was FE stub | **Closed 2026-07-22 (W2)** — backend `channels.opsEvents` + FE sync populates `ops-events.yaml` (10 messages) |
 | `metrics/metric-catalog.yaml` chưa tồn tại | `frontend/docs/ARTEFACT_STATUS.md` | Cần trước khi F09 Dashboard bắt đầu |
 | `GET /me` SessionBootstrap | was FE test-utils README gap | **Closed** via GAP-004 — BE OpenAPI now declares `SessionBootstrapResponse` |
 | 21 operation OpenAPI chưa có response 2xx hoặc dùng schema generator chưa nhận diện (`AuthResponse`, `ReservationResponse`) | `tooling/scripts/generate-msw-fixtures.mjs` output | Xem console log của script để lấy danh sách đầy đủ; MFA verify 2xx now `AuthResponse` |

@@ -10,3 +10,16 @@ export {
   PostgresWalkingSkeletonTracer
 } from "./infrastructure/persistence/walking-skeleton.persistence.js";
 export { createWalkingSkeletonController } from "./presentation/http/walking-skeleton.controller.js";
+
+export {
+  listAuditLogs,
+  createAuditExport,
+  InMemoryAuditLogStore,
+  AuditQueryError,
+  type AuditLogStore,
+  type AuditLogEntry
+} from "./application/list-audit.js";
+export {
+  createAuditLogsController,
+  createAuditExportsController
+} from "./presentation/http/audit.controller.js";

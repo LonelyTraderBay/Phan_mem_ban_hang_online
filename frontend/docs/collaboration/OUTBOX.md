@@ -169,5 +169,5 @@ Detail: Backend closed GAP-009 — Web Admin uses `startOidcLogin` / `completeOi
 `POST /auth/login` deprecated for Web Admin; Auth slice Generic frozen; `AUTH_OIDC_*` errors added;
 canonical gate at `backend/docs/readiness/ENTERPRISE_DOC_GATE.md`. FE docs (F01-preflight,
 auth-sequence, ARTEFACT_STATUS, login design-spec) updated in this prep.
-Resolution: Pending `pnpm contracts:sync` + codegen after BE commit of OpenAPI/error catalog.
+Resolution: **Closed 2026-07-22** — `contracts/BACKEND_REF.lock` matches BE HEAD; FE-F01 READY-MOCK in progress.
 Do not implement credential login as primary CTA.

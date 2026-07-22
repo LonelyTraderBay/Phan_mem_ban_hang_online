@@ -27,7 +27,8 @@ describe("bootstrapSession against the default MSW handlers", () => {
     expect(result).toMatchObject({ ok: true });
     if (!result.ok) return;
     expect(result.session.tenant.id).toBe("ten_fixture");
-    expect(result.session.permissions).toEqual([]);
+    expect(result.session.permissions).toContain("member.read");
+    expect(result.session.permissions).toContain("role.manage");
     expect(result.session.session.expires_at).toBe("2099-01-01T00:00:00Z");
   });
 });

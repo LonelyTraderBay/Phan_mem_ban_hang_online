@@ -4,7 +4,7 @@ title: Refresh token family/rotation/reuse detection
 owner: Backend AI Agent
 phase: P2
 risk: critical
-status: blocked
+status: done
 ---
 
 # Business outcome
@@ -13,77 +13,68 @@ Refresh token family rotation; reuse detection revokes family.
 
 # Actor and use case
 
-Identity / tenant admin actors and unauthenticated auth flows as defined in blueprint ?5 and FE F01.
+Cookie-authenticated Web Admin (BFF) calling `POST /auth/refresh` with HttpOnly session cookie + CSRF double-submit.
 
 # In scope / Out of scope
 
-In scope: Refresh token family/rotation/reuse detection.
+In scope: Refresh token family rotation, reuse detection (fail-closed family revoke), race-safe rotate, `POST /auth/refresh` + CSRF, AuthResponse without access_token for Web Admin.
 
-Out of scope: unrelated modules; FE UI work (FE sync after BE contract freeze).
+Out of scope: logout/device revoke events (BE-IDN-006); desktop bearer refresh with access_token in JSON; FE UI.
 
 # Dependencies
 
-Blocked on **BE-IDN-004**.
+Blocked on **BE-IDN-004** — unblocked.
 
-See also: `docs/data/identity-migration-design.md`, `docs/tickets/BE-IDN-test-matrix.md`, `docs/collaboration/gap-003-f01-slice.md`.
+See also: `docs/adr/ADR-008-jwt-refresh-token-rotation.md`, `docs/tickets/BE-IDN-test-matrix.md`.
 
 # Domain invariants and state transitions
 
-- Server establishes tenant context; never trust client `tenant_id` for authorization.
-- Money N/A; sessions/tokens store hashes only.
-- No hard-delete of audit/session ledger rows ? revoke via status flags.
+- Refresh stored hashed only; plaintext only in HttpOnly cookie.
+- Reuse of an already-used refresh → revoke entire `family_id` + session → `AUTH_REFRESH_REUSED`.
+- Never trust client `tenant_id` for authorization.
 
 # Contract
 
-- OpenAPI operation/schema: Auth / Members / Roles / Sessions tags as applicable (slice with `pnpm agent:contract-slice`).
-- AsyncAPI events: session revoke / membership events when this ticket owns them.
-- Error codes: per `backend_doc/matrices/error_catalog.csv` and BE-IDN-test-matrix mapping notes.
-- Realtime event: session revoke hooks where BE-IDN-006 applies.
+- OpenAPI: `refreshSession` (`POST /auth/refresh`) — unchanged (frozen).
+- Errors: `AUTH_REFRESH_REUSED`, `AUTH_SESSION_REVOKED`, `CSRF_TOKEN_INVALID`.
 
 # Authorization and data classification
 
-- Required permission: per operation `x-permission` (`authenticated` = session gate, not a permission string; role mutations use `role.manage`).
-- Tenant/RLS behavior: per data-dictionary; `user_sessions` nullable-tenant policy in identity-migration-design.
-- Field-level restrictions: BE-IDN-012.
-- Data classification: credentials/MFA secrets = restricted; PII redacted in logs.
+- `x-permission: session` + CSRF required.
+- Tokens/secrets restricted; audit without plaintext.
 
 # Persistence and migration
 
-- Tables/columns/constraints/indexes/RLS: BE-IDN-001 owns `000005_identity_schema.sql`; later tickets are additive.
-- Backfill: none for greenfield.
-- Rolling-deploy compatibility: expand/contract only.
+- `infra/migrations/000007_refresh_rotation.sql` — `app.refresh_rotate_family` + resolve excludes `used_at` parents.
 
 # Transaction, concurrency and idempotency
 
-- Transaction boundary: auth mutations that touch session + refresh + audit share one tenant/actor transaction where applicable.
-- Lock order/isolation: unique constraints for invite/refresh family.
-- Idempotency scope/TTL: critical member/role/provision commands per OpenAPI `x-idempotency`.
-- Retry behavior: refresh reuse is fail-closed (revoke family).
+- `SELECT … FOR UPDATE` (Postgres) / mutex (in-memory): exactly one child per unused parent.
+- Concurrent double-refresh: winner rotates; loser → family revoke (fail-closed).
 
 # Audit, telemetry and operations
 
-- Audit action: login success/failure (no password), logout, revoke, invite, role change, support grant.
-- Logs/traces/metrics: redacted; correlation IDs required.
-- Alert/runbook impact: refresh reuse spike; invite abuse rate limits.
-- Feature flag/rollout: MFA optional per tenant entitlement when billing exists.
-- Rollback: disable route / feature flag; no hard-delete.
+- Audit: `auth.refresh.rotate`, `auth.refresh.reuse`.
+- Rollback: disable refresh route; no hard-delete.
 
 # Acceptance criteria
 
 - Rotate success
-- Reuse ? AUTH_REFRESH_REUSED + family revoke
+- Reuse → AUTH_REFRESH_REUSED + family revoke
 - Concurrent refresh race safe
-- [ ] Permission/tenant isolation tests per BE-IDN-test-matrix
-- [ ] Contract/generated client note for FE sync
-- [ ] Completion manifest filled
+- [x] Permission/tenant isolation tests per BE-IDN-test-matrix
+- [x] Contract/generated client note — OpenAPI unchanged; FE already has `refreshSession`
+- [x] Completion manifest filled
 
 # Test cases
 
 See `docs/tickets/BE-IDN-test-matrix.md` row `BE-IDN-005`.
 
+Evidence: `modules/identity/src/application/refresh-session.test.ts` (+ OIDC suite) — 15 passed in `modules/identity`.
+
 # Completion manifest
 
-- Contracts changed:
-- Migration:
-- Tests/evidence:
-- Known risks:
+- Contracts changed: none
+- Migration: `infra/migrations/000007_refresh_rotation.sql`
+- Tests/evidence: `pnpm exec vitest run modules/identity` — 15 passed; `pnpm typecheck` OK
+- Known risks: concurrent loser revokes winner’s new token (strict fail-closed); softer grace-window retry deferred if product needs it; live Postgres proof deferred

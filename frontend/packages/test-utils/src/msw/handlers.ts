@@ -1,6 +1,7 @@
 import { http, HttpResponse, type JsonBodyType } from "msw";
 import { handlerDescriptors } from "./generated/handlerDescriptors";
 import { authHandlers } from "./authHandlers";
+import { settingsHandlers } from "./settingsHandlers";
 
 /**
  * Turns the generated descriptors into real MSW handlers. Kept as a runtime mapping step
@@ -14,6 +15,5 @@ const generatedHandlers = handlerDescriptors.map((descriptor) =>
   }),
 );
 
-// Hand-written auth overrides come first: MSW resolves to the first matching handler, so they
-// shadow any generated stub for GET /me (generator skips SessionBootstrapResponse).
-export const handlers = [...authHandlers, ...generatedHandlers];
+// Hand-written auth/settings overrides come first: MSW resolves to the first matching handler.
+export const handlers = [...authHandlers, ...settingsHandlers, ...generatedHandlers];

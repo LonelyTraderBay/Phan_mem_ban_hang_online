@@ -46,33 +46,39 @@ review can move a row into `READY-MOCK` — the Design AI Agent stops at `Drafte
 
 | Route | Screen | Design-spec path | Status |
 |---|---|---|---|
-| `/onboarding` | Onboarding | — | Not started |
-| `/dashboard` | Dashboard | — | Not started |
-| `/inbox`, `/inbox/:conversationId` | Inbox / conversation detail | — | Not started |
-| `/orders`, `/orders/:orderId` | Order list / detail | — | Not started |
-| `/products`, `/products/import`, `/products/:productId` | Product list / import / detail | — | Not started |
-| `/inventory`, `/inventory/movements` | Inventory / movement log | — | Not started |
-| `/knowledge` | Knowledge base | — | Not started |
-| `/channels`, `/channels/:channelId/health` | Channels / channel health | — | Not started |
-| `/ai/settings`, `/ai/logs`, `/ai/blocked` | AI settings / logs / blocked outputs | — | Not started |
-| `/reports` | Reports | — | Not started |
+| `/onboarding` | Onboarding | `docs/ux/design-specs/onboarding.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
+| `/dashboard` | Dashboard | `docs/ux/design-specs/dashboard.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
+| `/inbox`, `/inbox/:conversationId` | Inbox / conversation detail | `docs/ux/design-specs/inbox.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
+| `/orders`, `/orders/:orderId` | Order list / detail | `docs/ux/design-specs/orders.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
+| `/products`, `/products/import`, `/products/:productId` | Product list / import / detail | `docs/ux/design-specs/products.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
+| `/inventory`, `/inventory/movements` | Inventory / movement log | `docs/ux/design-specs/inventory.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
+| `/knowledge` | Knowledge base | `docs/ux/design-specs/knowledge.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
+| `/channels`, `/channels/:channelId/health` | Channels / channel health | `docs/ux/design-specs/channels.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
+| `/ai/settings`, `/ai/logs`, `/ai/blocked` | AI settings / logs / blocked outputs | `docs/ux/design-specs/ai.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
+| `/reports` | Reports | `docs/ux/design-specs/reports.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
 | `/settings/tenant` | Settings — tenant | `docs/ux/design-specs/settings-tenant.md` | READY-MOCK — Human Owner approved 2026-07-21 |
 | `/settings/users` | Settings — users | `docs/ux/design-specs/settings-users.md` | READY-MOCK — Human Owner approved 2026-07-21 |
 | `/settings/roles` | Settings — roles | `docs/ux/design-specs/settings-roles.md` | READY-MOCK — Human Owner approved 2026-07-21 |
 | `/settings/devices` | Settings — devices | `docs/ux/design-specs/settings-devices.md` | READY-MOCK — Human Owner approved 2026-07-21 |
-| `/settings/audit-logs`, `/settings/notifications` | Settings — audit / notifications | — | Not started |
-| `/billing` | Billing | — | Not started |
+| `/settings/audit-logs`, `/settings/notifications` | Settings — audit / notifications | `docs/ux/design-specs/settings-audit-logs.md` + `settings-notifications.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
+| `/billing` | Billing | `docs/ux/design-specs/billing.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
 
 ### Super Admin (separate app)
 
 | Route | Screen | Design-spec path | Status |
 |---|---|---|---|
-| `/tenants`, `/tenants/:tenantId`, `/tenants/:tenantId/health` | Tenant list / detail / health | — | Not started |
-| `/feature-flags` | Feature flags | — | Not started |
-| `/alerts` | Alerts | — | Not started |
-| `/support-access` | Support access (break-glass) | — | Not started |
-| `/ai-health`, `/channel-health` | AI health / channel health | — | Not started |
-| `/audit-logs` | Audit logs | — | Not started |
+| `/tenants`, `/tenants/:tenantId`, `/tenants/:tenantId/health` | Tenant list / detail / health | `docs/ux/design-specs/tenants.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
+| `/feature-flags` | Feature flags | `docs/ux/design-specs/feature-flags.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
+| `/alerts` | Alerts | `docs/ux/design-specs/alerts.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
+| `/support-access` | Support access (break-glass) | `docs/ux/design-specs/support-access.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
+| `/ai-health`, `/channel-health` | AI health / channel health | `docs/ux/design-specs/ai-health.md` + `channel-health.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
+| `/audit-logs` | Audit logs | `docs/ux/design-specs/audit-logs.md` | READY-MOCK — HO defaults policy C (enterprise freeze W6) 2026-07-22 |
+
+## Freeze note (W6 — 2026-07-22)
+
+Non-F01 product screens marked **READY-MOCK** under Human Owner **policy C** (enterprise doc-freeze):
+pack completeness for AI coding freeze. Production legal/security copy acceptance remains a later gate.
+Auth/settings F01 rows retain Human Owner approval 2026-07-21.
 
 ## Process
 

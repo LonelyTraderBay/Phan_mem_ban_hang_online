@@ -2,8 +2,9 @@
 
 ## 1. Đọc theo thứ tự
 
-0. `../docs/enterprise-freeze/README.md` + `FULL_PRODUCT_DOC_FREEZE.md` — **nếu gate FAIL: chỉ làm
-   wave docs/contracts, không code feature domain.**
+0. `../docs/enterprise-freeze/README.md` + `FULL_PRODUCT_DOC_FREEZE.md` — **gate PASS (2026-07-22).**
+   Feature code theo phase order trong `../docs/readiness/ENTERPRISE_DOC_GATE.md` (kickoff
+   **BE-IDN-001**). Không nhảy ORD/PAY chỉ vì docs đã đủ.
 1. `01_BACKEND_ENTERPRISE_IMPLEMENTATION_BLUEPRINT_v2.0.md` — mục 0–6, 18–20.
 2. `CHANGELOG_FROM_V1_TO_V2.md` — hiểu thay đổi và phạm vi.
 3. `matrices/implementation_backlog.csv` — import Jira/Linear.
