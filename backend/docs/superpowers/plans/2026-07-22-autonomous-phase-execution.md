@@ -62,7 +62,7 @@ Mỗi wave: cập nhật DOC_GATE exit trước khi mở wave sau.
 
 ## Nhánh git
 
-- Working branch: `feat/autonomous-backlog` (tách từ `main` hoặc tiếp nối `ticket/BE-CUS-003`)
+- Working branch: `cursor/autonomous-p3-wave1` (Wave 1 P3 BE)
 - 1 commit / ticket (hoặc 1 PR / wave nếu Human Owner muốn gộp)
 - Không commit `.superpowers/sdd/*` scratch trừ ledger nếu được phép
 
