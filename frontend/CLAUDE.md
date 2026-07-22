@@ -11,9 +11,11 @@ don't assume a screen, hook, or doc exists just because the spec describes it. C
 ## Read this first
 
 - Canonical **what AI may code now** gate (sibling backend):
-  `backend/docs/enterprise-freeze/FULL_PRODUCT_DOC_FREEZE.md` — until **PASS**, no feature UI
-  implementation; then follow `backend/docs/readiness/ENTERPRISE_DOC_GATE.md` (Identity/F01 first).
-  Mirror checklist: `docs/enterprise-freeze/FE_FREEZE_CHECKLIST.md`.
+  `backend/docs/enterprise-freeze/FULL_PRODUCT_DOC_FREEZE.md` — **PASS
+  (2026-07-22)**. Follow `backend/docs/readiness/ENTERPRISE_DOC_GATE.md`: kickoff **BE-IDN-001**, then FE F01
+  MSW/READY-MOCK; no phase jumping. Mirror: `docs/enterprise-freeze/FE_FREEZE_CHECKLIST.md`.
+  Sync contracts with `pnpm contracts:sync` (resolves sibling `../backend`; override with
+  `BACKEND_CONTRACTS_ROOT` only in CI).
 - `frontend_doc/00_FRONTEND_IMPLEMENTATION_SPEC_ENTERPRISE_GRADE_v2.0.md` is the spec of record
  (Vietnamese, 30 sections, ~5600 lines). Per its own §1.4: read §2–6 for ground rules, §9–19 for
  any task touching API/auth/data/release, the module's own §21 subsection, then §22

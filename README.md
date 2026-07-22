@@ -6,10 +6,10 @@
 
 | Actor | Là gì | Hoạt động ở đâu | Ra quyết định gì |
 |---|---|---|---|
-| **Backend AI Agent** | AI coding agent (Claude Code) | Repo `backend/` | Toàn bộ kỹ thuật backend: schema, API, domain rule, security invariant kỹ thuật, CI/CD |
-| **Frontend AI Agent** | AI coding agent (Claude Code) | Repo `frontend/` | Toàn bộ kỹ thuật frontend: component, state, routing, contract consumption, CI/CD |
-| **Design AI Agent** | AI subagent (`frontend/.claude/agents/design-spec-writer.md`) | Trong repo `frontend/`, chạy trước khi Frontend AI Agent code UI một màn hình | Bản đặc tả thiết kế dạng text/markdown thay thế Figma — xem `frontend/docs/ux/handoff-checklist.md` |
-| **Human Owner** | Bạn — người duy nhất | Ngoài cả 2 repo | Chấp nhận rủi ro kinh doanh/bảo mật/pháp lý, phê duyệt hành động không thể đảo ngược (go-live, xóa dữ liệu, chi tiêu hạ tầng thật), phân xử khi 2 agent không tự giải quyết được |
+| **Backend AI Agent** | AI coding agent (Claude Code) | Workspace `backend/` | Toàn bộ kỹ thuật backend: schema, API, domain rule, security invariant kỹ thuật, CI/CD |
+| **Frontend AI Agent** | AI coding agent (Claude Code) | Workspace `frontend/` | Toàn bộ kỹ thuật frontend: component, state, routing, contract consumption, CI/CD |
+| **Design AI Agent** | AI subagent (`frontend/.claude/agents/design-spec-writer.md`) | Trong workspace `frontend/`, chạy trước khi Frontend AI Agent code UI một màn hình | Bản đặc tả thiết kế dạng text/markdown thay thế Figma — xem `frontend/docs/ux/handoff-checklist.md` |
+| **Human Owner** | Bạn — người duy nhất | Ngoài cả 2 workspace | Chấp nhận rủi ro kinh doanh/bảo mật/pháp lý, phê duyệt hành động không thể đảo ngược (go-live, xóa dữ liệu, chi tiêu hạ tầng thật), phân xử khi 2 agent không tự giải quyết được |
 
 **Không có** Product Owner, UX Lead, Security Lead, QA Lead, DevOps/SRE, Backend Lead, Frontend
 Architect... như những vai trò con người riêng biệt — tất cả trách nhiệm kỹ thuật của các vai trò
@@ -22,12 +22,23 @@ phải một "role" trừu tượng.
 > vẫn luôn cần Human Owner xác nhận — không AI agent nào được tự phê duyệt việc này, bất kể nó tự
 > tin đến đâu về mặt kỹ thuật.
 
+## Workspace layout (canonical)
+
+One git repository (umbrella). Two independent pnpm workspaces — do not mix code across them:
+
+| Path | Owner | Contents |
+|------|-------|----------|
+| `backend/` | Backend AI Agent | NestJS/FastAPI apps, modules, infra, `backend_doc/`, BE docs |
+| `frontend/` | Frontend AI Agent | Web/desktop apps, UI packages, synced `contracts/`, FE docs |
+
+Contract source of truth lives under `backend/`. Frontend refreshes copies with `pnpm -C frontend contracts:sync`.
+
 ## Nguyên tắc phối hợp — 2 AI Agent không họp, không chat trực tiếp
 
-Backend AI Agent và Frontend AI Agent chạy trong **2 phiên/agent độc lập, 2 repo riêng, không có
+Backend AI Agent và Frontend AI Agent chạy trong **2 phiên/agent độc lập, 2 workspace riêng, không có
 kênh chat real-time giữa 2 bên**. Vì vậy mọi phối hợp phải là **bất đồng bộ, dựa trên file**:
 
-1. **Backend sở hữu contract.** Nguồn chuẩn của API/event/permission/error nằm trong repo backend.
+1. **Backend sở hữu contract.** Nguồn chuẩn của API/event/permission/error nằm trong workspace backend.
    Frontend chỉ pull về bằng `pnpm contracts:sync`, không sửa tay.
 2. **Không có "2 agent thảo luận rồi quyết".** Khi 2 agent cần thống nhất một điểm kỹ thuật:
    - Nếu đã có rule cố định trong docs (ADR, contract, blueprint) → agent tự áp dụng, không hỏi ai.
@@ -64,13 +75,14 @@ kênh chat real-time giữa 2 bên**. Vì vậy mọi phối hợp phải là **
 
 Khi sửa bản chuẩn, agent sửa file đó chịu trách nhiệm đồng bộ bản sao trong cùng lần sửa.
 
-## Trạng thái hiện tại (2026-07-21)
+## Trạng thái hiện tại (2026-07-22)
 
-- **Backend AI Agent**: P0 hoàn tất (`backend/docs/p0/P0_CHECKLIST.md`) — bắt đầu P1 Foundation
-  (`BE-FND-*`). Backlog: `backend_doc/matrices/implementation_backlog.csv`.
-- **Frontend AI Agent**: F00 scaffolding hoàn tất, CI 16 bước chạy thật. Trạng thái artefact:
-  `frontend/docs/ARTEFACT_STATUS.md`. Chặn chính hiện tại: chưa có design-spec nào từ Design AI
-  Agent cho bất kỳ màn hình nào — xem `frontend/docs/ux/handoff-checklist.md`.
+- **Full-product doc freeze:** **PASS** —
+  `backend/docs/enterprise-freeze/FULL_PRODUCT_DOC_FREEZE.md`.
+  Coding theo phase: `…/readiness/ENTERPRISE_DOC_GATE.md` — kickoff **BE-IDN-001**, rồi FE F01;
+  không nhảy ORD/PAY.
+- **Backend:** P0/P1 foundation + Identity tickets `doc-frozen`/`ready`; backlog coverage 100%.
+- **Frontend:** F00 scaffolding; mọi product screen **READY-MOCK**; `contracts:sync` + codegen sạch.
 
 ## Việc chỉ Human Owner mới quyết được (đọc trước khi để agent tự chạy dài hạn)
 
