@@ -16,7 +16,8 @@ export type CatalogPermission =
   | "catalog.read"
   | "catalog.write"
   | "catalog.cost.read"
-  | "catalog.cost.write";
+  | "catalog.cost.write"
+  | "catalog.import";
 
 export type CatalogErrorCode =
   | "VALIDATION_FAILED"
@@ -30,7 +31,12 @@ export type CatalogErrorCode =
   | "PRODUCT_ARCHIVED"
   | "IDEMPOTENCY_KEY_REQUIRED"
   | "UNSUPPORTED_MEDIA_TYPE"
-  | "REQUEST_TOO_LARGE";
+  | "REQUEST_TOO_LARGE"
+  | "IMPORT_FILE_INVALID"
+  | "IMPORT_MAPPING_INVALID"
+  | "IMPORT_PREVIEW_STALE"
+  | "IMPORT_JOB_STATE_INVALID"
+  | "IMPORT_APPLY_FAILED";
 
 export interface PriceHistoryRecord {
   readonly id: string;

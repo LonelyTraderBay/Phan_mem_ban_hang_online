@@ -11,7 +11,12 @@ import {
   PostgresOutboxWriter,
   PostgresWalkingSkeletonTracer
 } from "@ai-sales/module-audit";
-import { createCatalogController, InMemoryCatalogRepository } from "@ai-sales/module-catalog";
+import {
+  createCatalogController,
+  createInMemoryImportApplyPort,
+  InMemoryCatalogRepository,
+  InMemoryImportRepository
+} from "@ai-sales/module-catalog";
 import {
   createCustomersController,
   InMemoryCustomerRepository
@@ -48,6 +53,8 @@ const membersRolesRepo = new InMemoryMembersRolesRepository();
 const auditLogStore = new InMemoryAuditLogStore();
 const supportGrantStore = new InMemorySupportGrantStore();
 const catalogRepo = new InMemoryCatalogRepository();
+const importRepo = new InMemoryImportRepository();
+const importApplyPort = createInMemoryImportApplyPort(catalogRepo);
 const customerRepo = new InMemoryCustomerRepository();
 
 function buildOidcConfig(): OidcClientConfig | null {
@@ -94,7 +101,11 @@ function buildControllers(): Type<unknown>[] {
       createAuditLogsController({ store: auditLogStore }),
       createAuditExportsController({ store: auditLogStore }),
       createSupportAccessController({ store: supportGrantStore }),
-      createCatalogController({ repo: catalogRepo }),
+      createCatalogController({
+        repo: catalogRepo,
+        importRepo,
+        importApplyPort
+      }),
       createCustomersController({ repo: customerRepo })
     );
 

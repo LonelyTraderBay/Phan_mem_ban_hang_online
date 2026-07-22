@@ -69,8 +69,8 @@ authoritative for AI coding agents — do not re-open without ADR.
 | `product_variants` | TENANT_OWNED | **Done** (`000012`) | `cost_minor` field-level protected (§5.5); `price_minor` = tax-**inclusive** đồng per HO_DEFAULTS_v1 |
 | `product_media` | TENANT_OWNED | **Done** (`000012`) | |
 | `price_history` | TENANT_OWNED [ledger] | **Done** (`000012`) | Append-only; SELECT/INSERT only, no UPDATE/DELETE grant |
-| `import_jobs` | TENANT_OWNED | Not started | Owned by BE-IMP-001, not BE-CAT-001 — see `docs/tickets/BE-IMP-001.md` |
-| `import_job_rows` | TENANT_OWNED | Not started | Owned by BE-IMP-001, not BE-CAT-001 — see `docs/tickets/BE-IMP-001.md` |
+| `import_jobs` | TENANT_OWNED | **Done** (`000014`) | Owned by BE-IMP-001…005 |
+| `import_job_rows` | TENANT_OWNED | **Done** (`000014`) | Staging rows; FORCE RLS |
 
 ## Inventory (blueprint §7.8)
 

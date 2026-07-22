@@ -37,7 +37,7 @@ Dừng vòng lặp khi: BLOCKED (thiếu HO rule tiền/bảo mật), hoặc h�
 2. [x] BE-CUS-004 Merge preview/merge transaction/history
 3. [x] BE-CAT-003 Cost/price permission + history/audit
 4. [x] BE-CAT-004 Private media upload/scan/signed URL
-5. [ ] BE-IMP-001 … BE-IMP-005 (lần lượt)
+5. [x] BE-IMP-001 … BE-IMP-005 (in-memory + `000014`)
 
 ### Wave 2 — FE slice P3 (sau API Done)
 

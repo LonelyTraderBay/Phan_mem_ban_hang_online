@@ -51,11 +51,11 @@ BE-CAT-001,P3,Not Started,docs/tickets/BE-CAT-001.md,doc-frozen,
 BE-CAT-002,P3,Not Started,docs/tickets/BE-CAT-002.md,doc-frozen,
 BE-CAT-003,P3,Done,docs/tickets/BE-CAT-003.md,done,cites_HO_DEFAULTS
 BE-CAT-004,P3,Done,docs/tickets/BE-CAT-004.md,done,
-BE-IMP-001,P3,Not Started,docs/tickets/BE-IMP-001.md,doc-frozen,
-BE-IMP-002,P3,Not Started,docs/tickets/BE-IMP-002.md,doc-frozen,cites_HO_DEFAULTS
-BE-IMP-003,P3,Not Started,docs/tickets/BE-IMP-003.md,doc-frozen,
-BE-IMP-004,P3,Not Started,docs/tickets/BE-IMP-004.md,doc-frozen,
-BE-IMP-005,P3,Not Started,docs/tickets/BE-IMP-005.md,doc-frozen,
+BE-IMP-001,P3,Done,docs/tickets/BE-IMP-001.md,done,
+BE-IMP-002,P3,Done,docs/tickets/BE-IMP-002.md,done,cites_HO_DEFAULTS
+BE-IMP-003,P3,Done,docs/tickets/BE-IMP-003.md,done,
+BE-IMP-004,P3,Done,docs/tickets/BE-IMP-004.md,done,
+BE-IMP-005,P3,Done,docs/tickets/BE-IMP-005.md,done,
 BE-INV-001,P4,Not Started,docs/tickets/BE-INV-001.md,doc-frozen,
 BE-INV-002,P4,Not Started,docs/tickets/BE-INV-002.md,doc-frozen,
 BE-INV-003,P4,Not Started,docs/tickets/BE-INV-003.md,doc-frozen,

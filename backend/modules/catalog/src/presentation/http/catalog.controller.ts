@@ -11,6 +11,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Body,
   Res,
   UnprocessableEntityException
@@ -40,6 +41,18 @@ import {
   createMediaUploadIntent,
   type MediaRepository
 } from "../../application/media.js";
+import {
+  analyzeImport,
+  cancelImport,
+  confirmImport,
+  createImportJob,
+  getImportErrors,
+  getImportJob,
+  getImportPreview,
+  updateImportMapping,
+  type ImportApplyPort,
+  type ImportRepository
+} from "../../application/import-jobs.js";
 
 type HeaderBag = Record<string, string | string[] | undefined>;
 
@@ -119,6 +132,13 @@ function mapCatalogError(error: unknown): never {
         throw new HttpException({ code: error.code, message: error.message }, 415);
       case "REQUEST_TOO_LARGE":
         throw new HttpException({ code: error.code, message: error.message }, 413);
+      case "IMPORT_PREVIEW_STALE":
+      case "IMPORT_JOB_STATE_INVALID":
+        throw new ConflictException({ code: error.code, message: error.message });
+      case "IMPORT_APPLY_FAILED":
+        throw new HttpException({ code: error.code, message: error.message }, 500);
+      case "IMPORT_FILE_INVALID":
+      case "IMPORT_MAPPING_INVALID":
       case "CATEGORY_CYCLE":
       case "VALIDATION_FAILED":
       default:
@@ -130,6 +150,8 @@ function mapCatalogError(error: unknown): never {
 
 export function createCatalogController(options: {
   readonly repo: CatalogRepository & MediaRepository;
+  readonly importRepo?: ImportRepository;
+  readonly importApplyPort?: ImportApplyPort;
 }) {
   @Controller("api/v1")
   class CatalogController {
@@ -477,6 +499,172 @@ export function createCatalogController(options: {
           uploadId: body?.upload_id ?? "",
           ...(body?.alt_text !== undefined ? { altText: body.alt_text } : {}),
           ...(body?.sort_order !== undefined ? { sortOrder: body.sort_order } : {})
+        });
+      } catch (error) {
+        mapCatalogError(error);
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // Imports (BE-IMP-001…005)
+    // -------------------------------------------------------------------
+
+    @Post("imports")
+    @HttpCode(HttpStatus.ACCEPTED)
+    async createImport(
+      @Body() body: { source_type?: string; upload_id?: string | null },
+      @Headers() headers: HeaderBag
+    ) {
+      try {
+        if (!options.importRepo) {
+          throw new CatalogError("Import repository not configured.", "VALIDATION_FAILED");
+        }
+        const actor = parseActor(headers);
+        return await createImportJob({
+          repo: options.importRepo,
+          tenantId: actor.tenantId,
+          actorPermissions: actor.permissions,
+          idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          sourceType: body?.source_type ?? "",
+          uploadId: body?.upload_id ?? null
+        });
+      } catch (error) {
+        mapCatalogError(error);
+      }
+    }
+
+    @Get("imports/:job_id")
+    async getImport(@Param("job_id") jobId: string, @Headers() headers: HeaderBag) {
+      try {
+        if (!options.importRepo) {
+          throw new CatalogError("Import repository not configured.", "VALIDATION_FAILED");
+        }
+        const actor = parseActor(headers);
+        return await getImportJob({
+          repo: options.importRepo,
+          tenantId: actor.tenantId,
+          actorPermissions: actor.permissions,
+          jobId
+        });
+      } catch (error) {
+        mapCatalogError(error);
+      }
+    }
+
+    @Post("imports/:job_id/analyze")
+    @HttpCode(HttpStatus.ACCEPTED)
+    async analyze(@Param("job_id") jobId: string, @Headers() headers: HeaderBag) {
+      try {
+        if (!options.importRepo) {
+          throw new CatalogError("Import repository not configured.", "VALIDATION_FAILED");
+        }
+        const actor = parseActor(headers);
+        return await analyzeImport({
+          repo: options.importRepo,
+          tenantId: actor.tenantId,
+          actorPermissions: actor.permissions,
+          idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          jobId
+        });
+      } catch (error) {
+        mapCatalogError(error);
+      }
+    }
+
+    @Get("imports/:job_id/preview")
+    async preview(@Param("job_id") jobId: string, @Headers() headers: HeaderBag) {
+      try {
+        if (!options.importRepo) {
+          throw new CatalogError("Import repository not configured.", "VALIDATION_FAILED");
+        }
+        const actor = parseActor(headers);
+        return await getImportPreview({
+          repo: options.importRepo,
+          tenantId: actor.tenantId,
+          actorPermissions: actor.permissions,
+          jobId
+        });
+      } catch (error) {
+        mapCatalogError(error);
+      }
+    }
+
+    @Put("imports/:job_id/mapping")
+    async mapping(
+      @Param("job_id") jobId: string,
+      @Body() body: { mapping?: Record<string, string>; expected_version?: number },
+      @Headers() headers: HeaderBag
+    ) {
+      try {
+        if (!options.importRepo) {
+          throw new CatalogError("Import repository not configured.", "VALIDATION_FAILED");
+        }
+        const actor = parseActor(headers);
+        return await updateImportMapping({
+          repo: options.importRepo,
+          tenantId: actor.tenantId,
+          actorPermissions: actor.permissions,
+          jobId,
+          expectedVersion: resolveExpectedVersion(headers, body?.expected_version),
+          mapping: body?.mapping ?? {}
+        });
+      } catch (error) {
+        mapCatalogError(error);
+      }
+    }
+
+    @Get("imports/:job_id/errors")
+    async errors(@Param("job_id") jobId: string, @Headers() headers: HeaderBag) {
+      try {
+        if (!options.importRepo) {
+          throw new CatalogError("Import repository not configured.", "VALIDATION_FAILED");
+        }
+        const actor = parseActor(headers);
+        return await getImportErrors({
+          repo: options.importRepo,
+          tenantId: actor.tenantId,
+          actorPermissions: actor.permissions,
+          jobId
+        });
+      } catch (error) {
+        mapCatalogError(error);
+      }
+    }
+
+    @Post("imports/:job_id/confirm")
+    @HttpCode(HttpStatus.ACCEPTED)
+    async confirm(@Param("job_id") jobId: string, @Headers() headers: HeaderBag) {
+      try {
+        if (!options.importRepo || !options.importApplyPort) {
+          throw new CatalogError("Import apply port not configured.", "VALIDATION_FAILED");
+        }
+        const actor = parseActor(headers);
+        return await confirmImport({
+          repo: options.importRepo,
+          applyPort: options.importApplyPort,
+          tenantId: actor.tenantId,
+          actorPermissions: actor.permissions,
+          idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          jobId
+        });
+      } catch (error) {
+        mapCatalogError(error);
+      }
+    }
+
+    @Post("imports/:job_id/cancel")
+    async cancel(@Param("job_id") jobId: string, @Headers() headers: HeaderBag) {
+      try {
+        if (!options.importRepo) {
+          throw new CatalogError("Import repository not configured.", "VALIDATION_FAILED");
+        }
+        const actor = parseActor(headers);
+        return await cancelImport({
+          repo: options.importRepo,
+          tenantId: actor.tenantId,
+          actorPermissions: actor.permissions,
+          idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          jobId
         });
       } catch (error) {
         mapCatalogError(error);

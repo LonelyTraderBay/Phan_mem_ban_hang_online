@@ -51,11 +51,11 @@ phase,task_id,title,deliverable_or_details,status,primary_paths
 19.5 Phase P3,BE-CAT-002,Product/category/variant CRUD + ETag,,Done,modules/catalog/
 19.5 Phase P3,BE-CAT-003,Cost/price permission + history/audit,,Done,modules/catalog/
 19.5 Phase P3,BE-CAT-004,Private media upload/scan/signed URL flow,,Done,modules/catalog/
-19.5 Phase P3,BE-IMP-001,Import upload/job/staging schema,,Not Started,modules/catalog/
-19.5 Phase P3,BE-IMP-002,"Parser, encoding/file limits, mapping detection",,Not Started,modules/catalog/
-19.5 Phase P3,BE-IMP-003,Validation/dedupe/preview/error report,,Not Started,modules/catalog/
-19.5 Phase P3,BE-IMP-004,Confirm/apply idempotent atomic merge,,Not Started,modules/catalog/
-19.5 Phase P3,BE-IMP-005,Large import resumability/cancellation/metrics,,Not Started,modules/catalog/
+19.5 Phase P3,BE-IMP-001,Import upload/job/staging schema,,Done,modules/catalog/;infra/migrations/000014_import_schema.sql
+19.5 Phase P3,BE-IMP-002,"Parser, encoding/file limits, mapping detection",,Done,modules/catalog/
+19.5 Phase P3,BE-IMP-003,Validation/dedupe/preview/error report,,Done,modules/catalog/
+19.5 Phase P3,BE-IMP-004,Confirm/apply idempotent atomic merge,,Done,modules/catalog/
+19.5 Phase P3,BE-IMP-005,Large import resumability/cancellation/metrics,,Done,modules/catalog/
 19.6 Phase P4,BE-INV-001,Warehouse/balance/movement/reservation schema + constraints/RLS,,Not Started,modules/inventory/
 19.6 Phase P4,BE-INV-002,Balance query/read DTO/indexes,,Not Started,modules/inventory/
 19.6 Phase P4,BE-INV-003,Adjustment command/reason/approval/audit,,Not Started,modules/inventory/
