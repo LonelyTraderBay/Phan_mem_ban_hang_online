@@ -157,6 +157,7 @@ describe("ai orchestration application", () => {
       testAIMessage({
         repo,
         tenantId: tenantA,
+        actorId,
         actorPermissions: ["ai.sandbox.test"],
         idempotencyKey: "t1"
       })
@@ -164,6 +165,7 @@ describe("ai orchestration application", () => {
     await enableAI({
       repo,
       tenantId: tenantA,
+      actorId,
       actorPermissions: ["ai.disable"],
       idempotencyKey: "enable-1"
     });
@@ -199,6 +201,7 @@ describe("ai orchestration application", () => {
     await runPromptEvaluation({
       repo,
       tenantId: tenantA,
+      actorId,
       promptVersionId: created.data.id as string,
       actorPermissions: configPerms,
       idempotencyKey: "eval-1"
@@ -206,6 +209,7 @@ describe("ai orchestration application", () => {
     const approved = await approvePromptVersion({
       repo,
       tenantId: tenantA,
+      actorId,
       promptVersionId: created.data.id as string,
       actorPermissions: ["ai.activate"],
       idempotencyKey: "ap-1"
@@ -214,6 +218,7 @@ describe("ai orchestration application", () => {
     const activated = await activatePromptVersion({
       repo,
       tenantId: tenantA,
+      actorId,
       promptVersionId: created.data.id as string,
       actorPermissions: ["ai.activate"],
       idempotencyKey: "act-1"
@@ -250,6 +255,7 @@ describe("ai orchestration application", () => {
     await testAIMessage({
       repo,
       tenantId: tenantA,
+      actorId,
       actorPermissions: ["ai.sandbox.test"],
       idempotencyKey: "sandbox-1"
     });

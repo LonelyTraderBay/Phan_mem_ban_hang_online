@@ -162,19 +162,13 @@ function toChunk(row: ChunkRow): KnowledgeChunkRecord {
   };
 }
 
-/** v1 process-local idempotency — migrate to app.idempotency_records when wired. */
+/**
+ * Knowledge Postgres adapter.
+ * HTTP idempotency is via PostgresIdempotencyStore at application layer
+ * (get/save below are no-ops kept for KnowledgeRepository interface / InMemory parity).
+ */
 export class PostgresKnowledgeRepository implements KnowledgeRepository {
-  private readonly idempotentResources = new Map<string, KnowledgeResource>();
-  private readonly idempotentJobs = new Map<
-    string,
-    { readonly job_id: string; readonly status: JobResponseStatus; readonly status_url: string | null }
-  >();
-
   constructor(private readonly db: AppDatabase) {}
-
-  private idemKey(tenantId: string, key: string): string {
-    return `${tenantId}:${key}`;
-  }
 
   private async loadSource(
     trx: Trx,
@@ -545,38 +539,38 @@ export class PostgresKnowledgeRepository implements KnowledgeRepository {
     });
   }
 
-  async getIdempotentResource(tenantId: string, key: string): Promise<KnowledgeResource | null> {
-    return this.idempotentResources.get(this.idemKey(tenantId, key)) ?? null;
+  async getIdempotentResource(_tenantId: string, _key: string): Promise<KnowledgeResource | null> {
+    return null;
   }
 
   async saveIdempotentResource(
-    tenantId: string,
-    key: string,
-    resource: KnowledgeResource
+    _tenantId: string,
+    _key: string,
+    _resource: KnowledgeResource
   ): Promise<void> {
-    this.idempotentResources.set(this.idemKey(tenantId, key), resource);
+    /* no-op — use IdempotencyStore */
   }
 
   async getIdempotentJobResponse(
-    tenantId: string,
-    key: string
+    _tenantId: string,
+    _key: string
   ): Promise<{
     readonly job_id: string;
     readonly status: JobResponseStatus;
     readonly status_url: string | null;
   } | null> {
-    return this.idempotentJobs.get(this.idemKey(tenantId, key)) ?? null;
+    return null;
   }
 
   async saveIdempotentJobResponse(
-    tenantId: string,
-    key: string,
-    response: {
+    _tenantId: string,
+    _key: string,
+    _response: {
       readonly job_id: string;
       readonly status: JobResponseStatus;
       readonly status_url: string | null;
     }
   ): Promise<void> {
-    this.idempotentJobs.set(this.idemKey(tenantId, key), response);
+    /* no-op — use IdempotencyStore */
   }
 }

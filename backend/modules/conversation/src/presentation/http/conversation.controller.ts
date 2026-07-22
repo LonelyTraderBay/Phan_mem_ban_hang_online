@@ -14,6 +14,7 @@ import {
   Query,
   UnprocessableEntityException
 } from "@nestjs/common";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { DomainInvariantError, parseUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
 import { MissingSecurityContextError } from "@ai-sales/security";
 import {
@@ -114,6 +115,7 @@ function mapConversationError(error: unknown): never {
 export function createConversationController(options: {
   readonly repo: ConversationRepository;
   readonly outbound: OutboundQueuePort;
+  readonly idempotency?: IdempotencyStore;
 }) {
   @Controller("api/v1")
   class ConversationController {
@@ -221,6 +223,7 @@ export function createConversationController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           conversationId,
           expectedVersion: body.expected_conversation_version ?? parseExpectedVersion(headers, undefined),
           text: body.content?.text ?? ""
@@ -244,6 +247,7 @@ export function createConversationController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           conversationId,
           assigneeMemberId: body.assignee_member_id,
           expectedVersion: body.expected_version ?? parseExpectedVersion(headers, undefined)
@@ -267,6 +271,7 @@ export function createConversationController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           conversationId,
           expectedVersion: body.expected_version ?? parseExpectedVersion(headers, undefined)
         });
@@ -289,6 +294,7 @@ export function createConversationController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           conversationId,
           body: body.body
         });
@@ -311,6 +317,7 @@ export function createConversationController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           conversationId,
           expectedVersion: body.expected_version ?? parseExpectedVersion(headers, undefined)
         });
@@ -333,6 +340,7 @@ export function createConversationController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           conversationId,
           expectedVersion: body.expected_version ?? parseExpectedVersion(headers, undefined)
         });
@@ -355,6 +363,7 @@ export function createConversationController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           conversationId,
           expectedVersion: body.expected_version ?? parseExpectedVersion(headers, undefined)
         });
@@ -377,6 +386,7 @@ export function createConversationController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           conversationId,
           expectedVersion: body.expected_version ?? parseExpectedVersion(headers, undefined)
         });
@@ -399,6 +409,7 @@ export function createConversationController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           conversationId,
           expectedVersion: body.expected_version ?? parseExpectedVersion(headers, undefined)
         });

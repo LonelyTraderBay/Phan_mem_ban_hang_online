@@ -302,6 +302,7 @@ export function createFulfillmentController(options: {
         const actor = parseActor(headers);
         return await completeReturn({
           repo: options.repo,
+          orders: options.orders,
           ...(options.inventory ? { inventory: options.inventory } : {}),
           tenantId: actor.tenantId,
           returnId,

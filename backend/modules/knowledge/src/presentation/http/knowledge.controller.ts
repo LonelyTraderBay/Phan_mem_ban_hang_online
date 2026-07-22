@@ -16,6 +16,7 @@ import {
 } from "@nestjs/common";
 import type { FastifyReply } from "fastify";
 import { DomainInvariantError, parseUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { MissingSecurityContextError } from "@ai-sales/security";
 import {
   approveKnowledgeVersion,
@@ -100,7 +101,10 @@ function mapKnowledgeError(error: unknown): never {
   throw error;
 }
 
-export function createKnowledgeController(options: { readonly repo: KnowledgeRepository }) {
+export function createKnowledgeController(options: {
+  readonly repo: KnowledgeRepository;
+  readonly idempotency?: IdempotencyStore;
+}) {
   @Controller("api/v1")
   class KnowledgeController {
     @Get("knowledge/sources")
@@ -131,6 +135,7 @@ export function createKnowledgeController(options: { readonly repo: KnowledgeRep
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           name: body?.name ?? "",
           type: body?.type ?? "manual",
           uri: body?.uri ?? null
@@ -170,6 +175,7 @@ export function createKnowledgeController(options: { readonly repo: KnowledgeRep
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           sourceId,
           title: body?.title ?? "",
           bodyMarkdown: body?.body_markdown ?? null
@@ -215,6 +221,7 @@ export function createKnowledgeController(options: { readonly repo: KnowledgeRep
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           versionId
         });
       } catch (error) {
@@ -232,6 +239,7 @@ export function createKnowledgeController(options: { readonly repo: KnowledgeRep
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           versionId
         });
       } catch (error) {
@@ -250,6 +258,7 @@ export function createKnowledgeController(options: { readonly repo: KnowledgeRep
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           versionId
         });
       } catch (error) {
@@ -267,6 +276,7 @@ export function createKnowledgeController(options: { readonly repo: KnowledgeRep
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           versionId
         });
       } catch (error) {

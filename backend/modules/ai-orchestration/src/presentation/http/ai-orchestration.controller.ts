@@ -13,6 +13,7 @@ import {
   UnprocessableEntityException
 } from "@nestjs/common";
 import { DomainInvariantError, parseUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { MissingSecurityContextError } from "@ai-sales/security";
 import {
   activatePromptVersion,
@@ -112,12 +113,17 @@ function mapAiError(error: unknown): never {
   throw error;
 }
 
+function withIdempotency(store: IdempotencyStore | undefined) {
+  return store ? { idempotency: store } : {};
+}
+
 export function createAiOrchestrationController(options: {
   readonly repo: AiOrchestrationRepository;
   readonly conversations: ConversationLookupPort;
   readonly knowledge: KnowledgeRetrievalPort;
   readonly outbound: OutboundSendPort;
   readonly gateway?: ModelGatewayPort;
+  readonly idempotency?: IdempotencyStore;
 }) {
   @Controller("api/v1")
   class AiOrchestrationController {
@@ -151,10 +157,12 @@ export function createAiOrchestrationController(options: {
         return await approveAISuggestion({
           repo: options.repo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           conversationId,
           suggestionId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...withIdempotency(options.idempotency)
         });
       } catch (error) {
         mapAiError(error);
@@ -178,7 +186,8 @@ export function createAiOrchestrationController(options: {
           conversationId,
           suggestionId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...withIdempotency(options.idempotency)
         });
       } catch (error) {
         mapAiError(error);
@@ -213,6 +222,7 @@ export function createAiOrchestrationController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...withIdempotency(options.idempotency),
           conversationId: body.conversation_id,
           ...(body.message_id !== undefined ? { messageId: body.message_id } : {}),
           ...(body.mode !== undefined ? { mode: body.mode } : {})
@@ -230,8 +240,10 @@ export function createAiOrchestrationController(options: {
         return await evaluateAIResponse({
           repo: options.repo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...withIdempotency(options.idempotency)
         });
       } catch (error) {
         mapAiError(error);
@@ -247,8 +259,10 @@ export function createAiOrchestrationController(options: {
           repo: options.repo,
           ...(options.gateway ? { gateway: options.gateway } : {}),
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...withIdempotency(options.idempotency)
         });
       } catch (error) {
         mapAiError(error);
@@ -327,6 +341,7 @@ export function createAiOrchestrationController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...withIdempotency(options.idempotency),
           name: body?.name ?? "",
           content: body?.content ?? "",
           ...(body?.risk_level !== undefined ? { riskLevel: body.risk_level } : {})
@@ -344,9 +359,11 @@ export function createAiOrchestrationController(options: {
         return await runPromptEvaluation({
           repo: options.repo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           promptVersionId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...withIdempotency(options.idempotency)
         });
       } catch (error) {
         mapAiError(error);
@@ -376,9 +393,11 @@ export function createAiOrchestrationController(options: {
         return await approvePromptVersion({
           repo: options.repo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           promptVersionId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...withIdempotency(options.idempotency)
         });
       } catch (error) {
         mapAiError(error);
@@ -393,9 +412,11 @@ export function createAiOrchestrationController(options: {
         return await activatePromptVersion({
           repo: options.repo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           promptVersionId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...withIdempotency(options.idempotency)
         });
       } catch (error) {
         mapAiError(error);
@@ -410,9 +431,11 @@ export function createAiOrchestrationController(options: {
         return await rollbackPromptVersion({
           repo: options.repo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           promptVersionId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...withIdempotency(options.idempotency)
         });
       } catch (error) {
         mapAiError(error);
@@ -429,7 +452,8 @@ export function createAiOrchestrationController(options: {
           tenantId: actor.tenantId,
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...withIdempotency(options.idempotency)
         });
       } catch (error) {
         mapAiError(error);
@@ -444,8 +468,10 @@ export function createAiOrchestrationController(options: {
         return await enableAI({
           repo: options.repo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...withIdempotency(options.idempotency)
         });
       } catch (error) {
         mapAiError(error);

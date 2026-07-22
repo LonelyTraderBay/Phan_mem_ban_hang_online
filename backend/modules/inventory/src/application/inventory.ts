@@ -1,4 +1,6 @@
 import { generateUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
+import { runInventoryIdempotent } from "./inventory-idempotency.js";
 
 /**
  * BE-INV-002…008 — Inventory application layer (warehouses, balances, adjustments,
@@ -413,6 +415,7 @@ export async function createWarehouse(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly name: string;
   readonly code: string;
   readonly address?: string | null;
@@ -422,30 +425,40 @@ export async function createWarehouse(options: {
     throw new InventoryError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentWarehouse(options.tenantId, key);
-  if (cached) {
-    return { data: toWarehouseResponse(cached), meta: {}, version: cached.version };
-  }
-  const name = options.name?.trim();
-  const code = options.code?.trim();
-  if (!name || !code) {
-    throw new InventoryError("name and code are required.", "VALIDATION_FAILED");
-  }
-  const warehouse = await options.repo.createWarehouse({
-    tenantId: options.tenantId,
-    warehouseId: generateUuidV7(),
-    code,
-    name,
-    address: options.address?.trim() ?? null,
-    actorId: options.actorId
-  });
-  await options.repo.rememberIdempotentWarehouse(options.tenantId, key, warehouse);
-  await options.repo.appendAudit({
-    action: "inventory.warehouse.created",
+  const warehouse = await runInventoryIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
     actorId: options.actorId,
-    detail: { warehouse_id: warehouse.id, code: warehouse.code },
-    at: new Date().toISOString()
+    scope: "inventory.warehouse.create",
+    key,
+    loadCached: () => options.repo.getIdempotentWarehouse(options.tenantId, key),
+    rememberCached: (row) => options.repo.rememberIdempotentWarehouse(options.tenantId, key, row),
+    execute: async () => {
+      const name = options.name?.trim();
+      const code = options.code?.trim();
+      if (!name || !code) {
+        throw new InventoryError("name and code are required.", "VALIDATION_FAILED");
+      }
+      const created = await options.repo.createWarehouse({
+        tenantId: options.tenantId,
+        warehouseId: generateUuidV7(),
+        code,
+        name,
+        address: options.address?.trim() ?? null,
+        actorId: options.actorId
+      });
+      await options.repo.appendAudit({
+        action: "inventory.warehouse.created",
+        tenantId: options.tenantId,
+        actorId: options.actorId,
+        detail: { warehouse_id: created.id, code: created.code },
+        at: new Date().toISOString()
+      });
+      return created;
+    },
+    resourceId: (row) => row.id,
+    loadByResourceId: (id) =>
+      options.repo.getWarehouse({ tenantId: options.tenantId, warehouseId: id })
   });
   return { data: toWarehouseResponse(warehouse), meta: {}, version: warehouse.version };
 }
@@ -520,6 +533,7 @@ export async function createInventoryAdjustment(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly warehouseId: string;
   readonly variantId: string;
   readonly quantityDelta: string;
@@ -530,37 +544,47 @@ export async function createInventoryAdjustment(options: {
     throw new InventoryError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentAdjustment(options.tenantId, key);
-  if (cached) {
-    return { data: toAdjustmentResponse(cached), meta: {}, version: cached.version };
-  }
-  const delta = parseQuantity(options.quantityDelta);
-  const reason = options.reason?.trim();
-  if (!reason) {
-    throw new InventoryError("reason is required.", "VALIDATION_FAILED");
-  }
-  const adjustment = await options.repo.createAdjustment({
-    tenantId: options.tenantId,
-    adjustmentId: generateUuidV7(),
-    warehouseId: options.warehouseId,
-    variantId: options.variantId,
-    quantityDelta: delta,
-    reason,
-    actorId: options.actorId,
-    idempotencyKey: key
-  });
-  await options.repo.rememberIdempotentAdjustment(options.tenantId, key, adjustment);
-  await options.repo.appendAudit({
-    action: "inventory.adjusted",
+  const adjustment = await runInventoryIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
     actorId: options.actorId,
-    detail: {
-      adjustment_id: adjustment.id,
-      warehouse_id: adjustment.warehouse_id,
-      variant_id: adjustment.variant_id,
-      quantity_delta: adjustment.quantity_delta
+    scope: "inventory.adjustment.create",
+    key,
+    loadCached: () => options.repo.getIdempotentAdjustment(options.tenantId, key),
+    rememberCached: (row) => options.repo.rememberIdempotentAdjustment(options.tenantId, key, row),
+    execute: async () => {
+      const delta = parseQuantity(options.quantityDelta);
+      const reason = options.reason?.trim();
+      if (!reason) {
+        throw new InventoryError("reason is required.", "VALIDATION_FAILED");
+      }
+      const created = await options.repo.createAdjustment({
+        tenantId: options.tenantId,
+        adjustmentId: generateUuidV7(),
+        warehouseId: options.warehouseId,
+        variantId: options.variantId,
+        quantityDelta: delta,
+        reason,
+        actorId: options.actorId,
+        idempotencyKey: key
+      });
+      await options.repo.appendAudit({
+        action: "inventory.adjusted",
+        tenantId: options.tenantId,
+        actorId: options.actorId,
+        detail: {
+          adjustment_id: created.id,
+          warehouse_id: created.warehouse_id,
+          variant_id: created.variant_id,
+          quantity_delta: created.quantity_delta
+        },
+        at: new Date().toISOString()
+      });
+      return created;
     },
-    at: new Date().toISOString()
+    resourceId: (row) => row.id,
+    loadByResourceId: (id) =>
+      options.repo.getAdjustment({ tenantId: options.tenantId, adjustmentId: id })
   });
   return { data: toAdjustmentResponse(adjustment), meta: {}, version: adjustment.version };
 }
@@ -588,6 +612,7 @@ export async function createInventoryReservation(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly ownerType: ReservationOwnerType;
   readonly ownerId: string;
   readonly expiresAt: string;
@@ -603,39 +628,49 @@ export async function createInventoryReservation(options: {
     throw new InventoryError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentReservation(options.tenantId, key);
-  if (cached) {
-    return { data: toReservationResponse(cached), meta: {} };
-  }
-  if (!options.items?.length) {
-    throw new InventoryError("items are required.", "VALIDATION_FAILED");
-  }
-  const expiresAt = options.expiresAt?.trim();
-  if (!expiresAt || Number.isNaN(Date.parse(expiresAt))) {
-    throw new InventoryError("expires_at is invalid.", "VALIDATION_FAILED");
-  }
-  const reservation = await options.repo.createReservation({
-    tenantId: options.tenantId,
-    reservationId: generateUuidV7(),
-    ownerType: options.ownerType,
-    ownerId: options.ownerId,
-    expiresAt,
-    allocationStrategy: options.allocationStrategy ?? "preferred_then_available",
-    items: options.items.map((item) => ({
-      variantId: item.variant_id,
-      quantity: parseQuantity(item.quantity),
-      preferredWarehouseId: item.preferred_warehouse_id ?? null
-    })),
-    actorId: options.actorId,
-    idempotencyKey: key
-  });
-  await options.repo.rememberIdempotentReservation(options.tenantId, key, reservation);
-  await options.repo.appendAudit({
-    action: "inventory.reserved",
+  const reservation = await runInventoryIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
     actorId: options.actorId,
-    detail: { reservation_id: reservation.id, owner_id: reservation.owner_id },
-    at: new Date().toISOString()
+    scope: "inventory.reservation.create",
+    key,
+    loadCached: () => options.repo.getIdempotentReservation(options.tenantId, key),
+    rememberCached: (row) => options.repo.rememberIdempotentReservation(options.tenantId, key, row),
+    execute: async () => {
+      if (!options.items?.length) {
+        throw new InventoryError("items are required.", "VALIDATION_FAILED");
+      }
+      const expiresAt = options.expiresAt?.trim();
+      if (!expiresAt || Number.isNaN(Date.parse(expiresAt))) {
+        throw new InventoryError("expires_at is invalid.", "VALIDATION_FAILED");
+      }
+      const created = await options.repo.createReservation({
+        tenantId: options.tenantId,
+        reservationId: generateUuidV7(),
+        ownerType: options.ownerType,
+        ownerId: options.ownerId,
+        expiresAt,
+        allocationStrategy: options.allocationStrategy ?? "preferred_then_available",
+        items: options.items.map((item) => ({
+          variantId: item.variant_id,
+          quantity: parseQuantity(item.quantity),
+          preferredWarehouseId: item.preferred_warehouse_id ?? null
+        })),
+        actorId: options.actorId,
+        idempotencyKey: key
+      });
+      await options.repo.appendAudit({
+        action: "inventory.reserved",
+        tenantId: options.tenantId,
+        actorId: options.actorId,
+        detail: { reservation_id: created.id, owner_id: created.owner_id },
+        at: new Date().toISOString()
+      });
+      return created;
+    },
+    resourceId: (row) => row.id,
+    loadByResourceId: (id) =>
+      options.repo.getReservation({ tenantId: options.tenantId, reservationId: id })
   });
   return { data: toReservationResponse(reservation), meta: {} };
 }
@@ -664,24 +699,34 @@ export async function releaseInventoryReservation(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
 }) {
   requireInventoryPermission(options.actorPermissions, "inventory.reserve");
   if (!options.idempotencyKey?.trim()) {
     throw new InventoryError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentReservationCommand(options.tenantId, key);
-  if (cached) {
-    return { data: toReservationResponse(cached), meta: {} };
-  }
-  const reservation = await options.repo.releaseReservation({
+  const reservation = await runInventoryIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    reservationId: options.reservationId,
     actorId: options.actorId,
-    idempotencyKey: key,
-    reason: "manual_release"
+    scope: "inventory.reservation.release",
+    key,
+    loadCached: () => options.repo.getIdempotentReservationCommand(options.tenantId, key),
+    rememberCached: (row) =>
+      options.repo.rememberIdempotentReservationCommand(options.tenantId, key, row),
+    execute: () =>
+      options.repo.releaseReservation({
+        tenantId: options.tenantId,
+        reservationId: options.reservationId,
+        actorId: options.actorId,
+        idempotencyKey: key,
+        reason: "manual_release"
+      }),
+    resourceId: (row) => row.id,
+    loadByResourceId: (id) =>
+      options.repo.getReservation({ tenantId: options.tenantId, reservationId: id })
   });
-  await options.repo.rememberIdempotentReservationCommand(options.tenantId, key, reservation);
   return { data: toReservationResponse(reservation), meta: {} };
 }
 
@@ -692,6 +737,7 @@ export async function extendInventoryReservation(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly expiresAt: string;
   readonly expectedVersion: number;
 }) {
@@ -700,23 +746,33 @@ export async function extendInventoryReservation(options: {
     throw new InventoryError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentReservationCommand(options.tenantId, key);
-  if (cached) {
-    return { data: toReservationResponse(cached), meta: {} };
-  }
-  const expiresAt = options.expiresAt?.trim();
-  if (!expiresAt || Number.isNaN(Date.parse(expiresAt))) {
-    throw new InventoryError("expires_at is invalid.", "VALIDATION_FAILED");
-  }
-  const reservation = await options.repo.extendReservation({
+  const reservation = await runInventoryIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    reservationId: options.reservationId,
-    expiresAt,
-    expectedVersion: options.expectedVersion,
     actorId: options.actorId,
-    idempotencyKey: key
+    scope: "inventory.reservation.extend",
+    key,
+    loadCached: () => options.repo.getIdempotentReservationCommand(options.tenantId, key),
+    rememberCached: (row) =>
+      options.repo.rememberIdempotentReservationCommand(options.tenantId, key, row),
+    execute: async () => {
+      const expiresAt = options.expiresAt?.trim();
+      if (!expiresAt || Number.isNaN(Date.parse(expiresAt))) {
+        throw new InventoryError("expires_at is invalid.", "VALIDATION_FAILED");
+      }
+      return options.repo.extendReservation({
+        tenantId: options.tenantId,
+        reservationId: options.reservationId,
+        expiresAt,
+        expectedVersion: options.expectedVersion,
+        actorId: options.actorId,
+        idempotencyKey: key
+      });
+    },
+    resourceId: (row) => row.id,
+    loadByResourceId: (id) =>
+      options.repo.getReservation({ tenantId: options.tenantId, reservationId: id })
   });
-  await options.repo.rememberIdempotentReservationCommand(options.tenantId, key, reservation);
   return { data: toReservationResponse(reservation), meta: {} };
 }
 
@@ -728,6 +784,7 @@ export async function convertInventoryReservation(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
 }) {
   if (
     !options.actorPermissions.includes("inventory.reserve") &&
@@ -739,18 +796,27 @@ export async function convertInventoryReservation(options: {
     throw new InventoryError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentReservationCommand(options.tenantId, key);
-  if (cached) {
-    return { data: toReservationResponse(cached), meta: {} };
-  }
-  const reservation = await options.repo.convertReservation({
+  const reservation = await runInventoryIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    reservationId: options.reservationId,
-    ownerId: options.ownerId,
     actorId: options.actorId,
-    idempotencyKey: key
+    scope: "inventory.reservation.convert",
+    key,
+    loadCached: () => options.repo.getIdempotentReservationCommand(options.tenantId, key),
+    rememberCached: (row) =>
+      options.repo.rememberIdempotentReservationCommand(options.tenantId, key, row),
+    execute: () =>
+      options.repo.convertReservation({
+        tenantId: options.tenantId,
+        reservationId: options.reservationId,
+        ownerId: options.ownerId,
+        actorId: options.actorId,
+        idempotencyKey: key
+      }),
+    resourceId: (row) => row.id,
+    loadByResourceId: (id) =>
+      options.repo.getReservation({ tenantId: options.tenantId, reservationId: id })
   });
-  await options.repo.rememberIdempotentReservationCommand(options.tenantId, key, reservation);
   return { data: toReservationResponse(reservation), meta: {} };
 }
 
@@ -771,8 +837,10 @@ export async function expireInventoryReservations(options: {
 export async function createInventoryReconciliation(options: {
   readonly repo: InventoryRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly warehouseId: string;
 }) {
   requireInventoryPermission(options.actorPermissions, "inventory.adjust");
@@ -780,25 +848,26 @@ export async function createInventoryReconciliation(options: {
     throw new InventoryError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentReconciliation(options.tenantId, key);
-  if (cached) {
-    return {
-      data: {
-        id: cached.id,
-        status: cached.status,
-        warehouse_id: cached.warehouse_id,
-        discrepancies: cached.discrepancies
-      },
-      meta: {}
-    };
-  }
-  const job = await options.repo.createReconciliationJob({
+  const job = await runInventoryIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    jobId: generateUuidV7(),
-    warehouseId: options.warehouseId,
-    idempotencyKey: key
+    actorId: options.actorId,
+    scope: "inventory.reconciliation.create",
+    key,
+    loadCached: () => options.repo.getIdempotentReconciliation(options.tenantId, key),
+    rememberCached: (row) =>
+      options.repo.rememberIdempotentReconciliation(options.tenantId, key, row),
+    execute: () =>
+      options.repo.createReconciliationJob({
+        tenantId: options.tenantId,
+        jobId: generateUuidV7(),
+        warehouseId: options.warehouseId,
+        idempotencyKey: key
+      }),
+    resourceId: (row) => row.id,
+    loadByResourceId: (id) =>
+      options.repo.getReconciliationJob({ tenantId: options.tenantId, jobId: id })
   });
-  await options.repo.rememberIdempotentReconciliation(options.tenantId, key, job);
   return {
     data: {
       id: job.id,

@@ -1,4 +1,5 @@
 import { generateUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import {
   DEFAULT_BUDGET,
   DEFAULT_SWITCH,
@@ -31,6 +32,7 @@ import type {
   PromptVersionRecord,
   SuggestionRecord
 } from "../infrastructure/persistence/in-memory-ai-orchestration.js";
+import { runAiIdempotent } from "./ai-idempotency.js";
 
 /**
  * BE-AI-001…016 — AI orchestration application layer (in-memory until Postgres adapter).
@@ -160,162 +162,179 @@ export async function createAISuggestion(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly conversationId: string;
   readonly messageId?: string | null;
   readonly mode?: "copilot" | "semi_auto" | "autopilot";
   readonly userPrompt?: string;
 }): Promise<{ readonly data: { readonly job_id: string; readonly status: string }; readonly meta: Record<string, never> }> {
   requireAiPermission(options.actorPermissions, "ai.use");
-  if (!options.idempotencyKey?.trim()) {
+  const key = options.idempotencyKey?.trim();
+  if (!key) {
     throw new AiOrchestrationError("Idempotency-Key required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  await ensureAiOperational(options.repo, options.tenantId);
-
-  const existing = await options.repo.getIdempotentJob(options.tenantId, options.idempotencyKey);
-  if (existing) {
-    return { data: { job_id: existing.jobId, status: "queued" }, meta: {} };
-  }
-
-  const exists = await options.conversations.conversationExists({
-    tenantId: options.tenantId,
-    conversationId: options.conversationId
-  });
-  if (!exists) {
-    throw new AiOrchestrationError("Conversation not found.", "RESOURCE_NOT_FOUND");
-  }
-
-  const suggestionId = generateUuidV7();
-  const now = new Date().toISOString();
-  const mode = options.mode ?? "copilot";
-  const activePrompt = await options.repo.getActivePromptVersion(options.tenantId);
-
-  const suggestion: SuggestionRecord = {
-    id: suggestionId,
-    tenantId: options.tenantId,
-    conversationId: options.conversationId,
-    messageId: options.messageId ?? null,
-    mode,
-    status: "generating",
-    outputRedacted: null,
-    promptVersionId: activePrompt?.id ?? null,
-    createdAt: now,
-    updatedAt: now
+  type SuggestResult = {
+    readonly data: { readonly job_id: string; readonly status: string };
+    readonly meta: Record<string, never>;
   };
-  await options.repo.createSuggestion(suggestion);
-  await options.repo.rememberIdempotentJob(options.tenantId, options.idempotencyKey, suggestionId);
-
-  const userPrompt = options.userPrompt ?? "Generate helpful sales reply.";
-  const classifier = options.classifier ?? new StubIntentClassifier();
-  const classification = await classifier.classify(userPrompt);
-  const hits = await options.knowledge.search({
+  return runAiIdempotent<SuggestResult>({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    query: userPrompt,
-    topK: 3
+    actorId: options.actorId,
+    scope: "ai.suggest",
+    key,
+    loadCached: async () => {
+      const existing = await options.repo.getIdempotentJob(options.tenantId, key);
+      return existing ? { data: { job_id: existing.jobId, status: "queued" }, meta: {} } : null;
+    },
+    rememberCached: async (result) => {
+      await options.repo.rememberIdempotentJob(options.tenantId, key, result.data.job_id);
+    },
+    resourceId: (result) => result.data.job_id,
+    execute: async () => {
+      await ensureAiOperational(options.repo, options.tenantId);
+
+      const exists = await options.conversations.conversationExists({
+        tenantId: options.tenantId,
+        conversationId: options.conversationId
+      });
+      if (!exists) {
+        throw new AiOrchestrationError("Conversation not found.", "RESOURCE_NOT_FOUND");
+      }
+
+      const suggestionId = generateUuidV7();
+      const now = new Date().toISOString();
+      const mode = options.mode ?? "copilot";
+      const activePrompt = await options.repo.getActivePromptVersion(options.tenantId);
+
+      const suggestion: SuggestionRecord = {
+        id: suggestionId,
+        tenantId: options.tenantId,
+        conversationId: options.conversationId,
+        messageId: options.messageId ?? null,
+        mode,
+        status: "generating",
+        outputRedacted: null,
+        promptVersionId: activePrompt?.id ?? null,
+        createdAt: now,
+        updatedAt: now
+      };
+      await options.repo.createSuggestion(suggestion);
+
+      const userPrompt = options.userPrompt ?? "Generate helpful sales reply.";
+      const classifier = options.classifier ?? new StubIntentClassifier();
+      const classification = await classifier.classify(userPrompt);
+      const hits = await options.knowledge.search({
+        tenantId: options.tenantId,
+        query: userPrompt,
+        topK: 3
+      });
+      const context = buildAiContext({
+        systemPrompt: activePrompt?.content ?? "You are a helpful sales assistant.",
+        trustedFacts: hits.map((h) => `${h.title}: ${h.snippet}`),
+        untrustedMessages: [userPrompt]
+      });
+
+      const gateway = options.gateway ?? new StubModelGateway();
+      const config = buildConfigBundle({ promptVersionId: activePrompt?.id ?? "default" });
+
+      let completion;
+      try {
+        completion = await withTimeout(
+          gateway.complete({
+            systemPrompt: context.segments.map((s) => s.content).join("\n\n"),
+            userPrompt,
+            maxTokens: 512
+          }),
+          30_000
+        );
+      } catch {
+        throw new AiOrchestrationError("AI provider unavailable.", "AI_PROVIDER_UNAVAILABLE");
+      }
+
+      const suggestionParsed = repairSuggestionOutput(completion.text);
+      const qcText = validateOutputText(suggestionParsed?.replyText ?? "");
+      const qcClaims = validateClaims(suggestionParsed?.claims ?? [], []);
+      const qc = {
+        passed: qcText.passed && qcClaims.passed,
+        violations: [...qcText.violations, ...qcClaims.violations]
+      };
+
+      const enforcement = enforceAiRules({
+        tenantId: options.tenantId,
+        requestTenantId: options.tenantId,
+        suggestion: suggestionParsed,
+        classifier: classification,
+        qc,
+        toolCount: suggestionParsed?.toolCalls.length ?? 0,
+        tokenBudgetRemaining: 1000
+      });
+
+      const logId = generateUuidV7();
+      const log: AiLogRecord = {
+        id: logId,
+        tenantId: options.tenantId,
+        conversationId: options.conversationId,
+        suggestionId,
+        requestType: "suggestion",
+        status: enforcement.blocked ? "blocked" : "completed",
+        promptVersionId: config.promptVersionId,
+        modelProvider: completion.provider,
+        tokensUsed: completion.tokensUsed,
+        latencyMs: completion.latencyMs,
+        correlationId: null,
+        createdAt: now
+      };
+      await options.repo.createLog(log);
+
+      if (enforcement.blocked) {
+        const blocked: BlockedOutputRecord = {
+          id: generateUuidV7(),
+          tenantId: options.tenantId,
+          suggestionId,
+          ruleId: enforcement.violations[0]?.ruleId ?? "AI-R005",
+          severity: enforcement.violations[0]?.severity ?? "high",
+          evidenceHash: "stub-hash",
+          safeFallback: enforcement.safeFallback,
+          createdAt: now
+        };
+        await options.repo.createBlockedOutput(blocked);
+        await options.repo.updateSuggestion({
+          ...suggestion,
+          status: "blocked",
+          outputRedacted: enforcement.safeFallback,
+          updatedAt: new Date().toISOString()
+        });
+        throw new AiOrchestrationError(
+          "AI output blocked by safety rules.",
+          mapViolationToErrorCode(enforcement.violations) as AiErrorCode
+        );
+      }
+
+      if (!suggestionParsed) {
+        throw new AiOrchestrationError("AI output invalid.", "AI_OUTPUT_INVALID");
+      }
+
+      const toolPolicy = evaluateToolPolicy({
+        toolName: "conversation.queue_reply",
+        actorPermissions: options.actorPermissions,
+        aiMode: mode
+      });
+      if (toolPolicy.decision === "deny") {
+        throw new AiOrchestrationError("AI tool not allowed.", "AI_TOOL_NOT_ALLOWED");
+      }
+
+      await options.repo.updateSuggestion({
+        ...suggestion,
+        status: toolPolicy.decision === "require_approval" ? "pending_review" : "approved",
+        outputRedacted: suggestionParsed.replyText,
+        updatedAt: new Date().toISOString()
+      });
+      await incrementBudget(options.repo, options.tenantId, completion.tokensUsed);
+
+      return { data: { job_id: suggestionId, status: "queued" }, meta: {} };
+    }
   });
-  const context = buildAiContext({
-    systemPrompt: activePrompt?.content ?? "You are a helpful sales assistant.",
-    trustedFacts: hits.map((h) => `${h.title}: ${h.snippet}`),
-    untrustedMessages: [userPrompt]
-  });
-
-  const gateway = options.gateway ?? new StubModelGateway();
-  const config = buildConfigBundle({ promptVersionId: activePrompt?.id ?? "default" });
-
-  let completion;
-  try {
-    completion = await withTimeout(
-      gateway.complete({
-        systemPrompt: context.segments.map((s) => s.content).join("\n\n"),
-        userPrompt,
-        maxTokens: 512
-      }),
-      30_000
-    );
-  } catch {
-    throw new AiOrchestrationError("AI provider unavailable.", "AI_PROVIDER_UNAVAILABLE");
-  }
-
-  const suggestionParsed = repairSuggestionOutput(completion.text);
-  const qcText = validateOutputText(suggestionParsed?.replyText ?? "");
-  const qcClaims = validateClaims(suggestionParsed?.claims ?? [], []);
-  const qc = {
-    passed: qcText.passed && qcClaims.passed,
-    violations: [...qcText.violations, ...qcClaims.violations]
-  };
-
-  const enforcement = enforceAiRules({
-    tenantId: options.tenantId,
-    requestTenantId: options.tenantId,
-    suggestion: suggestionParsed,
-    classifier: classification,
-    qc,
-    toolCount: suggestionParsed?.toolCalls.length ?? 0,
-    tokenBudgetRemaining: 1000
-  });
-
-  const logId = generateUuidV7();
-  const log: AiLogRecord = {
-    id: logId,
-    tenantId: options.tenantId,
-    conversationId: options.conversationId,
-    suggestionId,
-    requestType: "suggestion",
-    status: enforcement.blocked ? "blocked" : "completed",
-    promptVersionId: config.promptVersionId,
-    modelProvider: completion.provider,
-    tokensUsed: completion.tokensUsed,
-    latencyMs: completion.latencyMs,
-    correlationId: null,
-    createdAt: now
-  };
-  await options.repo.createLog(log);
-
-  if (enforcement.blocked) {
-    const blocked: BlockedOutputRecord = {
-      id: generateUuidV7(),
-      tenantId: options.tenantId,
-      suggestionId,
-      ruleId: enforcement.violations[0]?.ruleId ?? "AI-R005",
-      severity: enforcement.violations[0]?.severity ?? "high",
-      evidenceHash: "stub-hash",
-      safeFallback: enforcement.safeFallback,
-      createdAt: now
-    };
-    await options.repo.createBlockedOutput(blocked);
-    await options.repo.updateSuggestion({
-      ...suggestion,
-      status: "blocked",
-      outputRedacted: enforcement.safeFallback,
-      updatedAt: new Date().toISOString()
-    });
-    throw new AiOrchestrationError(
-      "AI output blocked by safety rules.",
-      mapViolationToErrorCode(enforcement.violations) as AiErrorCode
-    );
-  }
-
-  if (!suggestionParsed) {
-    throw new AiOrchestrationError("AI output invalid.", "AI_OUTPUT_INVALID");
-  }
-
-  const toolPolicy = evaluateToolPolicy({
-    toolName: "conversation.queue_reply",
-    actorPermissions: options.actorPermissions,
-    aiMode: mode
-  });
-  if (toolPolicy.decision === "deny") {
-    throw new AiOrchestrationError("AI tool not allowed.", "AI_TOOL_NOT_ALLOWED");
-  }
-
-  await options.repo.updateSuggestion({
-    ...suggestion,
-    status: toolPolicy.decision === "require_approval" ? "pending_review" : "approved",
-    outputRedacted: suggestionParsed.replyText,
-    updatedAt: new Date().toISOString()
-  });
-  await incrementBudget(options.repo, options.tenantId, completion.tokensUsed);
-
-  return { data: { job_id: suggestionId, status: "queued" }, meta: {} };
 }
 
 export async function listConversationAISuggestions(options: {
@@ -335,31 +354,46 @@ export async function listConversationAISuggestions(options: {
 export async function approveAISuggestion(options: {
   readonly repo: AiOrchestrationRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly conversationId: string;
   readonly suggestionId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
 }) {
   requireAiPermission(options.actorPermissions, "ai.review");
-  if (!options.idempotencyKey?.trim()) {
+  const key = options.idempotencyKey?.trim();
+  if (!key) {
     throw new AiOrchestrationError("Idempotency-Key required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const row = await options.repo.getSuggestion({
+  return runAiIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    suggestionId: options.suggestionId
+    actorId: options.actorId,
+    scope: "ai.suggest.approve",
+    key,
+    loadCached: async () => null,
+    rememberCached: async () => undefined,
+    resourceId: (result) => result.data.id,
+    execute: async () => {
+      const row = await options.repo.getSuggestion({
+        tenantId: options.tenantId,
+        suggestionId: options.suggestionId
+      });
+      if (!row || row.conversationId !== options.conversationId) {
+        throw new AiOrchestrationError("Suggestion not found.", "RESOURCE_NOT_FOUND");
+      }
+      if (row.status !== "pending_review" && row.status !== "generating") {
+        throw new AiOrchestrationError("Suggestion state invalid.", "VALIDATION_FAILED");
+      }
+      const updated = await options.repo.updateSuggestion({
+        ...row,
+        status: "approved",
+        updatedAt: new Date().toISOString()
+      });
+      return { data: toAiResource(updated), meta: {} };
+    }
   });
-  if (!row || row.conversationId !== options.conversationId) {
-    throw new AiOrchestrationError("Suggestion not found.", "RESOURCE_NOT_FOUND");
-  }
-  if (row.status !== "pending_review" && row.status !== "generating") {
-    throw new AiOrchestrationError("Suggestion state invalid.", "VALIDATION_FAILED");
-  }
-  const updated = await options.repo.updateSuggestion({
-    ...row,
-    status: "approved",
-    updatedAt: new Date().toISOString()
-  });
-  return { data: toAiResource(updated), meta: {} };
 }
 
 export async function sendAISuggestion(options: {
@@ -371,110 +405,154 @@ export async function sendAISuggestion(options: {
   readonly suggestionId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
 }) {
   requireAiPermission(options.actorPermissions, "conversation.reply");
-  if (!options.idempotencyKey?.trim()) {
+  const key = options.idempotencyKey?.trim();
+  if (!key) {
     throw new AiOrchestrationError("Idempotency-Key required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  await ensureAiOperational(options.repo, options.tenantId);
-  const row = await options.repo.getSuggestion({
-    tenantId: options.tenantId,
-    suggestionId: options.suggestionId
-  });
-  if (!row || row.conversationId !== options.conversationId) {
-    throw new AiOrchestrationError("Suggestion not found.", "RESOURCE_NOT_FOUND");
-  }
-  if (row.status !== "approved") {
-    throw new AiOrchestrationError("Suggestion requires approval.", "AI_APPROVAL_REQUIRED");
-  }
-  if (!row.outputRedacted) {
-    throw new AiOrchestrationError("Suggestion has no output.", "VALIDATION_FAILED");
-  }
-  const job = await options.outbound.queueSuggestionSend({
+  return runAiIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
     actorId: options.actorId,
-    conversationId: options.conversationId,
-    suggestionId: options.suggestionId,
-    text: row.outputRedacted,
-    idempotencyKey: options.idempotencyKey
+    scope: "ai.suggest.send",
+    key,
+    loadCached: async () => null,
+    rememberCached: async () => undefined,
+    resourceId: (result) => result.data.job_id,
+    execute: async () => {
+      await ensureAiOperational(options.repo, options.tenantId);
+      const row = await options.repo.getSuggestion({
+        tenantId: options.tenantId,
+        suggestionId: options.suggestionId
+      });
+      if (!row || row.conversationId !== options.conversationId) {
+        throw new AiOrchestrationError("Suggestion not found.", "RESOURCE_NOT_FOUND");
+      }
+      if (row.status !== "approved") {
+        throw new AiOrchestrationError("Suggestion requires approval.", "AI_APPROVAL_REQUIRED");
+      }
+      if (!row.outputRedacted) {
+        throw new AiOrchestrationError("Suggestion has no output.", "VALIDATION_FAILED");
+      }
+      const job = await options.outbound.queueSuggestionSend({
+        tenantId: options.tenantId,
+        actorId: options.actorId,
+        conversationId: options.conversationId,
+        suggestionId: options.suggestionId,
+        text: row.outputRedacted,
+        idempotencyKey: key
+      });
+      if (job.status !== "queued") {
+        throw new AiOrchestrationError(
+          `Outbound queue rejected send (status=${job.status}).`,
+          "VALIDATION_FAILED"
+        );
+      }
+      await options.repo.updateSuggestion({
+        ...row,
+        status: "sent",
+        updatedAt: new Date().toISOString()
+      });
+      return { data: { job_id: job.jobId, status: "queued" as const }, meta: {} };
+    }
   });
-  if (job.status !== "queued") {
-    throw new AiOrchestrationError(
-      `Outbound queue rejected send (status=${job.status}).`,
-      "VALIDATION_FAILED"
-    );
-  }
-  await options.repo.updateSuggestion({
-    ...row,
-    status: "sent",
-    updatedAt: new Date().toISOString()
-  });
-  return { data: { job_id: job.jobId, status: "queued" as const }, meta: {} };
 }
 
 export async function evaluateAIResponse(options: {
   readonly repo: AiOrchestrationRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly suggestionId?: string;
 }) {
   requireAiPermission(options.actorPermissions, "ai.review");
-  if (!options.idempotencyKey?.trim()) {
+  const key = options.idempotencyKey?.trim();
+  if (!key) {
     throw new AiOrchestrationError("Idempotency-Key required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const log = (await options.repo.listLogs(options.tenantId))[0];
-  if (!log) {
-    throw new AiOrchestrationError("AI log not found.", "RESOURCE_NOT_FOUND");
-  }
-  return { data: toAiResource({ ...log, status: log.status }), meta: {} };
+  return runAiIdempotent({
+    idempotency: options.idempotency,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "ai.eval",
+    key,
+    loadCached: async () => null,
+    rememberCached: async () => undefined,
+    resourceId: (result) => result.data.id,
+    execute: async () => {
+      const log = (await options.repo.listLogs(options.tenantId))[0];
+      if (!log) {
+        throw new AiOrchestrationError("AI log not found.", "RESOURCE_NOT_FOUND");
+      }
+      return { data: toAiResource({ ...log, status: log.status }), meta: {} };
+    }
+  });
 }
 
 export async function testAIMessage(options: {
   readonly repo: AiOrchestrationRepository;
   readonly gateway?: ModelGatewayPort;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly message?: string;
 }) {
   requireAiPermission(options.actorPermissions, "ai.sandbox.test");
-  if (!options.idempotencyKey?.trim()) {
+  const key = options.idempotencyKey?.trim();
+  if (!key) {
     throw new AiOrchestrationError("Idempotency-Key required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  await ensureAiOperational(options.repo, options.tenantId);
-  const gateway = options.gateway ?? new StubModelGateway();
-  const completion = await gateway.complete({
-    systemPrompt: "Sandbox mode — no production send.",
-    userPrompt: options.message ?? "Test message",
-    maxTokens: 128
-  });
-  const parsed = repairSuggestionOutput(completion.text);
-  const id = generateUuidV7();
-  const now = new Date().toISOString();
-  await options.repo.createLog({
-    id,
+  return runAiIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    conversationId: null,
-    suggestionId: null,
-    requestType: "sandbox",
-    status: "completed",
-    promptVersionId: null,
-    modelProvider: completion.provider,
-    tokensUsed: completion.tokensUsed,
-    latencyMs: completion.latencyMs,
-    correlationId: null,
-    createdAt: now
+    actorId: options.actorId,
+    scope: "ai.sandbox.test",
+    key,
+    loadCached: async () => null,
+    rememberCached: async () => undefined,
+    resourceId: (result) => result.data.id,
+    execute: async () => {
+      await ensureAiOperational(options.repo, options.tenantId);
+      const gateway = options.gateway ?? new StubModelGateway();
+      const completion = await gateway.complete({
+        systemPrompt: "Sandbox mode — no production send.",
+        userPrompt: options.message ?? "Test message",
+        maxTokens: 128
+      });
+      const parsed = repairSuggestionOutput(completion.text);
+      const id = generateUuidV7();
+      const now = new Date().toISOString();
+      await options.repo.createLog({
+        id,
+        tenantId: options.tenantId,
+        conversationId: null,
+        suggestionId: null,
+        requestType: "sandbox",
+        status: "completed",
+        promptVersionId: null,
+        modelProvider: completion.provider,
+        tokensUsed: completion.tokensUsed,
+        latencyMs: completion.latencyMs,
+        correlationId: null,
+        createdAt: now
+      });
+      return {
+        data: toAiResource({
+          id,
+          tenantId: options.tenantId,
+          status: parsed ? "completed" : "failed",
+          createdAt: now
+        }),
+        meta: {}
+      };
+    }
   });
-  return {
-    data: toAiResource({
-      id,
-      tenantId: options.tenantId,
-      status: parsed ? "completed" : "failed",
-      createdAt: now
-    }),
-    meta: {}
-  };
 }
 
 export async function listAILogs(options: {
@@ -529,71 +607,100 @@ export async function createPromptVersion(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly name: string;
   readonly content: string;
   readonly riskLevel?: "low" | "medium" | "high";
 }) {
   requireAiPermission(options.actorPermissions, "ai.configure");
-  if (!options.idempotencyKey?.trim()) {
+  const key = options.idempotencyKey?.trim();
+  if (!key) {
     throw new AiOrchestrationError("Idempotency-Key required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  if (!options.name.trim() || !options.content.trim()) {
-    throw new AiOrchestrationError("name and content required.", "VALIDATION_FAILED");
-  }
-  const now = new Date().toISOString();
-  const record: PromptVersionRecord = {
-    id: generateUuidV7(),
+  return runAiIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    name: options.name.trim(),
-    content: options.content.trim(),
-    riskLevel: options.riskLevel ?? "medium",
-    status: "draft",
-    version: 1,
-    createdAt: now,
-    updatedAt: now
-  };
-  await options.repo.createPromptVersion(record);
-  return { data: toAiResource(record), meta: {} };
+    actorId: options.actorId,
+    scope: "ai.prompt.create",
+    key,
+    loadCached: async () => null,
+    rememberCached: async () => undefined,
+    resourceId: (result) => result.data.id,
+    execute: async () => {
+      if (!options.name.trim() || !options.content.trim()) {
+        throw new AiOrchestrationError("name and content required.", "VALIDATION_FAILED");
+      }
+      const now = new Date().toISOString();
+      const record: PromptVersionRecord = {
+        id: generateUuidV7(),
+        tenantId: options.tenantId,
+        name: options.name.trim(),
+        content: options.content.trim(),
+        riskLevel: options.riskLevel ?? "medium",
+        status: "draft",
+        version: 1,
+        createdAt: now,
+        updatedAt: now
+      };
+      await options.repo.createPromptVersion(record);
+      return { data: toAiResource(record), meta: {} };
+    }
+  });
 }
 
 export async function runPromptEvaluation(options: {
   readonly repo: AiOrchestrationRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly promptVersionId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
 }) {
   requireAiPermission(options.actorPermissions, "ai.configure");
-  if (!options.idempotencyKey?.trim()) {
+  const key = options.idempotencyKey?.trim();
+  if (!key) {
     throw new AiOrchestrationError("Idempotency-Key required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const prompt = await options.repo.getPromptVersion({
+  return runAiIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    promptVersionId: options.promptVersionId
-  });
-  if (!prompt) throw new AiOrchestrationError("Prompt version not found.", "RESOURCE_NOT_FOUND");
+    actorId: options.actorId,
+    scope: "ai.prompt.eval",
+    key,
+    loadCached: async () => null,
+    rememberCached: async () => undefined,
+    resourceId: (result) => result.data.job_id,
+    execute: async () => {
+      const prompt = await options.repo.getPromptVersion({
+        tenantId: options.tenantId,
+        promptVersionId: options.promptVersionId
+      });
+      if (!prompt) throw new AiOrchestrationError("Prompt version not found.", "RESOURCE_NOT_FOUND");
 
-  const runId = generateUuidV7();
-  const now = new Date().toISOString();
-  const result = runEvalStub({ runId, promptVersionId: options.promptVersionId });
-  const run: EvalRunRecord = {
-    id: runId,
-    tenantId: options.tenantId,
-    promptVersionId: options.promptVersionId,
-    status: "completed",
-    passed: result.passed,
-    criticalViolations: result.criticalViolations,
-    totalCases: result.totalCases,
-    createdAt: now,
-    updatedAt: now
-  };
-  await options.repo.createEvalRun(run);
-  await options.repo.updatePromptVersion({
-    ...prompt,
-    status: nextPromptStatus(prompt.status, "submit_eval"),
-    updatedAt: now
+      const runId = generateUuidV7();
+      const now = new Date().toISOString();
+      const result = runEvalStub({ runId, promptVersionId: options.promptVersionId });
+      const run: EvalRunRecord = {
+        id: runId,
+        tenantId: options.tenantId,
+        promptVersionId: options.promptVersionId,
+        status: "completed",
+        passed: result.passed,
+        criticalViolations: result.criticalViolations,
+        totalCases: result.totalCases,
+        createdAt: now,
+        updatedAt: now
+      };
+      await options.repo.createEvalRun(run);
+      await options.repo.updatePromptVersion({
+        ...prompt,
+        status: nextPromptStatus(prompt.status, "submit_eval"),
+        updatedAt: now
+      });
+      return { data: { job_id: runId, status: "queued" as const }, meta: {} };
+    }
   });
-  return { data: { job_id: runId, status: "queued" as const }, meta: {} };
 }
 
 export async function getEvaluationRun(options: {
@@ -611,88 +718,133 @@ export async function getEvaluationRun(options: {
 export async function approvePromptVersion(options: {
   readonly repo: AiOrchestrationRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly promptVersionId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
 }) {
   requireAiPermission(options.actorPermissions, "ai.activate");
-  if (!options.idempotencyKey?.trim()) {
+  const key = options.idempotencyKey?.trim();
+  if (!key) {
     throw new AiOrchestrationError("Idempotency-Key required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const prompt = await options.repo.getPromptVersion({
+  return runAiIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    promptVersionId: options.promptVersionId
+    actorId: options.actorId,
+    scope: "ai.prompt.approve",
+    key,
+    loadCached: async () => null,
+    rememberCached: async () => undefined,
+    resourceId: (result) => result.data.id,
+    execute: async () => {
+      const prompt = await options.repo.getPromptVersion({
+        tenantId: options.tenantId,
+        promptVersionId: options.promptVersionId
+      });
+      if (!prompt) throw new AiOrchestrationError("Prompt version not found.", "RESOURCE_NOT_FOUND");
+      const runs = await options.repo.getEvalRun({ tenantId: options.tenantId, runId: prompt.id });
+      void runs;
+      const updated = await options.repo.updatePromptVersion({
+        ...prompt,
+        status: nextPromptStatus(prompt.status, "approve"),
+        updatedAt: new Date().toISOString()
+      });
+      return { data: toAiResource(updated), meta: {} };
+    }
   });
-  if (!prompt) throw new AiOrchestrationError("Prompt version not found.", "RESOURCE_NOT_FOUND");
-  const runs = await options.repo.getEvalRun({ tenantId: options.tenantId, runId: prompt.id });
-  void runs;
-  const updated = await options.repo.updatePromptVersion({
-    ...prompt,
-    status: nextPromptStatus(prompt.status, "approve"),
-    updatedAt: new Date().toISOString()
-  });
-  return { data: toAiResource(updated), meta: {} };
 }
 
 export async function activatePromptVersion(options: {
   readonly repo: AiOrchestrationRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly promptVersionId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
 }) {
   requireAiPermission(options.actorPermissions, "ai.activate");
-  if (!options.idempotencyKey?.trim()) {
+  const key = options.idempotencyKey?.trim();
+  if (!key) {
     throw new AiOrchestrationError("Idempotency-Key required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const prompt = await options.repo.getPromptVersion({
+  return runAiIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    promptVersionId: options.promptVersionId
-  });
-  if (!prompt) throw new AiOrchestrationError("Prompt version not found.", "RESOURCE_NOT_FOUND");
-  if (prompt.status !== "approved" && prompt.status !== "active") {
-    throw new AiOrchestrationError("Prompt not approved.", "AI_PROMPT_VERSION_NOT_APPROVED");
-  }
-  const all = await options.repo.listPromptVersions(options.tenantId);
-  for (const p of all) {
-    if (p.status === "active" && p.id !== prompt.id) {
-      await options.repo.updatePromptVersion({
-        ...p,
-        status: "retired",
+    actorId: options.actorId,
+    scope: "ai.prompt.activate",
+    key,
+    loadCached: async () => null,
+    rememberCached: async () => undefined,
+    resourceId: (result) => result.data.id,
+    execute: async () => {
+      const prompt = await options.repo.getPromptVersion({
+        tenantId: options.tenantId,
+        promptVersionId: options.promptVersionId
+      });
+      if (!prompt) throw new AiOrchestrationError("Prompt version not found.", "RESOURCE_NOT_FOUND");
+      if (prompt.status !== "approved" && prompt.status !== "active") {
+        throw new AiOrchestrationError("Prompt not approved.", "AI_PROMPT_VERSION_NOT_APPROVED");
+      }
+      const all = await options.repo.listPromptVersions(options.tenantId);
+      for (const p of all) {
+        if (p.status === "active" && p.id !== prompt.id) {
+          await options.repo.updatePromptVersion({
+            ...p,
+            status: "retired",
+            updatedAt: new Date().toISOString()
+          });
+        }
+      }
+      const updated = await options.repo.updatePromptVersion({
+        ...prompt,
+        status: "active",
         updatedAt: new Date().toISOString()
       });
+      return { data: toAiResource(updated), meta: {} };
     }
-  }
-  const updated = await options.repo.updatePromptVersion({
-    ...prompt,
-    status: "active",
-    updatedAt: new Date().toISOString()
   });
-  return { data: toAiResource(updated), meta: {} };
 }
 
 export async function rollbackPromptVersion(options: {
   readonly repo: AiOrchestrationRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly promptVersionId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
 }) {
   requireAiPermission(options.actorPermissions, "ai.activate");
-  if (!options.idempotencyKey?.trim()) {
+  const key = options.idempotencyKey?.trim();
+  if (!key) {
     throw new AiOrchestrationError("Idempotency-Key required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const prompt = await options.repo.getPromptVersion({
+  return runAiIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    promptVersionId: options.promptVersionId
+    actorId: options.actorId,
+    scope: "ai.prompt.rollback",
+    key,
+    loadCached: async () => null,
+    rememberCached: async () => undefined,
+    resourceId: (result) => result.data.id,
+    execute: async () => {
+      const prompt = await options.repo.getPromptVersion({
+        tenantId: options.tenantId,
+        promptVersionId: options.promptVersionId
+      });
+      if (!prompt) throw new AiOrchestrationError("Prompt version not found.", "RESOURCE_NOT_FOUND");
+      const updated = await options.repo.updatePromptVersion({
+        ...prompt,
+        status: nextPromptStatus(prompt.status, "rollback"),
+        updatedAt: new Date().toISOString()
+      });
+      return { data: toAiResource(updated), meta: {} };
+    }
   });
-  if (!prompt) throw new AiOrchestrationError("Prompt version not found.", "RESOURCE_NOT_FOUND");
-  const updated = await options.repo.updatePromptVersion({
-    ...prompt,
-    status: nextPromptStatus(prompt.status, "rollback"),
-    updatedAt: new Date().toISOString()
-  });
-  return { data: toAiResource(updated), meta: {} };
 }
 
 export async function disableAI(options: {
@@ -701,51 +853,80 @@ export async function disableAI(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
 }) {
   requireAiPermission(options.actorPermissions, "ai.disable");
-  if (!options.idempotencyKey?.trim()) {
+  const key = options.idempotencyKey?.trim();
+  if (!key) {
     throw new AiOrchestrationError("Idempotency-Key required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const now = new Date().toISOString();
-  const state: TenantAiSwitchState = {
-    disabled: true,
-    disabledAt: now,
-    disabledBy: options.actorId,
-    fallbackMode: "deterministic"
-  };
-  await options.repo.setTenantSwitch(options.tenantId, state);
-  return {
-    data: toAiResource({
-      id: options.tenantId,
-      tenantId: options.tenantId,
-      status: "disabled",
-      createdAt: now
-    }),
-    meta: {}
-  };
+  return runAiIdempotent({
+    idempotency: options.idempotency,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "ai.disable",
+    key,
+    loadCached: async () => null,
+    rememberCached: async () => undefined,
+    resourceId: (result) => result.data.id,
+    execute: async () => {
+      const now = new Date().toISOString();
+      const state: TenantAiSwitchState = {
+        disabled: true,
+        disabledAt: now,
+        disabledBy: options.actorId,
+        fallbackMode: "deterministic"
+      };
+      await options.repo.setTenantSwitch(options.tenantId, state);
+      return {
+        data: toAiResource({
+          id: options.tenantId,
+          tenantId: options.tenantId,
+          status: "disabled",
+          createdAt: now
+        }),
+        meta: {}
+      };
+    }
+  });
 }
 
 export async function enableAI(options: {
   readonly repo: AiOrchestrationRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
 }) {
   requireAiPermission(options.actorPermissions, "ai.disable");
-  if (!options.idempotencyKey?.trim()) {
+  const key = options.idempotencyKey?.trim();
+  if (!key) {
     throw new AiOrchestrationError("Idempotency-Key required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const now = new Date().toISOString();
-  await options.repo.setTenantSwitch(options.tenantId, DEFAULT_SWITCH);
-  return {
-    data: toAiResource({
-      id: options.tenantId,
-      tenantId: options.tenantId,
-      status: "enabled",
-      createdAt: now
-    }),
-    meta: {}
-  };
+  return runAiIdempotent({
+    idempotency: options.idempotency,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "ai.enable",
+    key,
+    loadCached: async () => null,
+    rememberCached: async () => undefined,
+    resourceId: (result) => result.data.id,
+    execute: async () => {
+      const now = new Date().toISOString();
+      await options.repo.setTenantSwitch(options.tenantId, DEFAULT_SWITCH);
+      return {
+        data: toAiResource({
+          id: options.tenantId,
+          tenantId: options.tenantId,
+          status: "enabled",
+          createdAt: now
+        }),
+        meta: {}
+      };
+    }
+  });
 }
 
 export async function getAIQualityReport(options: {

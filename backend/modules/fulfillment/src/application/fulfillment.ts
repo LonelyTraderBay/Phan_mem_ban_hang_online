@@ -87,6 +87,11 @@ export interface OrderEligibilityPort {
     readonly tenantId: string;
     readonly orderId: string;
   }): Promise<readonly string[]>;
+  /** Maps order_item.id → variant_id for return restock. */
+  getOrderItemVariantIds(args: {
+    readonly tenantId: string;
+    readonly orderId: string;
+  }): Promise<ReadonlyMap<string, string>>;
 }
 
 export interface InventoryRestockPort {
@@ -434,6 +439,7 @@ export async function createReturn(options: {
 
 type ReturnCommandOptions = {
   readonly repo: FulfillmentRepository;
+  readonly orders?: OrderEligibilityPort;
   readonly inventory?: InventoryRestockPort;
   readonly tenantId: string;
   readonly returnId: string;
@@ -478,12 +484,29 @@ async function transitionReturnStatus(
         ...(options.restock !== undefined ? { restock: options.restock } : {})
       });
       if (options.restock && options.inventory) {
+        if (!options.orders) {
+          throw new FulfillmentError(
+            "Order lookup required for return restock.",
+            "VALIDATION_FAILED"
+          );
+        }
+        const variantByItem = await options.orders.getOrderItemVariantIds({
+          tenantId: options.tenantId,
+          orderId: ret.orderId
+        });
         for (const item of ret.items) {
           if (item.restocked) {
+            const variantId = variantByItem.get(item.orderItemId);
+            if (!variantId) {
+              throw new FulfillmentError(
+                `Order item ${item.orderItemId} has no variant for restock.`,
+                "RESOURCE_NOT_FOUND"
+              );
+            }
             await options.inventory.restockStub({
               tenantId: options.tenantId,
               actorId: options.actorId,
-              variantId: item.orderItemId,
+              variantId,
               quantity: item.quantity,
               idempotencyKey: `${key}:restock:${item.orderItemId}`
             });

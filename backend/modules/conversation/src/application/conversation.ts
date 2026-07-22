@@ -1,3 +1,4 @@
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { generateUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
 import {
   advanceMalwareScanStub,
@@ -35,6 +36,7 @@ import {
   type SalesStage,
   type WaitingOn
 } from "../domain/state.js";
+import { runConversationIdempotent } from "./conversation-idempotency.js";
 
 /**
  * BE-CON-001…012 — Conversation application layer (inbox, messages, assignment, SLA stubs).
@@ -362,38 +364,64 @@ function stateInvalid(message: string): never {
   throw new ConversationError(message, "CONVERSATION_STATE_INVALID");
 }
 
-async function withConversationIdempotency(
-  repo: ConversationRepository,
-  tenantId: string,
-  idempotencyKey: string | null | undefined,
-  run: () => Promise<ConversationResource>
-): Promise<ConversationResource> {
-  const key = idempotencyKey?.trim();
+type JobIdempotencyResult = {
+  readonly job_id: string;
+  readonly status: JobResponseStatus;
+  readonly status_url: string | null;
+};
+
+async function withConversationIdempotency(options: {
+  readonly repo: ConversationRepository;
+  readonly tenantId: string;
+  readonly actorId: string;
+  readonly scope: string;
+  readonly idempotencyKey: string | null | undefined;
+  readonly idempotency: IdempotencyStore | undefined;
+  readonly run: () => Promise<ConversationResource>;
+}): Promise<ConversationResource> {
+  const key = options.idempotencyKey?.trim();
   if (!key) {
     throw new ConversationError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const cached = await repo.getIdempotentConversation(tenantId, key);
-  if (cached) return cached;
-  const result = await run();
-  await repo.saveIdempotentConversation(tenantId, key, result);
-  return result;
+  return runConversationIdempotent({
+    idempotency: options.idempotency,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: options.scope,
+    key,
+    loadCached: () => options.repo.getIdempotentConversation(options.tenantId, key),
+    rememberCached: (resource) =>
+      options.repo.saveIdempotentConversation(options.tenantId, key, resource),
+    execute: options.run,
+    resourceId: (resource) => resource.id
+  });
 }
 
-async function withJobIdempotency(
-  repo: ConversationRepository,
-  tenantId: string,
-  idempotencyKey: string | null | undefined,
-  run: () => Promise<{ readonly job_id: string; readonly status: JobResponseStatus; readonly status_url: string | null }>
-): Promise<{ readonly job_id: string; readonly status: JobResponseStatus; readonly status_url: string | null }> {
-  const key = idempotencyKey?.trim();
+async function withJobIdempotency(options: {
+  readonly repo: ConversationRepository;
+  readonly tenantId: string;
+  readonly actorId: string;
+  readonly scope: string;
+  readonly idempotencyKey: string | null | undefined;
+  readonly idempotency: IdempotencyStore | undefined;
+  readonly run: () => Promise<JobIdempotencyResult>;
+}): Promise<JobIdempotencyResult> {
+  const key = options.idempotencyKey?.trim();
   if (!key) {
     throw new ConversationError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const cached = await repo.getIdempotentJobResponse(tenantId, key);
-  if (cached) return cached;
-  const result = await run();
-  await repo.saveIdempotentJobResponse(tenantId, key, result);
-  return result;
+  return runConversationIdempotent({
+    idempotency: options.idempotency,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: options.scope,
+    key,
+    loadCached: () => options.repo.getIdempotentJobResponse(options.tenantId, key),
+    rememberCached: (response) =>
+      options.repo.saveIdempotentJobResponse(options.tenantId, key, response),
+    execute: options.run,
+    resourceId: (response) => response.job_id
+  });
 }
 
 async function getConversationOrThrow(
@@ -691,16 +719,20 @@ export async function assignConversationApi(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly conversationId: string;
   readonly assigneeMemberId: string;
   readonly expectedVersion: number;
 }): Promise<{ readonly data: ConversationResource; readonly meta: Record<string, never> }> {
   requireConversationPermission(options.actorPermissions, "conversation.assign");
-  const data = await withConversationIdempotency(
-    options.repo,
-    options.tenantId,
-    options.idempotencyKey,
-    async () => {
+  const data = await withConversationIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "conversation.assign",
+    idempotencyKey: options.idempotencyKey,
+    idempotency: options.idempotency,
+    run: async () => {
       const current = await getConversationOrThrow(
         options.repo,
         options.tenantId,
@@ -725,7 +757,7 @@ export async function assignConversationApi(options: {
       });
       return toResource(updated);
     }
-  );
+  });
   return { data, meta: {} };
 }
 
@@ -735,15 +767,19 @@ export async function unassignConversationApi(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly conversationId: string;
   readonly expectedVersion: number;
 }): Promise<{ readonly data: ConversationResource; readonly meta: Record<string, never> }> {
   requireConversationPermission(options.actorPermissions, "conversation.assign");
-  const data = await withConversationIdempotency(
-    options.repo,
-    options.tenantId,
-    options.idempotencyKey,
-    async () => {
+  const data = await withConversationIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "conversation.unassign",
+    idempotencyKey: options.idempotencyKey,
+    idempotency: options.idempotency,
+    run: async () => {
       const current = await getConversationOrThrow(
         options.repo,
         options.tenantId,
@@ -761,7 +797,7 @@ export async function unassignConversationApi(options: {
       });
       return toResource(updated);
     }
-  );
+  });
   return { data, meta: {} };
 }
 
@@ -771,6 +807,7 @@ export async function addConversationNoteApi(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly conversationId: string;
   readonly body: string;
 }): Promise<{ readonly data: ConversationResource; readonly meta: { readonly note_id: string } }> {
@@ -779,29 +816,41 @@ export async function addConversationNoteApi(options: {
   if (!body) {
     throw new ConversationError("Note body is required.", "VALIDATION_FAILED");
   }
+  type NoteResult = { readonly data: ConversationResource; readonly meta: { readonly note_id: string } };
   const key = options.idempotencyKey?.trim();
   if (!key) {
     throw new ConversationError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const cached = await options.repo.getIdempotentConversation(options.tenantId, key);
-  if (cached) {
-    return { data: cached, meta: { note_id: "" } };
-  }
-  const current = await getConversationOrThrow(
-    options.repo,
-    options.tenantId,
-    options.conversationId
-  );
-  const note = await options.repo.appendNote({
+  return runConversationIdempotent<NoteResult>({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    noteId: generateUuidV7(),
-    conversationId: options.conversationId,
-    authorMemberId: options.actorId,
-    body
+    actorId: options.actorId,
+    scope: "conversation.note",
+    key,
+    loadCached: async () => {
+      const cached = await options.repo.getIdempotentConversation(options.tenantId, key);
+      return cached ? { data: cached, meta: { note_id: "" } } : null;
+    },
+    rememberCached: async (result) => {
+      await options.repo.saveIdempotentConversation(options.tenantId, key, result.data);
+    },
+    execute: async () => {
+      const current = await getConversationOrThrow(
+        options.repo,
+        options.tenantId,
+        options.conversationId
+      );
+      const note = await options.repo.appendNote({
+        tenantId: options.tenantId,
+        noteId: generateUuidV7(),
+        conversationId: options.conversationId,
+        authorMemberId: options.actorId,
+        body
+      });
+      return { data: toResource(current), meta: { note_id: note.id } };
+    },
+    resourceId: (result) => result.data.id
   });
-  const resource = toResource(current);
-  await options.repo.saveIdempotentConversation(options.tenantId, key, resource);
-  return { data: resource, meta: { note_id: note.id } };
 }
 
 // ---------------------------------------------------------------------------
@@ -814,15 +863,19 @@ export async function resolveConversationApi(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly conversationId: string;
   readonly expectedVersion: number;
 }): Promise<{ readonly data: ConversationResource; readonly meta: Record<string, never> }> {
   requireConversationPermission(options.actorPermissions, "conversation.reply");
-  const data = await withConversationIdempotency(
-    options.repo,
-    options.tenantId,
-    options.idempotencyKey,
-    async () => {
+  const data = await withConversationIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "conversation.resolve",
+    idempotencyKey: options.idempotencyKey,
+    idempotency: options.idempotency,
+    run: async () => {
       const current = await getConversationOrThrow(
         options.repo,
         options.tenantId,
@@ -852,7 +905,7 @@ export async function resolveConversationApi(options: {
       });
       return toResource(updated);
     }
-  );
+  });
   return { data, meta: {} };
 }
 
@@ -862,15 +915,19 @@ export async function reopenConversationApi(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly conversationId: string;
   readonly expectedVersion: number;
 }): Promise<{ readonly data: ConversationResource; readonly meta: Record<string, never> }> {
   requireConversationPermission(options.actorPermissions, "conversation.reply");
-  const data = await withConversationIdempotency(
-    options.repo,
-    options.tenantId,
-    options.idempotencyKey,
-    async () => {
+  const data = await withConversationIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "conversation.reopen",
+    idempotencyKey: options.idempotencyKey,
+    idempotency: options.idempotency,
+    run: async () => {
       const current = await getConversationOrThrow(
         options.repo,
         options.tenantId,
@@ -900,7 +957,7 @@ export async function reopenConversationApi(options: {
       });
       return toResource(updated);
     }
-  );
+  });
   return { data, meta: {} };
 }
 
@@ -910,15 +967,19 @@ export async function escalateConversationApi(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly conversationId: string;
   readonly expectedVersion: number;
 }): Promise<{ readonly data: ConversationResource; readonly meta: Record<string, never> }> {
   requireConversationPermission(options.actorPermissions, "conversation.assign");
-  const data = await withConversationIdempotency(
-    options.repo,
-    options.tenantId,
-    options.idempotencyKey,
-    async () => {
+  const data = await withConversationIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "conversation.escalate",
+    idempotencyKey: options.idempotencyKey,
+    idempotency: options.idempotency,
+    run: async () => {
       const current = await getConversationOrThrow(
         options.repo,
         options.tenantId,
@@ -948,7 +1009,7 @@ export async function escalateConversationApi(options: {
       });
       return toResource(updated);
     }
-  );
+  });
   return { data, meta: {} };
 }
 
@@ -958,15 +1019,19 @@ export async function takeOverConversationApi(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly conversationId: string;
   readonly expectedVersion: number;
 }): Promise<{ readonly data: ConversationResource; readonly meta: Record<string, never> }> {
   requireConversationPermission(options.actorPermissions, "conversation.takeover");
-  const data = await withConversationIdempotency(
-    options.repo,
-    options.tenantId,
-    options.idempotencyKey,
-    async () => {
+  const data = await withConversationIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "conversation.takeover",
+    idempotencyKey: options.idempotencyKey,
+    idempotency: options.idempotency,
+    run: async () => {
       const current = await getConversationOrThrow(
         options.repo,
         options.tenantId,
@@ -993,7 +1058,7 @@ export async function takeOverConversationApi(options: {
       });
       return toResource(updated);
     }
-  );
+  });
   return { data, meta: {} };
 }
 
@@ -1003,15 +1068,19 @@ export async function releaseConversationTakeoverApi(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly conversationId: string;
   readonly expectedVersion: number;
 }): Promise<{ readonly data: ConversationResource; readonly meta: Record<string, never> }> {
   requireConversationPermission(options.actorPermissions, "conversation.takeover");
-  const data = await withConversationIdempotency(
-    options.repo,
-    options.tenantId,
-    options.idempotencyKey,
-    async () => {
+  const data = await withConversationIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "conversation.release-takeover",
+    idempotencyKey: options.idempotencyKey,
+    idempotency: options.idempotency,
+    run: async () => {
       const current = await getConversationOrThrow(
         options.repo,
         options.tenantId,
@@ -1038,7 +1107,7 @@ export async function releaseConversationTakeoverApi(options: {
       });
       return toResource(updated);
     }
-  );
+  });
   return { data, meta: {} };
 }
 
@@ -1053,6 +1122,7 @@ export async function sendConversationMessageApi(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly conversationId: string;
   readonly expectedVersion: number;
   readonly text: string;
@@ -1065,66 +1135,74 @@ export async function sendConversationMessageApi(options: {
   if (!text) {
     throw new ConversationError("Message text is required.", "VALIDATION_FAILED");
   }
-  const data = await withJobIdempotency(options.repo, options.tenantId, options.idempotencyKey, async () => {
-    const current = await getConversationOrThrow(
-      options.repo,
-      options.tenantId,
-      options.conversationId
-    );
-    if (current.version !== options.expectedVersion) {
-      throw new ConversationError("Version mismatch.", "RESOURCE_VERSION_MISMATCH");
+  const data = await withJobIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "conversation.job.reply",
+    idempotencyKey: options.idempotencyKey,
+    idempotency: options.idempotency,
+    run: async () => {
+      const current = await getConversationOrThrow(
+        options.repo,
+        options.tenantId,
+        options.conversationId
+      );
+      if (current.version !== options.expectedVersion) {
+        throw new ConversationError("Version mismatch.", "RESOURCE_VERSION_MISMATCH");
+      }
+      if (current.aiMode === "human_takeover" && current.assigneeMemberId !== options.actorId) {
+        throw new ConversationError("Human takeover active.", "HUMAN_TAKEOVER_ACTIVE");
+      }
+      if (!current.channelAccountId) {
+        throw new ConversationError("Conversation has no channel.", "VALIDATION_FAILED");
+      }
+      const nextState = onOutboundReply({
+        lifecycleStatus: current.lifecycleStatus,
+        waitingOn: current.waitingOn,
+        salesStage: current.salesStage,
+        escalationStatus: current.escalationStatus,
+        aiMode: current.aiMode
+      });
+      await options.repo.updateConversation({
+        tenantId: options.tenantId,
+        conversationId: options.conversationId,
+        expectedVersion: options.expectedVersion,
+        patch: {
+          waitingOn: nextState.waitingOn,
+          lastOutboundAt: nowIso()
+        },
+        actorId: options.actorId
+      });
+      const outbound = await options.outbound.queueReply({
+        tenantId: options.tenantId,
+        channelAccountId: current.channelAccountId,
+        conversationId: current.id,
+        idempotencyKey: options.idempotencyKey!.trim(),
+        text,
+        externalThreadId: current.externalThreadId,
+        actorId: options.actorId
+      });
+      await options.repo.insertMessage({
+        tenantId: options.tenantId,
+        messageId: generateUuidV7(),
+        conversationId: current.id,
+        direction: "outbound",
+        externalMessageId: null,
+        senderIdentity: options.actorId,
+        contentType: "text",
+        bodyRedacted: text,
+        replyToMessageId: null,
+        aiGenerated: false,
+        receivedAt: null,
+        sentAt: nowIso()
+      });
+      return {
+        job_id: outbound.outboundMessageId,
+        status: outbound.status,
+        status_url: `/api/v1/outbound-messages/${outbound.outboundMessageId}`
+      };
     }
-    if (current.aiMode === "human_takeover" && current.assigneeMemberId !== options.actorId) {
-      throw new ConversationError("Human takeover active.", "HUMAN_TAKEOVER_ACTIVE");
-    }
-    if (!current.channelAccountId) {
-      throw new ConversationError("Conversation has no channel.", "VALIDATION_FAILED");
-    }
-    const nextState = onOutboundReply({
-      lifecycleStatus: current.lifecycleStatus,
-      waitingOn: current.waitingOn,
-      salesStage: current.salesStage,
-      escalationStatus: current.escalationStatus,
-      aiMode: current.aiMode
-    });
-    await options.repo.updateConversation({
-      tenantId: options.tenantId,
-      conversationId: options.conversationId,
-      expectedVersion: options.expectedVersion,
-      patch: {
-        waitingOn: nextState.waitingOn,
-        lastOutboundAt: nowIso()
-      },
-      actorId: options.actorId
-    });
-    const outbound = await options.outbound.queueReply({
-      tenantId: options.tenantId,
-      channelAccountId: current.channelAccountId,
-      conversationId: current.id,
-      idempotencyKey: options.idempotencyKey!,
-      text,
-      externalThreadId: current.externalThreadId,
-      actorId: options.actorId
-    });
-    await options.repo.insertMessage({
-      tenantId: options.tenantId,
-      messageId: generateUuidV7(),
-      conversationId: current.id,
-      direction: "outbound",
-      externalMessageId: null,
-      senderIdentity: options.actorId,
-      contentType: "text",
-      bodyRedacted: text,
-      replyToMessageId: null,
-      aiGenerated: false,
-      receivedAt: null,
-      sentAt: nowIso()
-    });
-    return {
-      job_id: outbound.outboundMessageId,
-      status: outbound.status,
-      status_url: `/api/v1/outbound-messages/${outbound.outboundMessageId}`
-    };
   });
   return { data, meta: {} };
 }

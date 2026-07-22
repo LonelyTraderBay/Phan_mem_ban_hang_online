@@ -89,21 +89,34 @@ function toWarehouseRecord(row: {
   };
 }
 
-/** v1 process-local idempotency + reconciliation jobs (no DB table for jobs yet). */
+type ReconciliationJobRow = {
+  id: string;
+  tenant_id: string;
+  warehouse_id: string;
+  status: "completed" | "failed";
+  discrepancies: unknown;
+  created_at: Date;
+};
+
+function toReconciliationJobRecord(row: ReconciliationJobRow): ReconciliationJobRecord {
+  const discrepancies = Array.isArray(row.discrepancies)
+    ? (row.discrepancies as ReconciliationDiscrepancy[])
+    : [];
+  return {
+    id: row.id,
+    tenant_id: row.tenant_id,
+    warehouse_id: row.warehouse_id,
+    status: row.status,
+    discrepancies,
+    created_at: row.created_at.toISOString()
+  };
+}
+
+/** Reconciliation jobs persist to app.inventory_reconciliation_jobs (000029). HTTP idempotency uses IdempotencyStore. */
 export class PostgresInventoryRepository implements InventoryRepository {
-  private readonly warehouseIdempotency = new Map<string, WarehouseRecord>();
-  private readonly adjustmentIdempotency = new Map<string, AdjustmentRecord>();
-  private readonly reservationIdempotency = new Map<string, ReservationRecord>();
-  private readonly reservationCommandIdempotency = new Map<string, ReservationRecord>();
-  private readonly reconciliationIdempotency = new Map<string, ReconciliationJobRecord>();
-  private readonly reconciliationJobs = new Map<string, ReconciliationJobRecord>();
   readonly auditLog: InventoryAuditRecord[] = [];
 
   constructor(private readonly db: AppDatabase) {}
-
-  private idemKey(tenantId: string, key: string): string {
-    return `${tenantId}:${key}`;
-  }
 
   async listWarehouses(tenantId: string): Promise<readonly WarehouseRecord[]> {
     const ctx = adapterSecurityContext(tenantId);
@@ -1089,35 +1102,50 @@ export class PostgresInventoryRepository implements InventoryRepository {
       tenantId: args.tenantId,
       warehouseId: args.warehouseId
     });
-    const job: ReconciliationJobRecord = {
-      id: args.jobId,
-      tenant_id: args.tenantId,
-      warehouse_id: args.warehouseId,
-      status: "completed",
-      discrepancies,
-      created_at: new Date().toISOString()
-    };
-    this.reconciliationJobs.set(`${args.tenantId}:${args.jobId}`, job);
-    return job;
+    const ctx = adapterSecurityContext(args.tenantId);
+    return withTenantTransaction(this.db, ctx, async (trx) => {
+      const inserted = await sql<ReconciliationJobRow>`
+        insert into app.inventory_reconciliation_jobs (
+          id, tenant_id, warehouse_id, status, discrepancies
+        ) values (
+          ${args.jobId}::uuid,
+          ${args.tenantId}::uuid,
+          ${args.warehouseId}::uuid,
+          'completed',
+          ${JSON.stringify(discrepancies)}::jsonb
+        )
+        returning id, tenant_id, warehouse_id, status, discrepancies, created_at
+      `.execute(trx);
+      return toReconciliationJobRecord(inserted.rows[0]!);
+    });
   }
 
   async getReconciliationJob(args: {
     readonly tenantId: string;
     readonly jobId: string;
   }): Promise<ReconciliationJobRecord | null> {
-    return this.reconciliationJobs.get(`${args.tenantId}:${args.jobId}`) ?? null;
+    const ctx = adapterSecurityContext(args.tenantId);
+    return withTenantTransaction(this.db, ctx, async (trx) => {
+      const result = await sql<ReconciliationJobRow>`
+        select id, tenant_id, warehouse_id, status, discrepancies, created_at
+        from app.inventory_reconciliation_jobs
+        where id = ${args.jobId}::uuid and tenant_id = ${args.tenantId}::uuid
+      `.execute(trx);
+      const row = result.rows[0];
+      return row ? toReconciliationJobRecord(row) : null;
+    });
   }
 
-  async getIdempotentWarehouse(tenantId: string, key: string): Promise<WarehouseRecord | null> {
-    return this.warehouseIdempotency.get(this.idemKey(tenantId, key)) ?? null;
+  async getIdempotentWarehouse(_tenantId: string, _key: string): Promise<WarehouseRecord | null> {
+    return null;
   }
 
   async rememberIdempotentWarehouse(
-    tenantId: string,
-    key: string,
-    warehouse: WarehouseRecord
+    _tenantId: string,
+    _key: string,
+    _warehouse: WarehouseRecord
   ): Promise<void> {
-    this.warehouseIdempotency.set(this.idemKey(tenantId, key), warehouse);
+    /* no-op — use IdempotencyStore */
   }
 
   private async findAdjustmentByIdempotencyKey(
@@ -1158,80 +1186,61 @@ export class PostgresInventoryRepository implements InventoryRepository {
     };
   }
 
-  async getIdempotentAdjustment(tenantId: string, key: string): Promise<AdjustmentRecord | null> {
-    const cached = this.adjustmentIdempotency.get(this.idemKey(tenantId, key));
-    if (cached) return cached;
-    const ctx = adapterSecurityContext(tenantId);
-    return withTenantTransaction(this.db, ctx, async (trx) => {
-      const found = await this.findAdjustmentByIdempotencyKey(trx, tenantId, key);
-      if (found) this.adjustmentIdempotency.set(this.idemKey(tenantId, key), found);
-      return found;
-    });
+  async getIdempotentAdjustment(_tenantId: string, _key: string): Promise<AdjustmentRecord | null> {
+    return null;
   }
 
   async rememberIdempotentAdjustment(
-    tenantId: string,
-    key: string,
-    adjustment: AdjustmentRecord
+    _tenantId: string,
+    _key: string,
+    _adjustment: AdjustmentRecord
   ): Promise<void> {
-    this.adjustmentIdempotency.set(this.idemKey(tenantId, key), adjustment);
+    /* no-op — use IdempotencyStore */
   }
 
-  async getIdempotentReservation(tenantId: string, key: string): Promise<ReservationRecord | null> {
-    const cached = this.reservationIdempotency.get(this.idemKey(tenantId, key));
-    if (cached) return cached;
-    const ctx = adapterSecurityContext(tenantId);
-    return withTenantTransaction(this.db, ctx, async (trx) => {
-      const existingId = await sql<{ id: string }>`
-        select id from app.inventory_reservations
-        where tenant_id = ${tenantId}::uuid and idempotency_key = ${key}
-        limit 1
-      `.execute(trx);
-      if (!existingId.rows[0]) return null;
-      const loaded = await this.loadReservation(trx, tenantId, existingId.rows[0].id);
-      if (!loaded) return null;
-      const record = this.toReservationRecord(loaded);
-      this.reservationIdempotency.set(this.idemKey(tenantId, key), record);
-      return record;
-    });
+  async getIdempotentReservation(
+    _tenantId: string,
+    _key: string
+  ): Promise<ReservationRecord | null> {
+    return null;
   }
 
   async rememberIdempotentReservation(
-    tenantId: string,
-    key: string,
-    reservation: ReservationRecord
+    _tenantId: string,
+    _key: string,
+    _reservation: ReservationRecord
   ): Promise<void> {
-    this.reservationIdempotency.set(this.idemKey(tenantId, key), reservation);
+    /* no-op — use IdempotencyStore */
   }
 
   async getIdempotentReservationCommand(
-    tenantId: string,
-    key: string
+    _tenantId: string,
+    _key: string
   ): Promise<ReservationRecord | null> {
-    return this.reservationCommandIdempotency.get(this.idemKey(tenantId, key)) ?? null;
+    return null;
   }
 
   async rememberIdempotentReservationCommand(
-    tenantId: string,
-    key: string,
-    reservation: ReservationRecord
+    _tenantId: string,
+    _key: string,
+    _reservation: ReservationRecord
   ): Promise<void> {
-    this.reservationCommandIdempotency.set(this.idemKey(tenantId, key), reservation);
+    /* no-op — use IdempotencyStore */
   }
 
   async getIdempotentReconciliation(
-    tenantId: string,
-    key: string
+    _tenantId: string,
+    _key: string
   ): Promise<ReconciliationJobRecord | null> {
-    return this.reconciliationIdempotency.get(this.idemKey(tenantId, key)) ?? null;
+    return null;
   }
 
   async rememberIdempotentReconciliation(
-    tenantId: string,
-    key: string,
-    job: ReconciliationJobRecord
+    _tenantId: string,
+    _key: string,
+    _job: ReconciliationJobRecord
   ): Promise<void> {
-    this.reconciliationIdempotency.set(this.idemKey(tenantId, key), job);
+    /* no-op — use IdempotencyStore */
   }
 
   async appendAudit(record: InventoryAuditRecord): Promise<void> {

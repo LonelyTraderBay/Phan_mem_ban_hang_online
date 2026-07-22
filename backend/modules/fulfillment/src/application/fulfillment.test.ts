@@ -16,12 +16,17 @@ const orderItemId = parseUuidV7("018f65fd-7c6a-7cc8-9f68-9f5f2c7b7e4b");
 
 const shipPerms = ["shipment.manage", "packing_slip.print"];
 
+const variantId = parseUuidV7("018f65fd-7c6a-7cc8-9f68-9f5f2c7b7e5b");
+
 const orders = {
   async isOrderConfirmed() {
     return true;
   },
   async getOrderItemIds() {
     return [orderItemId];
+  },
+  async getOrderItemVariantIds() {
+    return new Map([[orderItemId, variantId]]);
   }
 };
 
@@ -68,10 +73,10 @@ describe("BE-FUL/RET fulfillment flow", () => {
 
   it("return receive/inspect/restock/refund flow stub", async () => {
     const repo = new InMemoryFulfillmentRepository();
-    let restocked = false;
+    let restockedVariantId: string | null = null;
     const inventory = {
-      async restockStub() {
-        restocked = true;
+      async restockStub(args: { readonly variantId: string }) {
+        restockedVariantId = args.variantId;
       }
     };
     const created = await createReturn({
@@ -105,6 +110,7 @@ describe("BE-FUL/RET fulfillment flow", () => {
     });
     const done = await completeReturn({
       repo,
+      orders,
       inventory,
       tenantId: tenantA,
       returnId,
@@ -113,6 +119,6 @@ describe("BE-FUL/RET fulfillment flow", () => {
       idempotencyKey: "ret-done"
     });
     expect(done.data.status).toBe("completed");
-    expect(restocked).toBe(true);
+    expect(restockedVariantId).toBe(variantId);
   });
 });

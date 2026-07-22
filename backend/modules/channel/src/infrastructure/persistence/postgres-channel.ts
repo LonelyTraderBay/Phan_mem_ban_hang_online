@@ -17,9 +17,27 @@ import {
   type WebhookEventRecord
 } from "../../application/channel.js";
 import type { AccountHealth, AccountStatus } from "../../domain/health.js";
-import { tenantIdFromOAuthStateToken } from "../../domain/oauth.js";
-
 type Trx = Parameters<Parameters<typeof withTenantTransaction>[2]>[0];
+
+type WebhookInsertOutRow = {
+  out_id: string;
+  out_tenant_id: string | null;
+  out_channel_account_id: string | null;
+  out_provider: string;
+  out_external_event_id: string;
+  out_event_type: string | null;
+  out_signature_valid: boolean;
+  out_payload_digest: string;
+  out_payload_redacted: unknown;
+  out_status: WebhookEventRecord["status"];
+  out_attempt_count: number;
+  out_next_retry_at: Date | null;
+  out_error: string | null;
+  out_normalized_entity_id: string | null;
+  out_received_at: Date;
+  out_processed_at: Date | null;
+  out_duplicate: boolean;
+};
 
 type AccountRow = {
   id: string;
@@ -169,14 +187,6 @@ function parseObject(value: unknown): Record<string, unknown> {
   return {};
 }
 
-function dedupeKey(
-  provider: string,
-  channelAccountId: string | null,
-  externalEventId: string
-): string {
-  return `${provider}:${channelAccountId ?? "00000000-0000-0000-0000-000000000000"}:${externalEventId}`;
-}
-
 function toAccount(row: AccountRow): ChannelAccountRecord {
   return {
     id: row.id,
@@ -243,6 +253,27 @@ function toWebhook(row: WebhookRow): WebhookEventRecord {
   };
 }
 
+function toWebhookFromInsertOut(row: WebhookInsertOutRow): WebhookEventRecord {
+  return toWebhook({
+    id: row.out_id,
+    tenant_id: row.out_tenant_id,
+    channel_account_id: row.out_channel_account_id,
+    provider: row.out_provider,
+    external_event_id: row.out_external_event_id,
+    event_type: row.out_event_type,
+    signature_valid: row.out_signature_valid,
+    payload_digest: row.out_payload_digest,
+    payload_redacted: row.out_payload_redacted,
+    status: row.out_status,
+    attempt_count: row.out_attempt_count,
+    next_retry_at: row.out_next_retry_at,
+    error: row.out_error,
+    normalized_entity_id: row.out_normalized_entity_id,
+    received_at: row.out_received_at,
+    processed_at: row.out_processed_at
+  });
+}
+
 function toOutbound(row: OutboundRow): OutboundMessageRecord {
   return {
     id: row.id,
@@ -279,24 +310,10 @@ function toAttempt(row: AttemptRow): OutboundAttemptRecord {
  * Channel Postgres adapter.
  * HTTP idempotency is via PostgresIdempotencyStore at application layer
  * (get/save below are no-ops kept for ChannelRepository interface / InMemory parity).
- * OAuth tenant lookup + webhook dedupe remain process-local Maps.
+ * OAuth consume + null-tenant webhook dedupe use SECURITY DEFINER helpers (000030).
  */
 export class PostgresChannelRepository implements ChannelRepository {
-  /** Maps OAuth state_token → tenant_id for consumeOAuthState (no tenant in args). */
-  private readonly oauthTenantByStateToken = new Map<string, string>();
-  /** Process-local webhook dedupe index (also covers tenantId-null events not stored in DB). */
-  private readonly webhookDedupe = new Map<string, WebhookEventRecord>();
-  private readonly localWebhooksById = new Map<string, WebhookEventRecord>();
-
   constructor(private readonly db: AppDatabase) {}
-
-  private indexWebhook(record: WebhookEventRecord): void {
-    this.webhookDedupe.set(
-      dedupeKey(record.provider, record.channelAccountId, record.externalEventId),
-      record
-    );
-    this.localWebhooksById.set(record.id, record);
-  }
 
   private async loadAccount(
     trx: Trx,
@@ -329,25 +346,6 @@ export class PostgresChannelRepository implements ChannelRepository {
       select ${WEBHOOK_SELECT}
       from app.webhook_events
       where id = ${eventId}::uuid and tenant_id = ${tenantId}::uuid
-    `.execute(trx);
-    const row = result.rows[0];
-    return row ? toWebhook(row) : null;
-  }
-
-  private async loadWebhookByDedupe(
-    trx: Trx,
-    provider: string,
-    channelAccountId: string | null,
-    externalEventId: string
-  ): Promise<WebhookEventRecord | null> {
-    const result = await sql<WebhookRow>`
-      select ${WEBHOOK_SELECT}
-      from app.webhook_events
-      where provider = ${provider}
-        and coalesce(channel_account_id, '00000000-0000-0000-0000-000000000000'::uuid)
-          = coalesce(${channelAccountId}::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
-        and external_event_id = ${externalEventId}
-      limit 1
     `.execute(trx);
     const row = result.rows[0];
     return row ? toWebhook(row) : null;
@@ -575,7 +573,7 @@ export class PostgresChannelRepository implements ChannelRepository {
     readonly expiresAt: string;
   }): Promise<OAuthStateRow> {
     const ctx = adapterSecurityContext(args.tenantId);
-    const row = await withTenantTransaction(this.db, ctx, async (trx) => {
+    return withTenantTransaction(this.db, ctx, async (trx) => {
       const result = await sql<OAuthRow>`
         insert into app.channel_oauth_states (
           id, tenant_id, provider, state_token, code_verifier_hash,
@@ -595,46 +593,20 @@ export class PostgresChannelRepository implements ChannelRepository {
       `.execute(trx);
       return toOAuth(result.rows[0]!);
     });
-    this.oauthTenantByStateToken.set(args.stateToken, args.tenantId);
-    return row;
   }
 
   async consumeOAuthState(args: {
     readonly stateToken: string;
     readonly codeVerifier: string;
   }): Promise<OAuthStateRow | null> {
-    const tenantId =
-      this.oauthTenantByStateToken.get(args.stateToken) ??
-      tenantIdFromOAuthStateToken(args.stateToken);
-    if (!tenantId) return null;
     const hash = createHash("sha256").update(args.codeVerifier).digest("hex");
-    const ctx = adapterSecurityContext(tenantId);
-    return withTenantTransaction(this.db, ctx, async (trx) => {
-      const existing = await sql<OAuthRow>`
-        select id, tenant_id, provider, state_token, code_verifier_hash,
-               redirect_return_path, channel_account_id, expires_at, consumed_at
-        from app.channel_oauth_states
-        where state_token = ${args.stateToken}
-          and tenant_id = ${tenantId}::uuid
-        for update
-      `.execute(trx);
-      const row = existing.rows[0];
-      if (!row || row.consumed_at) return null;
-      if (row.expires_at.getTime() <= Date.now()) return null;
-      if (row.code_verifier_hash !== hash) return null;
-
-      const updated = await sql<OAuthRow>`
-        update app.channel_oauth_states
-        set consumed_at = now()
-        where id = ${row.id}::uuid
-          and tenant_id = ${tenantId}::uuid
-          and consumed_at is null
-        returning id, tenant_id, provider, state_token, code_verifier_hash,
-                  redirect_return_path, channel_account_id, expires_at, consumed_at
-      `.execute(trx);
-      const consumed = updated.rows[0];
-      return consumed ? toOAuth(consumed) : null;
-    });
+    const result = await sql<OAuthRow>`
+      select id, tenant_id, provider, state_token, code_verifier_hash,
+             redirect_return_path, channel_account_id, expires_at, consumed_at
+      from app.channel_consume_oauth_state(${args.stateToken}, ${hash})
+    `.execute(this.db);
+    const row = result.rows[0];
+    return row ? toOAuth(row) : null;
   }
 
   async insertWebhookEvent(args: {
@@ -648,90 +620,37 @@ export class PostgresChannelRepository implements ChannelRepository {
     readonly payloadDigest: string;
     readonly payloadRedacted: Record<string, unknown>;
   }): Promise<{ readonly record: WebhookEventRecord; readonly duplicate: boolean }> {
-    const key = dedupeKey(args.provider, args.channelAccountId, args.externalEventId);
-    const cached = this.webhookDedupe.get(key);
-    if (cached) {
-      return { record: cached, duplicate: true };
+    const result = await sql<WebhookInsertOutRow>`
+      select * from app.channel_insert_webhook_event(
+        ${args.eventId}::uuid,
+        ${args.tenantId}::uuid,
+        ${args.channelAccountId}::uuid,
+        ${args.provider},
+        ${args.externalEventId},
+        ${args.eventType},
+        ${args.signatureValid},
+        ${args.payloadDigest},
+        ${JSON.stringify(args.payloadRedacted)}::jsonb
+      )
+    `.execute(this.db);
+    const row = result.rows[0];
+    if (!row) {
+      throw new ChannelError("Webhook insert returned empty.", "VALIDATION_FAILED");
     }
-
-    // RLS WITH CHECK needs tenant_id = app.tenant_id; null-tenant events stay process-local.
-    if (!args.tenantId) {
-      const record: WebhookEventRecord = {
-        id: args.eventId,
-        tenantId: null,
-        channelAccountId: args.channelAccountId,
-        provider: args.provider,
-        externalEventId: args.externalEventId,
-        eventType: args.eventType,
-        signatureValid: args.signatureValid,
-        payloadDigest: args.payloadDigest,
-        payloadRedacted: args.payloadRedacted,
-        status: "received",
-        attemptCount: 0,
-        nextRetryAt: null,
-        error: null,
-        normalizedEntityId: null,
-        receivedAt: new Date().toISOString(),
-        processedAt: null
-      };
-      this.indexWebhook(record);
-      return { record, duplicate: false };
-    }
-
-    const ctx = adapterSecurityContext(args.tenantId);
-    try {
-      const record = await withTenantTransaction(this.db, ctx, async (trx) => {
-        const result = await sql<WebhookRow>`
-          insert into app.webhook_events (
-            id, tenant_id, channel_account_id, provider, external_event_id, event_type,
-            signature_valid, payload_digest, payload_redacted, status, attempt_count
-          ) values (
-            ${args.eventId}::uuid,
-            ${args.tenantId}::uuid,
-            ${args.channelAccountId}::uuid,
-            ${args.provider},
-            ${args.externalEventId},
-            ${args.eventType},
-            ${args.signatureValid},
-            ${args.payloadDigest},
-            ${JSON.stringify(args.payloadRedacted)}::jsonb,
-            'received',
-            0
-          )
-          returning ${WEBHOOK_SELECT}
-        `.execute(trx);
-        return toWebhook(result.rows[0]!);
-      });
-      this.indexWebhook(record);
-      return { record, duplicate: false };
-    } catch (error) {
-      if (!isUniqueViolation(error)) throw error;
-      const existing = await withTenantTransaction(this.db, ctx, async (trx) =>
-        this.loadWebhookByDedupe(trx, args.provider, args.channelAccountId, args.externalEventId)
-      );
-      if (existing) {
-        this.indexWebhook(existing);
-        return { record: existing, duplicate: true };
-      }
-      // Cross-tenant / RLS-invisible conflict: ack as duplicate without leaking rows.
-      const cached = this.webhookDedupe.get(key);
-      if (cached) return { record: cached, duplicate: true };
-      throw new ChannelError("Webhook duplicate.", "WEBHOOK_DUPLICATE");
-    }
+    return {
+      record: toWebhookFromInsertOut(row),
+      duplicate: Boolean(row.out_duplicate)
+    };
   }
 
   async getWebhookEvent(args: {
     readonly tenantId: string;
     readonly eventId: string;
   }): Promise<WebhookEventRecord | null> {
-    const local = this.localWebhooksById.get(args.eventId);
-    if (local && local.tenantId === args.tenantId) return local;
     const ctx = adapterSecurityContext(args.tenantId);
-    return withTenantTransaction(this.db, ctx, async (trx) => {
-      const row = await this.loadWebhook(trx, args.tenantId, args.eventId);
-      if (row) this.indexWebhook(row);
-      return row;
-    });
+    return withTenantTransaction(this.db, ctx, async (trx) =>
+      this.loadWebhook(trx, args.tenantId, args.eventId)
+    );
   }
 
   async listWebhookEvents(tenantId: string): Promise<readonly WebhookEventRecord[]> {
@@ -743,9 +662,7 @@ export class PostgresChannelRepository implements ChannelRepository {
         where tenant_id = ${tenantId}::uuid
         order by received_at desc, id desc
       `.execute(trx);
-      const rows = result.rows.map(toWebhook);
-      for (const row of rows) this.indexWebhook(row);
-      return rows;
+      return result.rows.map(toWebhook);
     });
   }
 
@@ -791,9 +708,7 @@ export class PostgresChannelRepository implements ChannelRepository {
       if (!updated.rows[0]) {
         throw new ChannelError("Webhook event not found.", "RESOURCE_NOT_FOUND");
       }
-      const record = toWebhook(updated.rows[0]);
-      this.indexWebhook(record);
-      return record;
+      return toWebhook(updated.rows[0]);
     });
   }
 
@@ -802,11 +717,19 @@ export class PostgresChannelRepository implements ChannelRepository {
     readonly channelAccountId: string | null;
     readonly externalEventId: string;
   }): Promise<WebhookEventRecord | null> {
-    return (
-      this.webhookDedupe.get(
-        dedupeKey(args.provider, args.channelAccountId, args.externalEventId)
-      ) ?? null
-    );
+    const result = await sql<WebhookRow>`
+      select
+        id, tenant_id, channel_account_id, provider, external_event_id, event_type,
+        signature_valid, payload_digest, payload_redacted, status, attempt_count,
+        next_retry_at, error, normalized_entity_id, received_at, processed_at
+      from app.channel_find_webhook_by_dedupe(
+        ${args.provider},
+        ${args.channelAccountId}::uuid,
+        ${args.externalEventId}
+      )
+    `.execute(this.db);
+    const row = result.rows[0];
+    return row ? toWebhook(row) : null;
   }
 
   async createOutboundMessage(args: {

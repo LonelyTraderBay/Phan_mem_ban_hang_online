@@ -219,24 +219,18 @@ function toNote(row: NoteRow): NoteRecord {
   };
 }
 
-/** v1 process-local SSE / customer-stub / idempotency — migrate when wired. */
+/**
+ * HTTP idempotency is via PostgresIdempotencyStore at application layer
+ * (get/save below are no-ops kept for ConversationRepository interface / InMemory parity).
+ * SSE + customer stub remain process-local Maps (no tables yet).
+ */
 export class PostgresConversationRepository implements ConversationRepository {
   /** No SSE table yet — process-local fan-out buffer. */
   private readonly sseEvents = new Map<string, SseEventEnvelope[]>();
   /** Optional later: customer_identities table. */
   private readonly customerStub = new Map<string, string>();
-  /** v1 process-local idempotency — migrate to app.idempotency_records when wired. */
-  private readonly idempotentConversations = new Map<string, ConversationResource>();
-  private readonly idempotentJobs = new Map<
-    string,
-    { readonly job_id: string; readonly status: JobResponseStatus; readonly status_url: string | null }
-  >();
 
   constructor(private readonly db: AppDatabase) {}
-
-  private idemKey(tenantId: string, key: string): string {
-    return `${tenantId}:${key}`;
-  }
 
   private async loadConversation(
     trx: Trx,
@@ -675,41 +669,41 @@ export class PostgresConversationRepository implements ConversationRepository {
   }
 
   async getIdempotentConversation(
-    tenantId: string,
-    key: string
+    _tenantId: string,
+    _key: string
   ): Promise<ConversationResource | null> {
-    return this.idempotentConversations.get(this.idemKey(tenantId, key)) ?? null;
+    return null;
   }
 
   async saveIdempotentConversation(
-    tenantId: string,
-    key: string,
-    resource: ConversationResource
+    _tenantId: string,
+    _key: string,
+    _resource: ConversationResource
   ): Promise<void> {
-    this.idempotentConversations.set(this.idemKey(tenantId, key), resource);
+    /* no-op — use IdempotencyStore */
   }
 
   async getIdempotentJobResponse(
-    tenantId: string,
-    key: string
+    _tenantId: string,
+    _key: string
   ): Promise<{
     readonly job_id: string;
     readonly status: JobResponseStatus;
     readonly status_url: string | null;
   } | null> {
-    return this.idempotentJobs.get(this.idemKey(tenantId, key)) ?? null;
+    return null;
   }
 
   async saveIdempotentJobResponse(
-    tenantId: string,
-    key: string,
-    response: {
+    _tenantId: string,
+    _key: string,
+    _response: {
       readonly job_id: string;
       readonly status: JobResponseStatus;
       readonly status_url: string | null;
     }
   ): Promise<void> {
-    this.idempotentJobs.set(this.idemKey(tenantId, key), response);
+    /* no-op — use IdempotencyStore */
   }
 
   async resolveCustomerStub(args: {

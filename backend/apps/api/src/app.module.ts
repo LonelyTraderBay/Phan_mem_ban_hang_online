@@ -23,6 +23,7 @@ import {
 } from "@ai-sales/module-customer";
 import {
   convertInventoryReservation,
+  createInventoryAdjustment,
   createInventoryController,
   createInventoryReservation,
   PostgresInventoryRepository,
@@ -257,15 +258,43 @@ function buildOrderEligibilityPort(repo: OrderRepository): OrderEligibilityPort 
         orderId: args.orderId
       });
       return order?.items.map((i) => i.id) ?? [];
+    },
+    async getOrderItemVariantIds(args) {
+      const order = await repo.getOrder({
+        tenantId: args.tenantId,
+        orderId: args.orderId
+      });
+      const map = new Map<string, string>();
+      for (const item of order?.items ?? []) {
+        map.set(item.id, item.variantId);
+      }
+      return map;
     }
   };
 }
 
-const inventoryRestockPort: InventoryRestockPort = {
-  async restockStub() {
-    /* BE-RET-001 stub — inventory adjustment wiring follows Postgres adapter */
-  }
-};
+function buildInventoryRestockPort(inventoryRepo: InventoryRepository): InventoryRestockPort {
+  return {
+    async restockStub(args) {
+      const warehouses = await inventoryRepo.listWarehouses(args.tenantId);
+      const warehouse = warehouses[0];
+      if (!warehouse) {
+        throw new Error("No warehouse available for return restock.");
+      }
+      await createInventoryAdjustment({
+        repo: inventoryRepo,
+        tenantId: args.tenantId,
+        actorId: args.actorId,
+        actorPermissions: ["inventory.adjust"],
+        idempotencyKey: args.idempotencyKey,
+        warehouseId: warehouse.id,
+        variantId: args.variantId,
+        quantityDelta: args.quantity,
+        reason: "return_restock"
+      });
+    }
+  };
+}
 
 function buildOidcConfig(): OidcClientConfig | null {
   const config = loadConfig(process.env);
@@ -320,6 +349,7 @@ function buildControllers(): Type<unknown>[] {
     const reservationPort = buildReservationPort(inventoryRepo);
     const orderLookupPort = buildOrderLookupPort(orderRepoPg);
     const orderEligibilityPort = buildOrderEligibilityPort(orderRepoPg);
+    const inventoryRestockPort = buildInventoryRestockPort(inventoryRepo);
     const conversationOutboundPort = buildConversationOutboundPort(channelRepoPg);
     const conversationLookupPort = buildConversationLookupPort(conversationRepoPg);
     const aiOutboundPort = buildAiOutboundPort(conversationRepoPg, channelRepoPg);
@@ -353,8 +383,8 @@ function buildControllers(): Type<unknown>[] {
         idempotency
       }),
       createCustomersController({ repo: customerRepo, idempotency }),
-      createInventoryController({ repo: inventoryRepo }),
-      createKnowledgeController({ repo: knowledgeRepoPg }),
+      createInventoryController({ repo: inventoryRepo, idempotency }),
+      createKnowledgeController({ repo: knowledgeRepoPg, idempotency }),
       createChannelController({
         repo: channelRepoPg,
         adapter: stubFacebookAdapter,
@@ -362,7 +392,8 @@ function buildControllers(): Type<unknown>[] {
       }),
       createConversationController({
         repo: conversationRepoPg,
-        outbound: conversationOutboundPort
+        outbound: conversationOutboundPort,
+        idempotency
       }),
       createOrderController({
         repo: orderRepoPg,
@@ -385,7 +416,8 @@ function buildControllers(): Type<unknown>[] {
         repo: aiOrchestrationRepoPg,
         conversations: conversationLookupPort,
         knowledge: aiKnowledgePort,
-        outbound: aiOutboundPort
+        outbound: aiOutboundPort,
+        idempotency
       }),
       createAnalyticsController({ repo: analyticsRepoPg }),
       createBillingController({ repo: billingRepoPg }),
