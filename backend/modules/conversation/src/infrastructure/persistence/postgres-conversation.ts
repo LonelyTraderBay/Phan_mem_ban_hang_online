@@ -108,6 +108,15 @@ const MESSAGE_SELECT = sql`
   sent_at, received_at, created_at
 `;
 
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    String((error as { code: unknown }).code) === "23505"
+  );
+}
+
 function toIso(value: Date | string | null | undefined): string | null {
   if (value == null) return null;
   if (value instanceof Date) return value.toISOString();
@@ -280,32 +289,44 @@ export class PostgresConversationRepository implements ConversationRepository {
     readonly actorId: string;
   }): Promise<ConversationRecord> {
     const ctx = adapterSecurityContext(args.tenantId, args.actorId);
-    return withTenantTransaction(this.db, ctx, async (trx) => {
-      const result = await sql<ConversationRow>`
-        insert into app.conversations (
-          id, tenant_id, channel_account_id, customer_id, external_thread_id,
-          lifecycle_status, waiting_on, sales_stage, escalation_status, ai_mode,
-          lead_score_provenance, version, created_by, updated_by
-        ) values (
-          ${args.conversationId}::uuid,
-          ${args.tenantId}::uuid,
-          ${args.channelAccountId}::uuid,
-          ${args.customerId}::uuid,
-          ${args.externalThreadId},
-          'new',
-          'none',
-          'none',
-          'normal',
-          'copilot',
-          '{}'::jsonb,
-          1,
-          ${args.actorId}::uuid,
-          ${args.actorId}::uuid
-        )
-        returning ${CONVERSATION_SELECT}
-      `.execute(trx);
-      return toConversation(result.rows[0]!);
-    });
+    try {
+      return await withTenantTransaction(this.db, ctx, async (trx) => {
+        const result = await sql<ConversationRow>`
+          insert into app.conversations (
+            id, tenant_id, channel_account_id, customer_id, external_thread_id,
+            lifecycle_status, waiting_on, sales_stage, escalation_status, ai_mode,
+            lead_score_provenance, version, created_by, updated_by
+          ) values (
+            ${args.conversationId}::uuid,
+            ${args.tenantId}::uuid,
+            ${args.channelAccountId}::uuid,
+            ${args.customerId}::uuid,
+            ${args.externalThreadId},
+            'new',
+            'none',
+            'none',
+            'normal',
+            'copilot',
+            '{}'::jsonb,
+            1,
+            ${args.actorId}::uuid,
+            ${args.actorId}::uuid
+          )
+          returning ${CONVERSATION_SELECT}
+        `.execute(trx);
+        return toConversation(result.rows[0]!);
+      });
+    } catch (error) {
+      if (!isUniqueViolation(error)) throw error;
+      // Concurrent inbound upsert for same thread — return the winner.
+      const existing = await this.findConversationByThread({
+        tenantId: args.tenantId,
+        channelAccountId: args.channelAccountId,
+        externalThreadId: args.externalThreadId
+      });
+      if (!existing) throw error;
+      return existing;
+    }
   }
 
   async updateConversation(args: {
@@ -438,7 +459,8 @@ export class PostgresConversationRepository implements ConversationRepository {
       let start = 0;
       if (args.cursor) {
         const idx = all.findIndex((c) => c.id === args.cursor);
-        start = idx >= 0 ? idx + 1 : 0;
+        if (idx < 0) return { items: [], nextCursor: null };
+        start = idx + 1;
       }
       const slice = all.slice(start, start + args.limit);
       const nextCursor =
@@ -492,30 +514,41 @@ export class PostgresConversationRepository implements ConversationRepository {
     readonly sentAt: string | null;
   }): Promise<MessageRecord> {
     const ctx = adapterSecurityContext(args.tenantId);
-    return withTenantTransaction(this.db, ctx, async (trx) => {
-      const result = await sql<MessageRow>`
-        insert into app.messages (
-          id, tenant_id, conversation_id, direction, external_message_id, sender_identity,
-          content_type, body_redacted, reply_to_message_id, ai_generated,
-          received_at, sent_at
-        ) values (
-          ${args.messageId}::uuid,
-          ${args.tenantId}::uuid,
-          ${args.conversationId}::uuid,
-          ${args.direction},
-          ${args.externalMessageId},
-          ${args.senderIdentity},
-          ${args.contentType},
-          ${args.bodyRedacted},
-          ${args.replyToMessageId}::uuid,
-          ${args.aiGenerated},
-          ${args.receivedAt}::timestamptz,
-          ${args.sentAt}::timestamptz
-        )
-        returning ${MESSAGE_SELECT}
-      `.execute(trx);
-      return toMessage(result.rows[0]!);
-    });
+    try {
+      return await withTenantTransaction(this.db, ctx, async (trx) => {
+        const result = await sql<MessageRow>`
+          insert into app.messages (
+            id, tenant_id, conversation_id, direction, external_message_id, sender_identity,
+            content_type, body_redacted, reply_to_message_id, ai_generated,
+            received_at, sent_at
+          ) values (
+            ${args.messageId}::uuid,
+            ${args.tenantId}::uuid,
+            ${args.conversationId}::uuid,
+            ${args.direction},
+            ${args.externalMessageId},
+            ${args.senderIdentity},
+            ${args.contentType},
+            ${args.bodyRedacted},
+            ${args.replyToMessageId}::uuid,
+            ${args.aiGenerated},
+            ${args.receivedAt}::timestamptz,
+            ${args.sentAt}::timestamptz
+          )
+          returning ${MESSAGE_SELECT}
+        `.execute(trx);
+        return toMessage(result.rows[0]!);
+      });
+    } catch (error) {
+      if (!isUniqueViolation(error) || !args.externalMessageId) throw error;
+      const existing = await this.findMessageByExternal({
+        tenantId: args.tenantId,
+        conversationId: args.conversationId,
+        externalMessageId: args.externalMessageId
+      });
+      if (!existing) throw error;
+      return existing;
+    }
   }
 
   async listMessages(args: {
@@ -537,7 +570,8 @@ export class PostgresConversationRepository implements ConversationRepository {
       let start = 0;
       if (args.cursor) {
         const idx = all.findIndex((m) => m.id === args.cursor);
-        start = idx >= 0 ? idx + 1 : 0;
+        if (idx < 0) return { items: [], nextCursor: null };
+        start = idx + 1;
       }
       const slice = all.slice(start, start + args.limit);
       const nextCursor =

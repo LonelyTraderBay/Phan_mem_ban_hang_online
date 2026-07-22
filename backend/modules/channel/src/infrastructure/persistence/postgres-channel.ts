@@ -17,6 +17,7 @@ import {
   type WebhookEventRecord
 } from "../../application/channel.js";
 import type { AccountHealth, AccountStatus } from "../../domain/health.js";
+import { tenantIdFromOAuthStateToken } from "../../domain/oauth.js";
 
 type Trx = Parameters<Parameters<typeof withTenantTransaction>[2]>[0];
 
@@ -611,7 +612,9 @@ export class PostgresChannelRepository implements ChannelRepository {
     readonly stateToken: string;
     readonly codeVerifier: string;
   }): Promise<OAuthStateRow | null> {
-    const tenantId = this.oauthTenantByStateToken.get(args.stateToken);
+    const tenantId =
+      this.oauthTenantByStateToken.get(args.stateToken) ??
+      tenantIdFromOAuthStateToken(args.stateToken);
     if (!tenantId) return null;
     const hash = createHash("sha256").update(args.codeVerifier).digest("hex");
     const ctx = adapterSecurityContext(tenantId);
@@ -715,9 +718,14 @@ export class PostgresChannelRepository implements ChannelRepository {
       const existing = await withTenantTransaction(this.db, ctx, async (trx) =>
         this.loadWebhookByDedupe(trx, args.provider, args.channelAccountId, args.externalEventId)
       );
-      if (!existing) throw error;
-      this.indexWebhook(existing);
-      return { record: existing, duplicate: true };
+      if (existing) {
+        this.indexWebhook(existing);
+        return { record: existing, duplicate: true };
+      }
+      // Cross-tenant / RLS-invisible conflict: ack as duplicate without leaking rows.
+      const cached = this.webhookDedupe.get(key);
+      if (cached) return { record: cached, duplicate: true };
+      throw new ChannelError("Webhook duplicate.", "WEBHOOK_DUPLICATE");
     }
   }
 

@@ -17,8 +17,29 @@ export function generatePkcePair(): { readonly codeVerifier: string; readonly co
   return { codeVerifier, codeChallenge };
 }
 
-export function generateOAuthStateToken(): string {
-  return randomBytes(24).toString("base64url");
+/**
+ * Embed tenantId so consumeOAuthState can resolve RLS tenant after restart /
+ * cross-instance callback (state_token alone is not enough under FORCE RLS).
+ * Format: `{tenantUuid}.{random}`
+ */
+export function generateOAuthStateToken(tenantId?: string): string {
+  const nonce = randomBytes(24).toString("base64url");
+  if (!tenantId?.trim()) return nonce;
+  return `${tenantId.trim()}.${nonce}`;
+}
+
+/** Parse tenant UUID prefix from state tokens produced by generateOAuthStateToken. */
+export function tenantIdFromOAuthStateToken(stateToken: string): string | null {
+  const dot = stateToken.indexOf(".");
+  if (dot <= 0) return null;
+  const maybeTenant = stateToken.slice(0, dot);
+  // UUID v4/v7 shape (8-4-4-4-12)
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(maybeTenant)
+  ) {
+    return null;
+  }
+  return maybeTenant;
 }
 
 export function hashCodeVerifier(codeVerifier: string): string {
