@@ -133,6 +133,14 @@ async function ensureAiOperational(repo: AiOrchestrationRepository, tenantId: st
 }
 
 async function incrementBudget(repo: AiOrchestrationRepository, tenantId: string, tokens: number): Promise<void> {
+  const atomic = repo as AiOrchestrationRepository & {
+    incrementTenantBudget?: (tenantId: string, tokens: number) => Promise<void>;
+  };
+  // Postgres adapter exposes atomic FOR UPDATE increment to avoid lost updates.
+  if (typeof atomic.incrementTenantBudget === "function") {
+    await atomic.incrementTenantBudget(tenantId, tokens);
+    return;
+  }
   const budget = await repo.getTenantBudget(tenantId);
   await repo.updateTenantBudget(tenantId, {
     ...budget,

@@ -40,6 +40,15 @@ type MetricsRow = {
   currency: string;
 };
 
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    String((error as { code: unknown }).code) === "23505"
+  );
+}
+
 type ExportRow = {
   id: string;
   tenant_id: string;
@@ -263,28 +272,38 @@ export class PostgresAnalyticsRepository implements AnalyticsRepository {
 
   async createReportExport(exportRow: ReportExportRecord): Promise<ReportExportRecord> {
     const ctx = adapterSecurityContext(exportRow.tenantId);
-    return withTenantTransaction(this.db, ctx, async (trx) => {
-      const result = await sql<ExportRow>`
-        insert into app.report_exports (
-          id, tenant_id, report_type, status, from_at, to_at, download_url,
-          idempotency_key, created_at, completed_at
-        ) values (
-          ${exportRow.id}::uuid,
-          ${exportRow.tenantId}::uuid,
-          ${exportRow.reportType},
-          ${exportRow.status},
-          ${exportRow.fromAt}::timestamptz,
-          ${exportRow.toAt}::timestamptz,
-          ${exportRow.downloadUrl},
-          ${exportRow.idempotencyKey ?? null},
-          ${exportRow.createdAt}::timestamptz,
-          ${exportRow.completedAt}::timestamptz
-        )
-        returning id, tenant_id, report_type, status, from_at, to_at, download_url,
-                  created_at, completed_at
-      `.execute(trx);
-      return toExport(result.rows[0]!);
-    });
+    try {
+      return await withTenantTransaction(this.db, ctx, async (trx) => {
+        const result = await sql<ExportRow>`
+          insert into app.report_exports (
+            id, tenant_id, report_type, status, from_at, to_at, download_url,
+            idempotency_key, created_at, completed_at
+          ) values (
+            ${exportRow.id}::uuid,
+            ${exportRow.tenantId}::uuid,
+            ${exportRow.reportType},
+            ${exportRow.status},
+            ${exportRow.fromAt}::timestamptz,
+            ${exportRow.toAt}::timestamptz,
+            ${exportRow.downloadUrl},
+            ${exportRow.idempotencyKey ?? null},
+            ${exportRow.createdAt}::timestamptz,
+            ${exportRow.completedAt}::timestamptz
+          )
+          returning id, tenant_id, report_type, status, from_at, to_at, download_url,
+                    created_at, completed_at
+        `.execute(trx);
+        return toExport(result.rows[0]!);
+      });
+    } catch (error) {
+      if (!isUniqueViolation(error) || !exportRow.idempotencyKey) throw error;
+      const existing = await this.findExportByIdempotency(
+        exportRow.tenantId,
+        exportRow.idempotencyKey
+      );
+      if (!existing) throw error;
+      return existing;
+    }
   }
 
   async findExportByIdempotency(

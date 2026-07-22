@@ -139,6 +139,15 @@ const EVAL_SELECT = sql`
   created_at, updated_at
 `;
 
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    String((error as { code: unknown }).code) === "23505"
+  );
+}
+
 function toIso(value: Date | string | null | undefined): string | null {
   if (value == null) return null;
   if (value instanceof Date) return value.toISOString();
@@ -363,10 +372,11 @@ export class PostgresAiOrchestrationRepository implements AiOrchestrationReposit
       if (!row) return DEFAULT_BUDGET;
       const meta = parseControls(row.metadata);
       if (meta.budget) return meta.budget;
+      // Column-only fallback: never invent tokensUsed from DEFAULT - remaining.
       const remaining = Number(row.budget_tokens_remaining);
       return {
         ...DEFAULT_BUDGET,
-        tokenBudget: Math.max(remaining, DEFAULT_BUDGET.tokenBudget),
+        tokenBudget: DEFAULT_BUDGET.tokenBudget,
         tokensUsed: Math.max(0, DEFAULT_BUDGET.tokenBudget - remaining)
       };
     });
@@ -375,6 +385,38 @@ export class PostgresAiOrchestrationRepository implements AiOrchestrationReposit
   async updateTenantBudget(tenantId: string, budget: TenantAiBudget): Promise<void> {
     const ctx = adapterSecurityContext(tenantId);
     await withTenantTransaction(this.db, ctx, async (trx) => {
+      const remaining = Math.max(0, budget.tokenBudget - budget.tokensUsed);
+      await this.upsertControls(trx, tenantId, {
+        budgetTokensRemaining: remaining,
+        budgetPeriod: "daily",
+        metadata: { budget }
+      });
+    });
+  }
+
+  /** Atomic budget increment (FOR UPDATE) — used by application duck-typed path. */
+  async incrementTenantBudget(tenantId: string, tokens: number): Promise<void> {
+    const ctx = adapterSecurityContext(tenantId);
+    await withTenantTransaction(this.db, ctx, async (trx) => {
+      await sql`
+        select tenant_id from app.tenant_ai_controls
+        where tenant_id = ${tenantId}::uuid
+        for update
+      `.execute(trx);
+      const current = (await this.loadControls(trx, tenantId)) ?? null;
+      const meta = current ? parseControls(current.metadata) : {};
+      const budget: TenantAiBudget = meta.budget
+        ? {
+            ...meta.budget,
+            usedToday: meta.budget.usedToday + 1,
+            tokensUsed: meta.budget.tokensUsed + tokens,
+            activeJobs: Math.max(0, meta.budget.activeJobs)
+          }
+        : {
+            ...DEFAULT_BUDGET,
+            usedToday: 1,
+            tokensUsed: tokens
+          };
       const remaining = Math.max(0, budget.tokenBudget - budget.tokensUsed);
       await this.upsertControls(trx, tenantId, {
         budgetTokensRemaining: remaining,
@@ -586,38 +628,46 @@ export class PostgresAiOrchestrationRepository implements AiOrchestrationReposit
 
   async createPromptVersion(record: PromptVersionRecord): Promise<PromptVersionRecord> {
     const ctx = adapterSecurityContext(record.tenantId);
-    return withTenantTransaction(this.db, ctx, async (trx) => {
-      if (record.status === "active") {
-        await sql`
-          update app.prompt_versions
-          set status = 'retired',
-              version = version + 1,
-              updated_at = now()
-          where tenant_id = ${record.tenantId}::uuid
-            and status = 'active'
-            and id <> ${record.id}::uuid
+    const attempt = async (): Promise<PromptVersionRecord> =>
+      withTenantTransaction(this.db, ctx, async (trx) => {
+        if (record.status === "active") {
+          await sql`
+            update app.prompt_versions
+            set status = 'retired',
+                version = version + 1,
+                updated_at = now()
+            where tenant_id = ${record.tenantId}::uuid
+              and status = 'active'
+              and id <> ${record.id}::uuid
+          `.execute(trx);
+        }
+        const result = await sql<PromptRow>`
+          insert into app.prompt_versions (
+            id, tenant_id, name, content, risk_level, status, version,
+            created_at, updated_at, metadata
+          ) values (
+            ${record.id}::uuid,
+            ${record.tenantId}::uuid,
+            ${record.name},
+            ${record.content},
+            ${record.riskLevel},
+            ${record.status},
+            ${record.version},
+            ${record.createdAt}::timestamptz,
+            ${record.updatedAt}::timestamptz,
+            '{}'::jsonb
+          )
+          returning ${PROMPT_SELECT}
         `.execute(trx);
-      }
-      const result = await sql<PromptRow>`
-        insert into app.prompt_versions (
-          id, tenant_id, name, content, risk_level, status, version,
-          created_at, updated_at, metadata
-        ) values (
-          ${record.id}::uuid,
-          ${record.tenantId}::uuid,
-          ${record.name},
-          ${record.content},
-          ${record.riskLevel},
-          ${record.status},
-          ${record.version},
-          ${record.createdAt}::timestamptz,
-          ${record.updatedAt}::timestamptz,
-          '{}'::jsonb
-        )
-        returning ${PROMPT_SELECT}
-      `.execute(trx);
-      return toPrompt(result.rows[0]!);
-    });
+        return toPrompt(result.rows[0]!);
+      });
+    try {
+      return await attempt();
+    } catch (error) {
+      if (!isUniqueViolation(error) || record.status !== "active") throw error;
+      // Concurrent activate race on uq_prompt_versions_tenant_active — retry once.
+      return attempt();
+    }
   }
 
   async getPromptVersion(args: {
@@ -651,34 +701,41 @@ export class PostgresAiOrchestrationRepository implements AiOrchestrationReposit
 
   async updatePromptVersion(record: PromptVersionRecord): Promise<PromptVersionRecord> {
     const ctx = adapterSecurityContext(record.tenantId);
-    return withTenantTransaction(this.db, ctx, async (trx) => {
-      if (record.status === "active") {
-        await sql`
+    const attempt = async (): Promise<PromptVersionRecord> =>
+      withTenantTransaction(this.db, ctx, async (trx) => {
+        if (record.status === "active") {
+          await sql`
+            update app.prompt_versions
+            set status = 'retired',
+                version = version + 1,
+                updated_at = now()
+            where tenant_id = ${record.tenantId}::uuid
+              and status = 'active'
+              and id <> ${record.id}::uuid
+          `.execute(trx);
+        }
+        const result = await sql<PromptRow>`
           update app.prompt_versions
-          set status = 'retired',
-              version = version + 1,
-              updated_at = now()
-          where tenant_id = ${record.tenantId}::uuid
-            and status = 'active'
-            and id <> ${record.id}::uuid
+          set name = ${record.name},
+              content = ${record.content},
+              risk_level = ${record.riskLevel},
+              status = ${record.status},
+              version = ${record.version},
+              updated_at = ${record.updatedAt}::timestamptz
+          where id = ${record.id}::uuid and tenant_id = ${record.tenantId}::uuid
+          returning ${PROMPT_SELECT}
         `.execute(trx);
-      }
-      const result = await sql<PromptRow>`
-        update app.prompt_versions
-        set name = ${record.name},
-            content = ${record.content},
-            risk_level = ${record.riskLevel},
-            status = ${record.status},
-            version = ${record.version},
-            updated_at = ${record.updatedAt}::timestamptz
-        where id = ${record.id}::uuid and tenant_id = ${record.tenantId}::uuid
-        returning ${PROMPT_SELECT}
-      `.execute(trx);
-      if (!result.rows[0]) {
-        throw new Error("Prompt version not found.");
-      }
-      return toPrompt(result.rows[0]);
-    });
+        if (!result.rows[0]) {
+          throw new Error("Prompt version not found.");
+        }
+        return toPrompt(result.rows[0]);
+      });
+    try {
+      return await attempt();
+    } catch (error) {
+      if (!isUniqueViolation(error) || record.status !== "active") throw error;
+      return attempt();
+    }
   }
 
   async getActivePromptVersion(tenantId: string): Promise<PromptVersionRecord | null> {

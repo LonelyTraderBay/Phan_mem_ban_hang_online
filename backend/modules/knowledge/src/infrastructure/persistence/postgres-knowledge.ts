@@ -391,6 +391,23 @@ export class PostgresKnowledgeRepository implements KnowledgeRepository {
           ? sql`and version = ${args.expectedVersion}`
           : sql``;
 
+      // Archive prior published versions in the SAME transaction before publishing
+      // so a failed publish does not leave the source without a published version.
+      if (args.toStatus === "published") {
+        await sql`
+          update app.knowledge_source_versions
+          set status = 'archived',
+              effective_to = coalesce(effective_to, now()),
+              version = version + 1,
+              updated_at = now(),
+              updated_by = ${args.actorId}::uuid
+          where tenant_id = ${args.tenantId}::uuid
+            and source_id = ${current.sourceId}::uuid
+            and status = 'published'
+            and id <> ${args.versionId}::uuid
+        `.execute(trx);
+      }
+
       const updated = await sql<VersionRow>`
         update app.knowledge_source_versions
         set status = ${args.toStatus},
@@ -420,21 +437,9 @@ export class PostgresKnowledgeRepository implements KnowledgeRepository {
     readonly exceptVersionId: string;
     readonly actorId: string;
   }): Promise<void> {
-    const ctx = adapterSecurityContext(args.tenantId, args.actorId);
-    await withTenantTransaction(this.db, ctx, async (trx) => {
-      await sql`
-        update app.knowledge_source_versions
-        set status = 'archived',
-            effective_to = coalesce(effective_to, now()),
-            version = version + 1,
-            updated_at = now(),
-            updated_by = ${args.actorId}::uuid
-        where tenant_id = ${args.tenantId}::uuid
-          and source_id = ${args.sourceId}::uuid
-          and status = 'published'
-          and id <> ${args.exceptVersionId}::uuid
-      `.execute(trx);
-    });
+    // No-op for Postgres: transitionVersion(to published) archives peers atomically.
+    // Kept for interface parity with InMemory / application call order.
+    void args;
   }
 
   async setIngestionState(args: {
