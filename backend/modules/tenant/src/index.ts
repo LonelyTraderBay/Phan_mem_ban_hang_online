@@ -40,6 +40,7 @@ export {
 } from "./application/roles.js";
 
 export { InMemoryMembersRolesRepository } from "./infrastructure/persistence/in-memory-members-roles.js";
+export { PostgresMembersRolesRepository } from "./infrastructure/persistence/postgres-members-roles.js";
 export {
   createMembersController,
   createRolesController
@@ -51,4 +52,5 @@ export {
   SupportGrantError,
   type SupportGrantStore
 } from "./application/support-grant.js";
+export { PostgresSupportGrantStore } from "./infrastructure/persistence/postgres-support-grants.js";
 export { createSupportAccessController } from "./presentation/http/support-access.controller.js";

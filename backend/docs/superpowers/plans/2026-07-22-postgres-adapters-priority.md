@@ -1,8 +1,8 @@
 # Postgres adapters — thứ tự ưu tiên
 
 **Date:** 2026-07-22  
-**Branch:** `cursor/postgres-adapters-billing-ops` (wave 5 — Billing / Ops)  
-**Pattern:** RLS + `withTenantTransaction` (không SECURITY DEFINER)
+**Branch:** `cursor/postgres-adapters-identity-platform` (wave 6 — Identity platform)  
+**Pattern:** RLS + `withTenantTransaction`; identity invite/accept/ops list dùng SECURITY DEFINER (000026)
 
 ## Ưu tiên
 
@@ -44,12 +44,16 @@
 - [x] **Analytics (DAT)** — `PostgresAnalyticsRepository` (events/watermarks/metrics/exports + idempotency index)
 - [x] **Billing (BIL)** — `PostgresBillingRepository` + migration `000025` (meter/reprocess idempotency indexes + feature_flags seed)
 - [x] **Operations (OPS)** — `PostgresOperationsRepository` HYBRID (flags/alerts/reprocess/disableAi persisted)
+- [x] **Members / Roles** — `PostgresMembersRolesRepository` + `000026` invite/accept DEFINER
+- [x] **Support grants** — `PostgresSupportGrantStore` (+ `support_grant_get` DEFINER)
+- [x] **Audit list/export** — `PostgresAuditLogStore` (sync export from `audit_events`)
+- [x] **Ops listTenants** — `app.ops_list_tenants()` DEFINER (permission enforced in app)
 - [x] Wire `app.module.ts` when `DATABASE_URL`
 - [x] Typecheck + focused smoke tests (`describe.skip` integration without DB)
 
 ## Gaps (v1)
 
-- **Ops HYBRID:** `listTenants` returns `[]` (TENANT_ROOT RLS blocks platform enumeration); `getTenantHealth` / `getAiHealth` synthetic stubs; desktop / hardening stay stub (application layer)
+- **Ops HYBRID:** `getTenantHealth` / `getAiHealth` synthetic stubs; desktop / hardening stay stub (application layer)
 - Knowledge / AI: process-local idempotency Maps (migrate `app.idempotency_records`)
 - Ops reprocess: process-local Map + DB `idempotency_key` via `trackReprocessIdempotency`
 - AI: `tenant_ai_controls` stores full switch/budget JSON in `metadata`; column fields are denormalized

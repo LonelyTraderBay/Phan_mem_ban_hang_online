@@ -39,6 +39,8 @@ export interface AuditLogStore {
     readonly actorUserId: string | null;
   }): Promise<AuditExportJob>;
   getExport(jobId: string): Promise<AuditExportJob | null>;
+  /** Optional process-local export idempotency (InMemory + Postgres). */
+  readonly idempotency?: Map<string, AuditExportJob>;
 }
 
 export class InMemoryAuditLogStore implements AuditLogStore {
@@ -159,8 +161,9 @@ export async function createAuditExport(options: {
     throw new AuditQueryError("Invalid from/to range.", "VALIDATION_FAILED");
   }
 
-  if (options.idempotencyKey && options.store instanceof InMemoryAuditLogStore) {
-    const hit = options.store.idempotency.get(`${options.tenantId}:${options.idempotencyKey}`);
+  const idemMap = options.store.idempotency;
+  if (options.idempotencyKey && idemMap) {
+    const hit = idemMap.get(`${options.tenantId}:${options.idempotencyKey}`);
     if (hit) {
       return {
         data: { job_id: hit.job_id, status: hit.status, status_url: hit.status_url },
@@ -178,8 +181,8 @@ export async function createAuditExport(options: {
     actorUserId: options.actorUserId ?? null
   });
 
-  if (options.idempotencyKey && options.store instanceof InMemoryAuditLogStore) {
-    options.store.idempotency.set(`${options.tenantId}:${options.idempotencyKey}`, job);
+  if (options.idempotencyKey && idemMap) {
+    idemMap.set(`${options.tenantId}:${options.idempotencyKey}`, job);
   }
 
   // Ensure no raw secrets in export rows

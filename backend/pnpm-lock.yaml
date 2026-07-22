@@ -255,13 +255,12 @@ importers:
       '@nestjs/common':
         specifier: 11.1.28
         version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      reflect-metadata:
-        specifier: 0.2.2
-        version: 0.2.2
-    devDependencies:
       kysely:
         specifier: 0.29.4
         version: 0.29.4
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/billing:
     dependencies:

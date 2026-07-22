@@ -6,7 +6,7 @@ import {
   createAuditExportsController,
   createAuditLogsController,
   createWalkingSkeletonController,
-  InMemoryAuditLogStore,
+  PostgresAuditLogStore,
   PostgresAuditWriter,
   PostgresOutboxWriter,
   PostgresWalkingSkeletonTracer
@@ -106,16 +106,11 @@ import {
   createProvisionTenantController,
   createRolesController,
   createSupportAccessController,
-  InMemoryMembersRolesRepository,
-  InMemorySupportGrantStore,
+  PostgresMembersRolesRepository,
+  PostgresSupportGrantStore,
   PostgresTenantProvisionRepository
 } from "@ai-sales/module-tenant";
 import { HealthController } from "./health.controller";
-
-/** Process-local stores until Postgres adapters land for remaining domains. */
-const membersRolesRepo = new InMemoryMembersRolesRepository();
-const auditLogStore = new InMemoryAuditLogStore();
-const supportGrantStore = new InMemorySupportGrantStore();
 
 function buildConversationOutboundPort(channelRepo: ChannelRepository): OutboundQueuePort {
   return {
@@ -317,6 +312,9 @@ function buildControllers(): Type<unknown>[] {
     const analyticsRepoPg = new PostgresAnalyticsRepository(db);
     const billingRepoPg = new PostgresBillingRepository(db);
     const operationsRepoPg = new PostgresOperationsRepository(db);
+    const membersRolesRepo = new PostgresMembersRolesRepository(db);
+    const auditLogStore = new PostgresAuditLogStore(db);
+    const supportGrantStore = new PostgresSupportGrantStore(db);
     const importApplyPort = createInMemoryImportApplyPort(catalogRepo);
     const catalogPricingPort = buildCatalogPricingPort(catalogRepo);
     const reservationPort = buildReservationPort(inventoryRepo);

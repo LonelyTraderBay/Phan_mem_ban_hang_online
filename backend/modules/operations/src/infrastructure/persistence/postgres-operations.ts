@@ -134,13 +134,16 @@ export class PostgresOperationsRepository implements OperationsRepository {
   constructor(private readonly db: AppDatabase) {}
 
   /**
-   * Platform list blocked by TENANT_ROOT RLS on app.tenants —
-   * cannot enumerate all tenants from app_runtime without a platform policy.
+   * Platform enumeration via SECURITY DEFINER `app.ops_list_tenants`
+   * (migration 000026). Caller must enforce `ops.tenant.read`.
    */
   async listTenants(): Promise<
     readonly { readonly id: string; readonly name: string; readonly status: string }[]
   > {
-    return [];
+    const result = await sql<{ id: string; name: string; status: string }>`
+      select id::text, name, status from app.ops_list_tenants()
+    `.execute(this.db);
+    return result.rows;
   }
 
   async getTenantHealth(tenantId: string): Promise<TenantHealthRecord | null> {

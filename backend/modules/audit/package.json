@@ -12,9 +12,7 @@
     "@ai-sales/outbox": "workspace:*",
     "@ai-sales/security": "workspace:*",
     "@nestjs/common": "11.1.28",
+    "kysely": "0.29.4",
     "reflect-metadata": "0.2.2"
-  },
-  "devDependencies": {
-    "kysely": "0.29.4"
   }
 }
