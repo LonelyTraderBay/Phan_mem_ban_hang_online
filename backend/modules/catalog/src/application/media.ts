@@ -1,3 +1,4 @@
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { generateUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
 import {
   CatalogError,
@@ -5,6 +6,7 @@ import {
   type CatalogRepository,
   type CatalogResource
 } from "./catalog.js";
+import { runCatalogIdempotent } from "./catalog-idempotency.js";
 
 /**
  * BE-CAT-004 — Private media upload intent / attach / scan / signed URL (in-memory).
@@ -171,8 +173,10 @@ function validateUploadRequest(options: {
 export async function createMediaUploadIntent(options: {
   readonly mediaRepo: MediaRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly filename: string;
   readonly contentType: string;
   readonly byteSize: number;
@@ -189,42 +193,68 @@ export async function createMediaUploadIntent(options: {
   if (!key) {
     throw new CatalogError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const cached = await options.mediaRepo.getIdempotentMediaJob(options.tenantId, key);
-  if (cached) {
-    return {
-      data: {
-        job_id: cached.job_id,
-        status: "completed",
-        status_url: cached.status_url ?? ""
-      },
-      meta: {}
+  type UploadResult = {
+    readonly data: {
+      readonly job_id: string;
+      readonly status: "completed";
+      readonly status_url: string;
     };
-  }
-
-  const validated = validateUploadRequest(options);
-  const uploadId = generateUuidV7();
-  const objectKey = `tenants/${options.tenantId}/media/${uploadId}`;
-  const expiresAt = new Date(Date.now() + UPLOAD_TTL_MS).toISOString();
-  const uploadUrl = `memory://upload/${options.tenantId}/${uploadId}?expires=${encodeURIComponent(expiresAt)}`;
-
-  await options.mediaRepo.createUploadIntent({
-    tenantId: options.tenantId,
-    uploadId,
-    filename: validated.filename,
-    contentType: validated.contentType,
-    byteSize: validated.byteSize,
-    objectKey,
-    uploadUrl,
-    expiresAt
-  });
-
-  const job = {
-    job_id: uploadId,
-    status: "completed" as const,
-    status_url: uploadUrl
+    readonly meta: Record<string, never>;
   };
-  await options.mediaRepo.saveIdempotentMediaJob(options.tenantId, key, job);
-  return { data: job, meta: {} };
+  return runCatalogIdempotent<UploadResult>({
+    idempotency: options.idempotency,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "catalog.media.upload",
+    key,
+    loadCached: async () => {
+      const cached = await options.mediaRepo.getIdempotentMediaJob(options.tenantId, key);
+      if (!cached) return null;
+      return {
+        data: {
+          job_id: cached.job_id,
+          status: "completed" as const,
+          status_url: cached.status_url ?? ""
+        },
+        meta: {}
+      };
+    },
+    rememberCached: async (result) => {
+      await options.mediaRepo.saveIdempotentMediaJob(options.tenantId, key, {
+        job_id: result.data.job_id,
+        status: result.data.status,
+        status_url: result.data.status_url
+      });
+    },
+    resourceId: (result) => result.data.job_id,
+    execute: async () => {
+      const validated = validateUploadRequest(options);
+      const uploadId = generateUuidV7();
+      const objectKey = `tenants/${options.tenantId}/media/${uploadId}`;
+      const expiresAt = new Date(Date.now() + UPLOAD_TTL_MS).toISOString();
+      const uploadUrl = `memory://upload/${options.tenantId}/${uploadId}?expires=${encodeURIComponent(expiresAt)}`;
+
+      await options.mediaRepo.createUploadIntent({
+        tenantId: options.tenantId,
+        uploadId,
+        filename: validated.filename,
+        contentType: validated.contentType,
+        byteSize: validated.byteSize,
+        objectKey,
+        uploadUrl,
+        expiresAt
+      });
+
+      return {
+        data: {
+          job_id: uploadId,
+          status: "completed" as const,
+          status_url: uploadUrl
+        },
+        meta: {}
+      };
+    }
+  });
 }
 
 /**
@@ -246,8 +276,10 @@ export async function markMediaUploadComplete(options: {
 export async function attachProductMedia(options: {
   readonly mediaRepo: MediaRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly productId: string;
   readonly uploadId: string;
   readonly altText?: string | null;
@@ -258,71 +290,82 @@ export async function attachProductMedia(options: {
   if (!key) {
     throw new CatalogError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const cached = await options.mediaRepo.getIdempotentMediaAttach(options.tenantId, key);
-  if (cached) {
-    return { data: cached, meta: {} };
-  }
-
-  await options.mediaRepo.assertProductAttachable({
+  type AttachResult = { readonly data: CatalogResource; readonly meta: Record<string, never> };
+  return runCatalogIdempotent<AttachResult>({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    productId: options.productId
+    actorId: options.actorId,
+    scope: "catalog.media.attach",
+    key,
+    loadCached: async () => {
+      const cached = await options.mediaRepo.getIdempotentMediaAttach(options.tenantId, key);
+      return cached ? { data: cached, meta: {} } : null;
+    },
+    rememberCached: async (result) => {
+      await options.mediaRepo.saveIdempotentMediaAttach(options.tenantId, key, result.data);
+    },
+    resourceId: (result) => result.data.id,
+    execute: async () => {
+      await options.mediaRepo.assertProductAttachable({
+        tenantId: options.tenantId,
+        productId: options.productId
+      });
+
+      let upload = await options.mediaRepo.getUploadIntent({
+        tenantId: options.tenantId,
+        uploadId: options.uploadId
+      });
+      if (!upload) {
+        throw new CatalogError("Upload intent not found.", "RESOURCE_NOT_FOUND");
+      }
+      if (new Date(upload.expiresAt).getTime() < Date.now()) {
+        throw new CatalogError("Upload intent expired.", "VALIDATION_FAILED");
+      }
+      if (!upload.bytesReceived) {
+        // In-memory: accept attach as implicit completion of the signed PUT.
+        upload = await options.mediaRepo.markUploadBytesReceived({
+          tenantId: options.tenantId,
+          uploadId: options.uploadId
+        });
+      }
+
+      const variantId = await options.mediaRepo.findFirstActiveVariantId({
+        tenantId: options.tenantId,
+        productId: options.productId
+      });
+      if (!variantId) {
+        throw new CatalogError("Product has no active variant for media attach.", "VALIDATION_FAILED");
+      }
+
+      if (options.altText != null && options.altText.length > 500) {
+        throw new CatalogError("alt_text too long.", "VALIDATION_FAILED");
+      }
+      if (options.sortOrder != null && (!Number.isInteger(options.sortOrder) || options.sortOrder < 0)) {
+        throw new CatalogError("sort_order must be >= 0.", "VALIDATION_FAILED");
+      }
+
+      // Sync malware scan stub — production queues async scanner; fail-closed quarantine on reject.
+      const scanStatus: MediaScanStatus = "clean";
+
+      const media = await options.mediaRepo.attachMedia({
+        tenantId: options.tenantId,
+        mediaId: generateUuidV7(),
+        productId: options.productId,
+        variantId,
+        uploadId: options.uploadId,
+        objectKey: upload.objectKey,
+        mediaType: upload.contentType,
+        sizeBytes: upload.byteSize,
+        sortOrder: options.sortOrder ?? 0,
+        altText: options.altText ?? null,
+        filename: upload.filename,
+        scanStatus,
+        checksum: null
+      });
+
+      return { data: toMediaCatalogResource(media), meta: {} };
+    }
   });
-
-  let upload = await options.mediaRepo.getUploadIntent({
-    tenantId: options.tenantId,
-    uploadId: options.uploadId
-  });
-  if (!upload) {
-    throw new CatalogError("Upload intent not found.", "RESOURCE_NOT_FOUND");
-  }
-  if (new Date(upload.expiresAt).getTime() < Date.now()) {
-    throw new CatalogError("Upload intent expired.", "VALIDATION_FAILED");
-  }
-  if (!upload.bytesReceived) {
-    // In-memory: accept attach as implicit completion of the signed PUT.
-    upload = await options.mediaRepo.markUploadBytesReceived({
-      tenantId: options.tenantId,
-      uploadId: options.uploadId
-    });
-  }
-
-  const variantId = await options.mediaRepo.findFirstActiveVariantId({
-    tenantId: options.tenantId,
-    productId: options.productId
-  });
-  if (!variantId) {
-    throw new CatalogError("Product has no active variant for media attach.", "VALIDATION_FAILED");
-  }
-
-  if (options.altText != null && options.altText.length > 500) {
-    throw new CatalogError("alt_text too long.", "VALIDATION_FAILED");
-  }
-  if (options.sortOrder != null && (!Number.isInteger(options.sortOrder) || options.sortOrder < 0)) {
-    throw new CatalogError("sort_order must be >= 0.", "VALIDATION_FAILED");
-  }
-
-  // Sync malware scan stub — production queues async scanner; fail-closed quarantine on reject.
-  const scanStatus: MediaScanStatus = "clean";
-
-  const media = await options.mediaRepo.attachMedia({
-    tenantId: options.tenantId,
-    mediaId: generateUuidV7(),
-    productId: options.productId,
-    variantId,
-    uploadId: options.uploadId,
-    objectKey: upload.objectKey,
-    mediaType: upload.contentType,
-    sizeBytes: upload.byteSize,
-    sortOrder: options.sortOrder ?? 0,
-    altText: options.altText ?? null,
-    filename: upload.filename,
-    scanStatus,
-    checksum: null
-  });
-
-  const resource = toMediaCatalogResource(media);
-  await options.mediaRepo.saveIdempotentMediaAttach(options.tenantId, key, resource);
-  return { data: resource, meta: {} };
 }
 
 /** Download signing — only clean media (blueprint private bucket). */

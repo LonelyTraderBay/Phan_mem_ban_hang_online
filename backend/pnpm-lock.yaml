@@ -300,6 +300,9 @@ importers:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/idempotency':
+        specifier: workspace:*
+        version: link:../../packages/idempotency
       '@ai-sales/security':
         specifier: workspace:*
         version: link:../../packages/security
@@ -327,6 +330,9 @@ importers:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/idempotency':
+        specifier: workspace:*
+        version: link:../../packages/idempotency
       '@ai-sales/security':
         specifier: workspace:*
         version: link:../../packages/security
@@ -384,6 +390,9 @@ importers:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/idempotency':
+        specifier: workspace:*
+        version: link:../../packages/idempotency
       '@ai-sales/security':
         specifier: workspace:*
         version: link:../../packages/security
@@ -411,6 +420,9 @@ importers:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/idempotency':
+        specifier: workspace:*
+        version: link:../../packages/idempotency
       '@ai-sales/security':
         specifier: workspace:*
         version: link:../../packages/security

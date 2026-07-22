@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { generateUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
 import { CatalogError, requireCatalogPermission } from "./catalog.js";
+import { runCatalogIdempotent } from "./catalog-idempotency.js";
 
 /**
  * BE-IMP-001…005 — Catalog import job pipeline (in-memory until Postgres adapter).
@@ -177,8 +179,10 @@ export function computePreviewChecksum(job: ImportJobRecord, rows: readonly Impo
 export async function createImportJob(options: {
   readonly repo: ImportRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly sourceType: string;
   readonly uploadId?: string | null;
 }): Promise<{
@@ -194,32 +198,54 @@ export async function createImportJob(options: {
   if (!key) {
     throw new CatalogError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const cached = await options.repo.getIdempotentJobResponse(options.tenantId, key);
-  if (cached) {
-    return {
-      data: {
-        job_id: cached.job_id,
-        status: "queued",
-        status_url: cached.status_url ?? `/api/v1/imports/${cached.job_id}`
-      },
-      meta: {}
+  type CreateResult = {
+    readonly data: {
+      readonly job_id: string;
+      readonly status: "queued";
+      readonly status_url: string;
     };
-  }
-
-  const sourceType = parseSourceType(options.sourceType);
-  const job = await options.repo.createJob({
-    tenantId: options.tenantId,
-    jobId: generateUuidV7(),
-    sourceType,
-    uploadId: options.uploadId ?? null
-  });
-  const response = {
-    job_id: job.id,
-    status: "queued" as const,
-    status_url: `/api/v1/imports/${job.id}`
+    readonly meta: Record<string, never>;
   };
-  await options.repo.saveIdempotentJobResponse(options.tenantId, key, response);
-  return { data: response, meta: {} };
+  return runCatalogIdempotent<CreateResult>({
+    idempotency: options.idempotency,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "catalog.import.create",
+    key,
+    loadCached: async () => {
+      const cached = await options.repo.getIdempotentJobResponse(options.tenantId, key);
+      if (!cached) return null;
+      return {
+        data: {
+          job_id: cached.job_id,
+          status: "queued" as const,
+          status_url: cached.status_url ?? `/api/v1/imports/${cached.job_id}`
+        },
+        meta: {}
+      };
+    },
+    rememberCached: async (result) => {
+      await options.repo.saveIdempotentJobResponse(options.tenantId, key, result.data);
+    },
+    resourceId: (result) => result.data.job_id,
+    execute: async () => {
+      const sourceType = parseSourceType(options.sourceType);
+      const job = await options.repo.createJob({
+        tenantId: options.tenantId,
+        jobId: generateUuidV7(),
+        sourceType,
+        uploadId: options.uploadId ?? null
+      });
+      return {
+        data: {
+          job_id: job.id,
+          status: "queued" as const,
+          status_url: `/api/v1/imports/${job.id}`
+        },
+        meta: {}
+      };
+    }
+  });
 }
 
 export async function getImportJob(options: {
@@ -301,8 +327,10 @@ function detectMapping(headers: readonly string[]): Record<string, string> {
 export async function analyzeImport(options: {
   readonly repo: ImportRepository;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly jobId: string;
   /** In-memory CSV body; production reads from upload object key. */
   readonly csvContent?: string;
@@ -319,67 +347,96 @@ export async function analyzeImport(options: {
   if (!key) {
     throw new CatalogError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const cached = await options.repo.getIdempotentJobResponse(options.tenantId, `analyze:${key}`);
-  if (cached) {
-    return {
-      data: {
-        job_id: cached.job_id,
-        status: cached.status === "queued" ? "running" : (cached.status as "running" | "completed"),
-        status_url: cached.status_url ?? `/api/v1/imports/${cached.job_id}`
-      },
-      meta: {}
+  const cacheKey = `analyze:${key}`;
+  type AnalyzeResult = {
+    readonly data: {
+      readonly job_id: string;
+      readonly status: "running" | "completed";
+      readonly status_url: string;
     };
-  }
-
-  const job = requireJob(await options.repo.getJob({ tenantId: options.tenantId, jobId: options.jobId }), [
-    "uploaded",
-    "mapped",
-    "failed"
-  ]);
-  bump(job, "analyzing");
-  await options.repo.saveJob(job);
-
-  const csv =
-    options.csvContent ??
-    "sku,name,unit_price_minor\nSKU-1,Sample,10000\nSKU-2,Sample Two,20000\n";
-  let parsed: { headers: string[]; rows: readonly Record<string, string>[] };
-  try {
-    parsed = parseCsvStaging(csv);
-  } catch (error) {
-    bump(job, "failed");
-    await options.repo.saveJob(job);
-    throw error;
-  }
-
-  if (Object.keys(job.mapping).length === 0) {
-    job.mapping = detectMapping(parsed.headers);
-  }
-  job.fileChecksum = createHash("sha256").update(csv, "utf8").digest("hex");
-  job.fileKey = job.fileKey ?? `imports/${job.tenantId}/${job.id}.csv`;
-
-  const staged: ImportJobRow[] = parsed.rows.map((raw, idx) => ({
-    id: generateUuidV7(),
-    tenantId: job.tenantId,
-    importJobId: job.id,
-    rowNumber: idx + 1,
-    raw,
-    canonical: {},
-    validationErrors: [],
-    rowStatus: "staged",
-    appliedEntityIds: []
-  }));
-  await options.repo.replaceRows({ tenantId: job.tenantId, jobId: job.id, rows: staged });
-  job.rowCount = staged.length;
-  bump(job, "mapped");
-  await options.repo.saveJob(job);
-
-  const response = {
-    job_id: job.id,
-    status: "completed" as const,
-    status_url: `/api/v1/imports/${job.id}`
+    readonly meta: Record<string, never>;
   };
-  await options.repo.saveIdempotentJobResponse(options.tenantId, `analyze:${key}`, response);
-  return { data: response, meta: {} };
+  return runCatalogIdempotent<AnalyzeResult>({
+    idempotency: options.idempotency,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "catalog.import.analyze",
+    key,
+    loadCached: async () => {
+      const cached = await options.repo.getIdempotentJobResponse(options.tenantId, cacheKey);
+      if (!cached) return null;
+      return {
+        data: {
+          job_id: cached.job_id,
+          status:
+            cached.status === "queued"
+              ? ("running" as const)
+              : (cached.status as "running" | "completed"),
+          status_url: cached.status_url ?? `/api/v1/imports/${cached.job_id}`
+        },
+        meta: {}
+      };
+    },
+    rememberCached: async (result) => {
+      await options.repo.saveIdempotentJobResponse(options.tenantId, cacheKey, {
+        job_id: result.data.job_id,
+        status: result.data.status,
+        status_url: result.data.status_url
+      });
+    },
+    resourceId: (result) => result.data.job_id,
+    execute: async () => {
+      const job = requireJob(
+        await options.repo.getJob({ tenantId: options.tenantId, jobId: options.jobId }),
+        ["uploaded", "mapped", "failed"]
+      );
+      bump(job, "analyzing");
+      await options.repo.saveJob(job);
+
+      const csv =
+        options.csvContent ??
+        "sku,name,unit_price_minor\nSKU-1,Sample,10000\nSKU-2,Sample Two,20000\n";
+      let parsed: { headers: string[]; rows: readonly Record<string, string>[] };
+      try {
+        parsed = parseCsvStaging(csv);
+      } catch (error) {
+        bump(job, "failed");
+        await options.repo.saveJob(job);
+        throw error;
+      }
+
+      if (Object.keys(job.mapping).length === 0) {
+        job.mapping = detectMapping(parsed.headers);
+      }
+      job.fileChecksum = createHash("sha256").update(csv, "utf8").digest("hex");
+      job.fileKey = job.fileKey ?? `imports/${job.tenantId}/${job.id}.csv`;
+
+      const staged: ImportJobRow[] = parsed.rows.map((raw, idx) => ({
+        id: generateUuidV7(),
+        tenantId: job.tenantId,
+        importJobId: job.id,
+        rowNumber: idx + 1,
+        raw,
+        canonical: {},
+        validationErrors: [],
+        rowStatus: "staged",
+        appliedEntityIds: []
+      }));
+      await options.repo.replaceRows({ tenantId: job.tenantId, jobId: job.id, rows: staged });
+      job.rowCount = staged.length;
+      bump(job, "mapped");
+      await options.repo.saveJob(job);
+
+      return {
+        data: {
+          job_id: job.id,
+          status: "completed" as const,
+          status_url: `/api/v1/imports/${job.id}`
+        },
+        meta: {}
+      };
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -536,8 +593,10 @@ export async function confirmImport(options: {
   readonly repo: ImportRepository;
   readonly applyPort: ImportApplyPort;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly jobId: string;
   readonly expectedPreviewChecksum?: string | null;
 }): Promise<{
@@ -553,86 +612,120 @@ export async function confirmImport(options: {
   if (!key) {
     throw new CatalogError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const cached = await options.repo.getIdempotentJobResponse(options.tenantId, `confirm:${key}`);
-  if (cached) {
-    return {
-      data: {
-        job_id: cached.job_id,
-        status: cached.status === "cancelled" ? "failed" : (cached.status as "running" | "completed" | "failed"),
-        status_url: cached.status_url ?? `/api/v1/imports/${cached.job_id}`
-      },
-      meta: {}
+  const cacheKey = `confirm:${key}`;
+  type ConfirmResult = {
+    readonly data: {
+      readonly job_id: string;
+      readonly status: "running" | "completed" | "failed";
+      readonly status_url: string;
     };
-  }
-
-  const job = requireJob(await options.repo.getJob({ tenantId: options.tenantId, jobId: options.jobId }), [
-    "preview_ready"
-  ]);
-  const rows = await options.repo.listRows({ tenantId: options.tenantId, jobId: options.jobId });
-  const checksum = computePreviewChecksum(job, rows);
-  if (job.previewChecksum !== checksum) {
-    throw new CatalogError("Preview checksum mismatch.", "IMPORT_PREVIEW_STALE");
-  }
-  if (
-    options.expectedPreviewChecksum &&
-    options.expectedPreviewChecksum !== job.previewChecksum
-  ) {
-    throw new CatalogError("Client preview checksum stale.", "IMPORT_PREVIEW_STALE");
-  }
-  if ((job.errorCount ?? 0) > 0) {
-    throw new CatalogError("Cannot confirm import with row errors.", "IMPORT_JOB_STATE_INVALID");
-  }
-
-  bump(job, "confirming");
-  await options.repo.saveJob(job);
-
-  try {
-    const appliedRows: ImportJobRow[] = [];
-    for (const row of rows) {
-      if (row.rowStatus !== "valid") {
-        appliedRows.push(row);
-        continue;
-      }
-      const price = Number(row.canonical.unit_price_minor ?? "0");
-      const result = await options.applyPort.upsertVariantFromImport({
-        tenantId: options.tenantId,
-        sku: row.canonical.sku!.trim().toUpperCase(),
-        name: row.canonical.name!.trim(),
-        unitPriceMinor: Number.isFinite(price) ? price : 0
-      });
-      appliedRows.push({
-        ...row,
-        rowStatus: "applied",
-        appliedEntityIds: [result.entityId]
-      });
-    }
-    await options.repo.replaceRows({
-      tenantId: options.tenantId,
-      jobId: options.jobId,
-      rows: appliedRows
-    });
-    job.metrics = {
-      ...job.metrics,
-      applied_rows: appliedRows.filter((r) => r.rowStatus === "applied").length
-    };
-    bump(job, "applied");
-    await options.repo.saveJob(job);
-  } catch (error) {
-    bump(job, "failed");
-    await options.repo.saveJob(job);
-    throw new CatalogError(
-      error instanceof Error ? error.message : "Import apply failed.",
-      "IMPORT_APPLY_FAILED"
-    );
-  }
-
-  const response = {
-    job_id: job.id,
-    status: "completed" as const,
-    status_url: `/api/v1/imports/${job.id}`
+    readonly meta: Record<string, never>;
   };
-  await options.repo.saveIdempotentJobResponse(options.tenantId, `confirm:${key}`, response);
-  return { data: response, meta: {} };
+  return runCatalogIdempotent<ConfirmResult>({
+    idempotency: options.idempotency,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "catalog.import.confirm",
+    key,
+    loadCached: async () => {
+      const cached = await options.repo.getIdempotentJobResponse(options.tenantId, cacheKey);
+      if (!cached) return null;
+      return {
+        data: {
+          job_id: cached.job_id,
+          status:
+            cached.status === "cancelled"
+              ? ("failed" as const)
+              : (cached.status as "running" | "completed" | "failed"),
+          status_url: cached.status_url ?? `/api/v1/imports/${cached.job_id}`
+        },
+        meta: {}
+      };
+    },
+    rememberCached: async (result) => {
+      await options.repo.saveIdempotentJobResponse(options.tenantId, cacheKey, {
+        job_id: result.data.job_id,
+        status: result.data.status,
+        status_url: result.data.status_url
+      });
+    },
+    resourceId: (result) => result.data.job_id,
+    execute: async () => {
+      const job = requireJob(
+        await options.repo.getJob({ tenantId: options.tenantId, jobId: options.jobId }),
+        ["preview_ready"]
+      );
+      const rows = await options.repo.listRows({
+        tenantId: options.tenantId,
+        jobId: options.jobId
+      });
+      const checksum = computePreviewChecksum(job, rows);
+      if (job.previewChecksum !== checksum) {
+        throw new CatalogError("Preview checksum mismatch.", "IMPORT_PREVIEW_STALE");
+      }
+      if (
+        options.expectedPreviewChecksum &&
+        options.expectedPreviewChecksum !== job.previewChecksum
+      ) {
+        throw new CatalogError("Client preview checksum stale.", "IMPORT_PREVIEW_STALE");
+      }
+      if ((job.errorCount ?? 0) > 0) {
+        throw new CatalogError("Cannot confirm import with row errors.", "IMPORT_JOB_STATE_INVALID");
+      }
+
+      bump(job, "confirming");
+      await options.repo.saveJob(job);
+
+      try {
+        const appliedRows: ImportJobRow[] = [];
+        for (const row of rows) {
+          if (row.rowStatus !== "valid") {
+            appliedRows.push(row);
+            continue;
+          }
+          const price = Number(row.canonical.unit_price_minor ?? "0");
+          const result = await options.applyPort.upsertVariantFromImport({
+            tenantId: options.tenantId,
+            sku: row.canonical.sku!.trim().toUpperCase(),
+            name: row.canonical.name!.trim(),
+            unitPriceMinor: Number.isFinite(price) ? price : 0
+          });
+          appliedRows.push({
+            ...row,
+            rowStatus: "applied",
+            appliedEntityIds: [result.entityId]
+          });
+        }
+        await options.repo.replaceRows({
+          tenantId: options.tenantId,
+          jobId: options.jobId,
+          rows: appliedRows
+        });
+        job.metrics = {
+          ...job.metrics,
+          applied_rows: appliedRows.filter((r) => r.rowStatus === "applied").length
+        };
+        bump(job, "applied");
+        await options.repo.saveJob(job);
+      } catch (error) {
+        bump(job, "failed");
+        await options.repo.saveJob(job);
+        throw new CatalogError(
+          error instanceof Error ? error.message : "Import apply failed.",
+          "IMPORT_APPLY_FAILED"
+        );
+      }
+
+      return {
+        data: {
+          job_id: job.id,
+          status: "completed" as const,
+          status_url: `/api/v1/imports/${job.id}`
+        },
+        meta: {}
+      };
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------

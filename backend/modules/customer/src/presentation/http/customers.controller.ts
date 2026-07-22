@@ -16,6 +16,7 @@ import {
 } from "@nestjs/common";
 import type { FastifyReply } from "fastify";
 import { DomainInvariantError, parseUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { MissingSecurityContextError } from "@ai-sales/security";
 import {
   addCustomerIdentity,
@@ -99,7 +100,10 @@ function mapCustomerError(error: unknown): never {
   throw error;
 }
 
-export function createCustomersController(options: { readonly repo: CustomerRepository }) {
+export function createCustomersController(options: {
+  readonly repo: CustomerRepository;
+  readonly idempotency?: IdempotencyStore;
+}) {
   @Controller("api/v1/customers")
   class CustomersController {
     @Get()
@@ -134,8 +138,10 @@ export function createCustomersController(options: { readonly repo: CustomerRepo
         const result = await createCustomer({
           repo: options.repo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           ...(body?.display_name !== undefined ? { displayName: body.display_name } : {}),
           ...(body?.primary_email !== undefined ? { primaryEmail: body.primary_email } : {}),
           ...(body?.primary_phone !== undefined ? { primaryPhone: body.primary_phone } : {}),
@@ -190,6 +196,7 @@ export function createCustomersController(options: { readonly repo: CustomerRepo
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           survivorId: body?.survivor_id ?? "",
           mergeIds: body?.merge_ids ?? [],
           confirmationToken: body?.confirmation_token ?? "",
@@ -269,8 +276,10 @@ export function createCustomersController(options: { readonly repo: CustomerRepo
           repo: options.repo,
           tenantId: actor.tenantId,
           customerId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           type: body?.type ?? "",
           value: body?.value ?? ""
         });

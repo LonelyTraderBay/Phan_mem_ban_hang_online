@@ -15,6 +15,7 @@ import { InMemoryCustomerRepository } from "../infrastructure/persistence/in-mem
 
 const TENANT_A = generateUuidV7();
 const TENANT_B = generateUuidV7();
+const ACTOR = generateUuidV7();
 
 describe("BE-CUS-002 customers", () => {
   it("creates and lists customers with PII when actor has customer.pii.read", async () => {
@@ -23,6 +24,7 @@ describe("BE-CUS-002 customers", () => {
     const created = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: perms,
       idempotencyKey: "key-1",
       displayName: "Nguyễn Văn A",
@@ -47,6 +49,7 @@ describe("BE-CUS-002 customers", () => {
     const created = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: ["customer.write", "customer.pii.read"],
       idempotencyKey: "key-pii",
       primaryEmail: "secret@example.com",
@@ -75,6 +78,7 @@ describe("BE-CUS-002 customers", () => {
     await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "a-1",
       displayName: "Mine"
@@ -93,6 +97,7 @@ describe("BE-CUS-002 customers", () => {
     const created = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "v-1",
       displayName: "V1"
@@ -133,6 +138,7 @@ describe("BE-CUS-002 customers", () => {
     const first = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "idem-same",
       displayName: "Once"
@@ -140,6 +146,7 @@ describe("BE-CUS-002 customers", () => {
     const second = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "idem-same",
       displayName: "Once"
@@ -159,6 +166,7 @@ describe("BE-CUS-002 customers", () => {
       createCustomer({
         repo,
         tenantId: TENANT_A,
+        actorId: ACTOR,
         actorPermissions: ["customer.write"],
         idempotencyKey: undefined,
         displayName: "No key"
@@ -173,6 +181,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
     const created = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: ["customer.write", "customer.pii.read"],
       idempotencyKey: "c-1",
       displayName: "A"
@@ -182,6 +191,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
       repo,
       tenantId: TENANT_A,
       customerId: id,
+        actorId: ACTOR,
       actorPermissions: ["customer.write", "customer.pii.read"],
       idempotencyKey: "id-1",
       type: "email",
@@ -195,6 +205,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
     const a = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "ca",
       displayName: "A"
@@ -202,6 +213,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
     const b = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "cb",
       displayName: "B"
@@ -210,6 +222,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
       repo,
       tenantId: TENANT_A,
       customerId: String(a.data.id),
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "ia",
       type: "phone",
@@ -220,6 +233,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
         repo,
         tenantId: TENANT_A,
         customerId: String(b.data.id),
+        actorId: ACTOR,
         actorPermissions: ["customer.write"],
         idempotencyKey: "ib",
         type: "phone",
@@ -233,6 +247,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
     const created = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "c-same",
       displayName: "Same"
@@ -242,6 +257,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
       repo,
       tenantId: TENANT_A,
       customerId: id,
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "ext-1",
       type: "external",
@@ -251,6 +267,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
       repo,
       tenantId: TENANT_A,
       customerId: id,
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "ext-2",
       type: "external",
@@ -264,6 +281,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
     const created = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "c-deny",
       displayName: "X"
@@ -273,6 +291,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
         repo,
         tenantId: TENANT_A,
         customerId: String(created.data.id),
+        actorId: ACTOR,
         actorPermissions: ["customer.read"],
         idempotencyKey: "no-write",
         type: "email",
@@ -286,6 +305,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
     const a = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "ta",
       displayName: "A"
@@ -293,6 +313,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
     const b = await createCustomer({
       repo,
       tenantId: TENANT_B,
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "tb",
       displayName: "B"
@@ -301,6 +322,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
       repo,
       tenantId: TENANT_A,
       customerId: String(a.data.id),
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "ia",
       type: "email",
@@ -310,6 +332,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
       repo,
       tenantId: TENANT_B,
       customerId: String(b.data.id),
+        actorId: ACTOR,
       actorPermissions: ["customer.write", "customer.pii.read"],
       idempotencyKey: "ib",
       type: "email",
@@ -323,6 +346,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
     const created = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "c-idem",
       displayName: "I"
@@ -332,6 +356,7 @@ describe("BE-CUS-003 identity attach/dedupe", () => {
         repo,
         tenantId: TENANT_A,
         customerId: String(created.data.id),
+        actorId: ACTOR,
         actorPermissions: ["customer.write"],
         idempotencyKey: undefined,
         type: "email",
@@ -350,6 +375,7 @@ describe("BE-CUS-004 customer merge", () => {
     const survivor = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: mergePerms,
       idempotencyKey: "s1",
       displayName: "Survivor",
@@ -358,6 +384,7 @@ describe("BE-CUS-004 customer merge", () => {
     const source = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: mergePerms,
       idempotencyKey: "m1",
       displayName: "Source",
@@ -385,6 +412,7 @@ describe("BE-CUS-004 customer merge", () => {
     const survivor = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: mergePerms,
       idempotencyKey: "s2",
       displayName: "Survivor"
@@ -392,6 +420,7 @@ describe("BE-CUS-004 customer merge", () => {
     const source = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: mergePerms,
       idempotencyKey: "m2",
       displayName: "Source",
@@ -402,6 +431,7 @@ describe("BE-CUS-004 customer merge", () => {
       repo,
       tenantId: TENANT_A,
       customerId: String(source.data.id),
+        actorId: ACTOR,
       actorPermissions: mergePerms,
       idempotencyKey: "id-src",
       type: "external",
@@ -442,6 +472,7 @@ describe("BE-CUS-004 customer merge", () => {
     const survivor = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: mergePerms,
       idempotencyKey: "s3",
       displayName: "S"
@@ -449,6 +480,7 @@ describe("BE-CUS-004 customer merge", () => {
     const source = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: mergePerms,
       idempotencyKey: "m3",
       displayName: "M"
@@ -485,6 +517,7 @@ describe("BE-CUS-004 customer merge", () => {
     const survivor = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: mergePerms,
       idempotencyKey: "s4",
       displayName: "S"
@@ -492,6 +525,7 @@ describe("BE-CUS-004 customer merge", () => {
     const source = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: mergePerms,
       idempotencyKey: "m4",
       displayName: "M"
@@ -515,6 +549,7 @@ describe("BE-CUS-004 customer merge", () => {
     const survivor = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: mergePerms,
       idempotencyKey: "s5",
       displayName: "S"
@@ -522,6 +557,7 @@ describe("BE-CUS-004 customer merge", () => {
     const source = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: mergePerms,
       idempotencyKey: "m5",
       displayName: "M"
@@ -529,6 +565,7 @@ describe("BE-CUS-004 customer merge", () => {
     const other = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: mergePerms,
       idempotencyKey: "o5",
       displayName: "O"
@@ -564,6 +601,7 @@ describe("BE-CUS-004 customer merge", () => {
     const survivor = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "s6",
       displayName: "S"
@@ -571,6 +609,7 @@ describe("BE-CUS-004 customer merge", () => {
     const source = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: ["customer.write"],
       idempotencyKey: "m6",
       displayName: "M"
@@ -591,6 +630,7 @@ describe("BE-CUS-004 customer merge", () => {
     const survivor = await createCustomer({
       repo,
       tenantId: TENANT_A,
+        actorId: ACTOR,
       actorPermissions: mergePerms,
       idempotencyKey: "sa",
       displayName: "A"
@@ -598,6 +638,7 @@ describe("BE-CUS-004 customer merge", () => {
     const otherTenant = await createCustomer({
       repo,
       tenantId: TENANT_B,
+        actorId: ACTOR,
       actorPermissions: mergePerms,
       idempotencyKey: "sb",
       displayName: "B"

@@ -18,6 +18,7 @@ import {
 } from "@nestjs/common";
 import type { FastifyReply } from "fastify";
 import { DomainInvariantError, parseUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { MissingSecurityContextError } from "@ai-sales/security";
 import {
   archiveCategory,
@@ -152,6 +153,7 @@ export function createCatalogController(options: {
   readonly repo: CatalogRepository & MediaRepository;
   readonly importRepo?: ImportRepository;
   readonly importApplyPort?: ImportApplyPort;
+  readonly idempotency?: IdempotencyStore;
 }) {
   @Controller("api/v1")
   class CatalogController {
@@ -184,8 +186,10 @@ export function createCatalogController(options: {
         return await createCategory({
           repo: options.repo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           name: body?.name ?? "",
           parentId: body?.parent_id ?? null
         });
@@ -223,8 +227,10 @@ export function createCatalogController(options: {
         return await archiveCategory({
           repo: options.repo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           categoryId,
           expectedVersion: parseIfMatchVersion(optionalHeader(headers, "if-match"))
         });
@@ -269,8 +275,10 @@ export function createCatalogController(options: {
         return await createProduct({
           repo: options.repo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           name: body?.name ?? "",
           description: body?.description ?? null,
           categoryId: body?.category_id ?? null,
@@ -343,8 +351,10 @@ export function createCatalogController(options: {
         return await archiveProduct({
           repo: options.repo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           productId,
           expectedVersion: parseIfMatchVersion(optionalHeader(headers, "if-match"))
         });
@@ -391,6 +401,7 @@ export function createCatalogController(options: {
           actorPermissions: actor.permissions,
           actorId: actor.actorId,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           productId,
           sku: body?.sku ?? "",
           unitPriceMinor: body?.unit_price_minor ?? null,
@@ -436,8 +447,10 @@ export function createCatalogController(options: {
         return await archiveVariant({
           repo: options.repo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           variantId,
           expectedVersion: parseIfMatchVersion(optionalHeader(headers, "if-match"))
         });
@@ -466,8 +479,10 @@ export function createCatalogController(options: {
         return await createMediaUploadIntent({
           mediaRepo: options.repo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           filename: body?.filename ?? "",
           contentType: body?.content_type ?? "",
           byteSize: body?.byte_size ?? 0
@@ -493,8 +508,10 @@ export function createCatalogController(options: {
         return await attachProductMedia({
           mediaRepo: options.repo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           productId,
           uploadId: body?.upload_id ?? "",
           ...(body?.alt_text !== undefined ? { altText: body.alt_text } : {}),
@@ -523,8 +540,10 @@ export function createCatalogController(options: {
         return await createImportJob({
           repo: options.importRepo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           sourceType: body?.source_type ?? "",
           uploadId: body?.upload_id ?? null
         });
@@ -562,8 +581,10 @@ export function createCatalogController(options: {
         return await analyzeImport({
           repo: options.importRepo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           jobId
         });
       } catch (error) {
@@ -643,8 +664,10 @@ export function createCatalogController(options: {
           repo: options.importRepo,
           applyPort: options.importApplyPort,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           jobId
         });
       } catch (error) {

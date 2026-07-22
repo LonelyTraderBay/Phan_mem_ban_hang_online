@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { generateUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
 import type { ChannelProviderAdapter, NormalizedChannelEvent } from "../domain/adapter.js";
 import {
@@ -31,6 +32,7 @@ import {
   type RateLimitBucket
 } from "../domain/rate-limit.js";
 import { digestRawBody, redactWebhookPayload, verifyWebhookSignatureStub } from "../domain/webhook.js";
+import { runChannelIdempotent } from "./channel-idempotency.js";
 
 /**
  * BE-CHN-001…011 — Channel application layer (accounts, OAuth, webhooks, outbound).
@@ -367,38 +369,64 @@ export function requireChannelPermission(
   }
 }
 
-async function withIdempotency(
-  repo: ChannelRepository,
-  tenantId: string,
-  idempotencyKey: string | null | undefined,
-  run: () => Promise<ChannelAccountResource>
-): Promise<ChannelAccountResource> {
-  const key = idempotencyKey?.trim();
+async function withResourceIdempotency(options: {
+  readonly repo: ChannelRepository;
+  readonly tenantId: string;
+  readonly actorId: string;
+  readonly scope: string;
+  readonly idempotencyKey: string | null | undefined;
+  readonly idempotency?: IdempotencyStore;
+  readonly run: () => Promise<ChannelAccountResource>;
+}): Promise<ChannelAccountResource> {
+  const key = options.idempotencyKey?.trim();
   if (!key) {
     throw new ChannelError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const cached = await repo.getIdempotentResource(tenantId, key);
-  if (cached) return cached;
-  const result = await run();
-  await repo.saveIdempotentResource(tenantId, key, result);
-  return result;
+  return runChannelIdempotent({
+    idempotency: options.idempotency,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: options.scope,
+    key,
+    loadCached: () => options.repo.getIdempotentResource(options.tenantId, key),
+    rememberCached: (resource) => options.repo.saveIdempotentResource(options.tenantId, key, resource),
+    execute: options.run,
+    resourceId: (resource) => resource.id
+  });
 }
 
-async function withJobIdempotency(
-  repo: ChannelRepository,
-  tenantId: string,
-  idempotencyKey: string | null | undefined,
-  run: () => Promise<{ readonly job_id: string; readonly status: JobResponseStatus; readonly status_url: string | null }>
-): Promise<{ readonly job_id: string; readonly status: JobResponseStatus; readonly status_url: string | null }> {
-  const key = idempotencyKey?.trim();
+async function withJobIdempotency(options: {
+  readonly repo: ChannelRepository;
+  readonly tenantId: string;
+  readonly actorId: string;
+  readonly scope: string;
+  readonly idempotencyKey: string | null | undefined;
+  readonly idempotency?: IdempotencyStore;
+  readonly run: () => Promise<{
+    readonly job_id: string;
+    readonly status: JobResponseStatus;
+    readonly status_url: string | null;
+  }>;
+}): Promise<{
+  readonly job_id: string;
+  readonly status: JobResponseStatus;
+  readonly status_url: string | null;
+}> {
+  const key = options.idempotencyKey?.trim();
   if (!key) {
     throw new ChannelError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const cached = await repo.getIdempotentJobResponse(tenantId, key);
-  if (cached) return cached;
-  const result = await run();
-  await repo.saveIdempotentJobResponse(tenantId, key, result);
-  return result;
+  return runChannelIdempotent({
+    idempotency: options.idempotency,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: options.scope,
+    key,
+    loadCached: () => options.repo.getIdempotentJobResponse(options.tenantId, key),
+    rememberCached: (job) => options.repo.saveIdempotentJobResponse(options.tenantId, key, job),
+    execute: options.run,
+    resourceId: (job) => job.job_id
+  });
 }
 
 export async function refreshAccountHealthSnapshot(options: {
@@ -505,6 +533,7 @@ export async function connectChannel(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly provider: string;
   readonly displayName?: string | null;
   readonly oauthReturnPath?: string | null;
@@ -522,47 +551,64 @@ export async function connectChannel(options: {
   if (!key) {
     throw new ChannelError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const cached = await options.repo.getIdempotentResource(options.tenantId, key);
-  if (cached) {
-    const cachedMeta = await options.repo.getIdempotentConnectMeta(options.tenantId, key);
-    if (cachedMeta) {
+  type ConnectResult = {
+    readonly data: ChannelAccountResource;
+    readonly meta: { readonly oauth_url: string; readonly state: string };
+  };
+  return runChannelIdempotent<ConnectResult>({
+    idempotency: options.idempotency,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "channel.connect",
+    key,
+    loadCached: async () => {
+      const cached = await options.repo.getIdempotentResource(options.tenantId, key);
+      if (!cached) return null;
+      const cachedMeta = await options.repo.getIdempotentConnectMeta(options.tenantId, key);
+      if (!cachedMeta) return null;
       return { data: cached, meta: cachedMeta };
+    },
+    rememberCached: async (result) => {
+      await options.repo.saveIdempotentResource(options.tenantId, key, result.data);
+      await options.repo.saveIdempotentConnectMeta(options.tenantId, key, result.meta);
+    },
+    resourceId: (result) => result.data.id,
+    execute: async () => {
+      const accountId = generateUuidV7();
+      const externalAccountId = `pending-${accountId.slice(0, 8)}`;
+      const account = await options.repo.createAccount({
+        tenantId: options.tenantId,
+        accountId,
+        provider,
+        externalAccountId,
+        displayName: options.displayName?.trim() ?? null,
+        actorId: options.actorId
+      });
+      const { codeVerifier, codeChallenge } = generatePkcePair();
+      const stateToken = generateOAuthStateToken(options.tenantId);
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+      await options.repo.saveOAuthState({
+        tenantId: options.tenantId,
+        stateId: generateUuidV7(),
+        provider,
+        stateToken,
+        codeVerifierHash: hashCodeVerifier(codeVerifier),
+        redirectReturnPath: options.oauthReturnPath ?? null,
+        channelAccountId: account.id,
+        expiresAt
+      });
+      const oauthUrl = buildOAuthAuthorizeUrlStub({
+        provider,
+        stateToken,
+        codeChallenge,
+        redirectUri: options.redirectUri ?? "https://api.stub/oauth/callback"
+      });
+      return {
+        data: accountToResource(account),
+        meta: { oauth_url: oauthUrl, state: stateToken }
+      };
     }
-  }
-  const accountId = generateUuidV7();
-  const externalAccountId = `pending-${accountId.slice(0, 8)}`;
-  const account = await options.repo.createAccount({
-    tenantId: options.tenantId,
-    accountId,
-    provider,
-    externalAccountId,
-    displayName: options.displayName?.trim() ?? null,
-    actorId: options.actorId
   });
-  const { codeVerifier, codeChallenge } = generatePkcePair();
-  const stateToken = generateOAuthStateToken(options.tenantId);
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-  await options.repo.saveOAuthState({
-    tenantId: options.tenantId,
-    stateId: generateUuidV7(),
-    provider,
-    stateToken,
-    codeVerifierHash: hashCodeVerifier(codeVerifier),
-    redirectReturnPath: options.oauthReturnPath ?? null,
-    channelAccountId: account.id,
-    expiresAt
-  });
-  const oauthUrl = buildOAuthAuthorizeUrlStub({
-    provider,
-    stateToken,
-    codeChallenge,
-    redirectUri: options.redirectUri ?? "https://api.stub/oauth/callback"
-  });
-  const data = accountToResource(account);
-  const meta = { oauth_url: oauthUrl, state: stateToken };
-  await options.repo.saveIdempotentResource(options.tenantId, key, data);
-  await options.repo.saveIdempotentConnectMeta(options.tenantId, key, meta);
-  return { data, meta };
 }
 
 export async function handleOAuthCallback(options: {
@@ -624,22 +670,34 @@ export async function disconnectChannel(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly accountId: string;
 }): Promise<{ readonly data: ChannelAccountResource; readonly meta: Record<string, never> }> {
   requireChannelPermission(options.actorPermissions, "channel.manage");
-  const data = await withIdempotency(options.repo, options.tenantId, options.idempotencyKey, async () => {
-    const account = await options.repo.getAccount({ tenantId: options.tenantId, accountId: options.accountId });
-    if (!account) {
-      throw new ChannelError("Channel account not found.", "RESOURCE_NOT_FOUND");
+  const data = await withResourceIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "channel.disconnect",
+    idempotencyKey: options.idempotencyKey,
+    ...(options.idempotency ? { idempotency: options.idempotency } : {}),
+    run: async () => {
+      const account = await options.repo.getAccount({
+        tenantId: options.tenantId,
+        accountId: options.accountId
+      });
+      if (!account) {
+        throw new ChannelError("Channel account not found.", "RESOURCE_NOT_FOUND");
+      }
+      const updated = await options.repo.updateAccount({
+        tenantId: options.tenantId,
+        accountId: options.accountId,
+        expectedVersion: account.version,
+        patch: { status: "disconnected", health: "error", lastError: "Disconnected by user" },
+        actorId: options.actorId
+      });
+      return accountToResource(updated);
     }
-    const updated = await options.repo.updateAccount({
-      tenantId: options.tenantId,
-      accountId: options.accountId,
-      expectedVersion: account.version,
-      patch: { status: "disconnected", health: "error", lastError: "Disconnected by user" },
-      actorId: options.actorId
-    });
-    return accountToResource(updated);
   });
   return { data, meta: {} };
 }
@@ -650,32 +708,48 @@ export async function refreshChannelHealth(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly accountId: string;
 }): Promise<{
-  readonly data: { readonly job_id: string; readonly status: JobResponseStatus; readonly status_url: string | null };
+  readonly data: {
+    readonly job_id: string;
+    readonly status: JobResponseStatus;
+    readonly status_url: string | null;
+  };
   readonly meta: Record<string, never>;
 }> {
   requireChannelPermission(options.actorPermissions, "channel.manage");
-  const data = await withJobIdempotency(options.repo, options.tenantId, options.idempotencyKey, async () => {
-    const account = await options.repo.getAccount({ tenantId: options.tenantId, accountId: options.accountId });
-    if (!account) {
-      throw new ChannelError("Channel account not found.", "RESOURCE_NOT_FOUND");
+  const data = await withJobIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "channel.health.refresh",
+    idempotencyKey: options.idempotencyKey,
+    ...(options.idempotency ? { idempotency: options.idempotency } : {}),
+    run: async () => {
+      const account = await options.repo.getAccount({
+        tenantId: options.tenantId,
+        accountId: options.accountId
+      });
+      if (!account) {
+        throw new ChannelError("Channel account not found.", "RESOURCE_NOT_FOUND");
+      }
+      if (account.status === "disconnected" || account.status === "revoked") {
+        throw new ChannelError("Channel is not connected.", "CHANNEL_NOT_CONNECTED");
+      }
+      await refreshAccountHealthSnapshot({
+        repo: options.repo,
+        tenantId: options.tenantId,
+        account,
+        actorId: options.actorId
+      });
+      const jobId = generateUuidV7();
+      return {
+        job_id: jobId,
+        status: "completed" as const,
+        status_url: `/api/v1/channels/accounts/${options.accountId}`
+      };
     }
-    if (account.status === "disconnected" || account.status === "revoked") {
-      throw new ChannelError("Channel is not connected.", "CHANNEL_NOT_CONNECTED");
-    }
-    await refreshAccountHealthSnapshot({
-      repo: options.repo,
-      tenantId: options.tenantId,
-      account,
-      actorId: options.actorId
-    });
-    const jobId = generateUuidV7();
-    return {
-      job_id: jobId,
-      status: "completed" as const,
-      status_url: `/api/v1/channels/accounts/${options.accountId}`
-    };
   });
   return { data, meta: {} };
 }
@@ -865,35 +939,52 @@ export async function reprocessWebhookEvent(options: {
   readonly repo: ChannelRepository;
   readonly adapter: ChannelProviderAdapter;
   readonly tenantId: string;
+  readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly eventId: string;
 }): Promise<{
-  readonly data: { readonly job_id: string; readonly status: JobResponseStatus; readonly status_url: string | null };
+  readonly data: {
+    readonly job_id: string;
+    readonly status: JobResponseStatus;
+    readonly status_url: string | null;
+  };
   readonly meta: Record<string, never>;
 }> {
   requireChannelPermission(options.actorPermissions, "ops.reprocess");
-  const data = await withJobIdempotency(options.repo, options.tenantId, options.idempotencyKey, async () => {
-    const event = await options.repo.getWebhookEvent({ tenantId: options.tenantId, eventId: options.eventId });
-    if (!event) {
-      throw new ChannelError("Webhook event not found.", "RESOURCE_NOT_FOUND");
+  const data = await withJobIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "channel.webhook.reprocess",
+    idempotencyKey: options.idempotencyKey,
+    ...(options.idempotency ? { idempotency: options.idempotency } : {}),
+    run: async () => {
+      const event = await options.repo.getWebhookEvent({
+        tenantId: options.tenantId,
+        eventId: options.eventId
+      });
+      if (!event) {
+        throw new ChannelError("Webhook event not found.", "RESOURCE_NOT_FOUND");
+      }
+      await options.repo.updateWebhookEvent({
+        tenantId: options.tenantId,
+        eventId: options.eventId,
+        status: "reprocessed"
+      });
+      void processWebhookEvent({
+        repo: options.repo,
+        adapter: options.adapter,
+        tenantId: options.tenantId,
+        eventId: options.eventId
+      });
+      return {
+        job_id: generateUuidV7(),
+        status: "queued" as const,
+        status_url: `/api/v1/webhook-events/${options.eventId}`
+      };
     }
-    await options.repo.updateWebhookEvent({
-      tenantId: options.tenantId,
-      eventId: options.eventId,
-      status: "reprocessed"
-    });
-    void processWebhookEvent({
-      repo: options.repo,
-      adapter: options.adapter,
-      tenantId: options.tenantId,
-      eventId: options.eventId
-    });
-    return {
-      job_id: generateUuidV7(),
-      status: "queued" as const,
-      status_url: `/api/v1/webhook-events/${options.eventId}`
-    };
   });
   return { data, meta: {} };
 }
@@ -1046,46 +1137,59 @@ export async function retryOutboundMessageApi(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly messageId: string;
   readonly secretRef: string;
   readonly externalThreadId: string;
 }): Promise<{
-  readonly data: { readonly job_id: string; readonly status: JobResponseStatus; readonly status_url: string | null };
+  readonly data: {
+    readonly job_id: string;
+    readonly status: JobResponseStatus;
+    readonly status_url: string | null;
+  };
   readonly meta: Record<string, never>;
 }> {
   requireChannelPermission(options.actorPermissions, "channel.send");
-  const data = await withJobIdempotency(options.repo, options.tenantId, options.idempotencyKey, async () => {
-    const message = await options.repo.getOutboundMessage({
-      tenantId: options.tenantId,
-      messageId: options.messageId
-    });
-    if (!message) {
-      throw new ChannelError("Outbound message not found.", "RESOURCE_NOT_FOUND");
+  const data = await withJobIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "channel.outbound.retry",
+    idempotencyKey: options.idempotencyKey,
+    ...(options.idempotency ? { idempotency: options.idempotency } : {}),
+    run: async () => {
+      const message = await options.repo.getOutboundMessage({
+        tenantId: options.tenantId,
+        messageId: options.messageId
+      });
+      if (!message) {
+        throw new ChannelError("Outbound message not found.", "RESOURCE_NOT_FOUND");
+      }
+      if (!canRetryOutbound(message.status)) {
+        throw new ChannelError("Outbound message cannot be retried.", "VALIDATION_FAILED");
+      }
+      await options.repo.updateOutboundMessage({
+        tenantId: options.tenantId,
+        messageId: options.messageId,
+        expectedVersion: message.version,
+        status: "queued",
+        actorId: options.actorId
+      });
+      void sendOutboundMessage({
+        repo: options.repo,
+        adapter: options.adapter,
+        tenantId: options.tenantId,
+        actorId: options.actorId,
+        messageId: options.messageId,
+        secretRef: options.secretRef,
+        externalThreadId: options.externalThreadId
+      });
+      return {
+        job_id: generateUuidV7(),
+        status: "queued" as const,
+        status_url: `/api/v1/outbound-messages/${options.messageId}`
+      };
     }
-    if (!canRetryOutbound(message.status)) {
-      throw new ChannelError("Outbound message cannot be retried.", "VALIDATION_FAILED");
-    }
-    await options.repo.updateOutboundMessage({
-      tenantId: options.tenantId,
-      messageId: options.messageId,
-      expectedVersion: message.version,
-      status: "queued",
-      actorId: options.actorId
-    });
-    void sendOutboundMessage({
-      repo: options.repo,
-      adapter: options.adapter,
-      tenantId: options.tenantId,
-      actorId: options.actorId,
-      messageId: options.messageId,
-      secretRef: options.secretRef,
-      externalThreadId: options.externalThreadId
-    });
-    return {
-      job_id: generateUuidV7(),
-      status: "queued" as const,
-      status_url: `/api/v1/outbound-messages/${options.messageId}`
-    };
   });
   return { data, meta: {} };
 }

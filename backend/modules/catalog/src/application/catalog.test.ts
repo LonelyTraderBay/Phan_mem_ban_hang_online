@@ -38,6 +38,7 @@ describe("BE-CAT-002 categories", () => {
     const created = await createCategory({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-cat-1",
       name: "Beverages"
@@ -57,6 +58,7 @@ describe("BE-CAT-002 categories", () => {
       createCategory({
         repo,
         tenantId: tenantA,
+        actorId: actorId,
         actorPermissions: readOnlyPerms,
         idempotencyKey: "idem-cat-deny",
         name: "Denied"
@@ -67,7 +69,13 @@ describe("BE-CAT-002 categories", () => {
   it("Idempotency-Key missing on createCategory -> IDEMPOTENCY_KEY_REQUIRED", async () => {
     const repo = seed();
     await expect(
-      createCategory({ repo, tenantId: tenantA, actorPermissions: writePerms, name: "No Key" })
+      createCategory({
+        repo,
+        tenantId: tenantA,
+        actorId: actorId,
+        actorPermissions: writePerms,
+        name: "No Key"
+      })
     ).rejects.toMatchObject({ code: "IDEMPOTENCY_KEY_REQUIRED" });
   });
 
@@ -76,6 +84,7 @@ describe("BE-CAT-002 categories", () => {
     const first = await createCategory({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-cat-replay",
       name: "Snacks"
@@ -83,6 +92,7 @@ describe("BE-CAT-002 categories", () => {
     const second = await createCategory({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-cat-replay",
       name: "Ignored On Replay"
@@ -96,6 +106,7 @@ describe("BE-CAT-002 categories", () => {
     const parent = await createCategory({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-a",
       name: "A"
@@ -103,6 +114,7 @@ describe("BE-CAT-002 categories", () => {
     const child = await createCategory({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-b",
       name: "B",
@@ -126,6 +138,7 @@ describe("BE-CAT-002 categories", () => {
     const created = await createCategory({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-cat-arch",
       name: "Seasonal"
@@ -133,6 +146,7 @@ describe("BE-CAT-002 categories", () => {
     const archived = await archiveCategory({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-cat-arch-op",
       categoryId: created.data.id
@@ -144,6 +158,7 @@ describe("BE-CAT-002 categories", () => {
       archiveCategory({
         repo,
         tenantId: tenantA,
+        actorId: actorId,
         actorPermissions: writePerms,
         idempotencyKey: "idem-cat-arch-op-2",
         categoryId: created.data.id
@@ -158,6 +173,7 @@ describe("BE-CAT-002 products", () => {
     const category = await createCategory({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-cat",
       name: "Drinks"
@@ -165,6 +181,7 @@ describe("BE-CAT-002 products", () => {
     const created = await createProduct({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-prod-1",
       name: "Cola",
@@ -187,6 +204,7 @@ describe("BE-CAT-002 products", () => {
     const created = await createProduct({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-prod-iso",
       name: "Tenant A Product"
@@ -205,6 +223,7 @@ describe("BE-CAT-002 products", () => {
     const created = await createProduct({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-prod-ver",
       name: "Juice"
@@ -235,6 +254,7 @@ describe("BE-CAT-002 products", () => {
     const created = await createProduct({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-prod-arch",
       name: "Discontinued"
@@ -242,6 +262,7 @@ describe("BE-CAT-002 products", () => {
     const archived = await archiveProduct({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-prod-arch-op",
       productId: created.data.id
@@ -264,6 +285,7 @@ describe("BE-CAT-002 products", () => {
       createVariant({
         repo,
         tenantId: tenantA,
+        actorId: actorId,
         actorPermissions: writePerms,
         idempotencyKey: "idem-var-on-archived",
         productId: created.data.id,
@@ -279,6 +301,7 @@ describe("BE-CAT-002 variants", () => {
     const product = await createProduct({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-prod-for-variant",
       name: "T-Shirt"
@@ -286,6 +309,7 @@ describe("BE-CAT-002 variants", () => {
     const variant = await createVariant({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-var-1",
       productId: product.data.id,
@@ -305,6 +329,7 @@ describe("BE-CAT-002 variants", () => {
     const product = await createProduct({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-prod-sku",
       name: "Mug"
@@ -312,6 +337,7 @@ describe("BE-CAT-002 variants", () => {
     await createVariant({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-var-sku-1",
       productId: product.data.id,
@@ -322,6 +348,7 @@ describe("BE-CAT-002 variants", () => {
       createVariant({
         repo,
         tenantId: tenantA,
+        actorId: actorId,
         actorPermissions: writePerms,
         idempotencyKey: "idem-var-sku-2",
         productId: product.data.id,
@@ -335,6 +362,7 @@ describe("BE-CAT-002 variants", () => {
     const product = await createProduct({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-prod-money",
       name: "Bad Price"
@@ -343,6 +371,7 @@ describe("BE-CAT-002 variants", () => {
       createVariant({
         repo,
         tenantId: tenantA,
+        actorId: actorId,
         actorPermissions: writePerms,
         idempotencyKey: "idem-var-negative",
         productId: product.data.id,
@@ -364,6 +393,7 @@ describe("BE-CAT-002 variants", () => {
     const product = await createProduct({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-prod-var-lifecycle",
       name: "Cap"
@@ -371,6 +401,7 @@ describe("BE-CAT-002 variants", () => {
     const variant = await createVariant({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-var-lifecycle",
       productId: product.data.id,
@@ -392,6 +423,7 @@ describe("BE-CAT-002 variants", () => {
     const archived = await archiveVariant({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-var-lifecycle-archive",
       variantId: variant.data.id,
@@ -403,6 +435,7 @@ describe("BE-CAT-002 variants", () => {
     const reused = await createVariant({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "idem-var-reuse-sku",
       productId: product.data.id,
@@ -418,6 +451,7 @@ describe("BE-CAT-003 cost/price permission + history/audit", () => {
     const product = await createProduct({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: costWritePerms,
       idempotencyKey: "p-cost-1",
       name: "Widget"
@@ -425,8 +459,8 @@ describe("BE-CAT-003 cost/price permission + history/audit", () => {
     const variant = await createVariant({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: costWritePerms,
-      actorId,
       idempotencyKey: "v-cost-1",
       productId: product.data.id,
       sku: "W-1",
@@ -457,6 +491,7 @@ describe("BE-CAT-003 cost/price permission + history/audit", () => {
     const product = await createProduct({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "p-deny-cost",
       name: "No Cost"
@@ -465,8 +500,8 @@ describe("BE-CAT-003 cost/price permission + history/audit", () => {
       createVariant({
         repo,
         tenantId: tenantA,
+        actorId: actorId,
         actorPermissions: writePerms,
-        actorId,
         idempotencyKey: "v-deny-cost",
         productId: product.data.id,
         sku: "NC-1",
@@ -480,6 +515,7 @@ describe("BE-CAT-003 cost/price permission + history/audit", () => {
     const product = await createProduct({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: costWritePerms,
       idempotencyKey: "p-hist",
       name: "Hist"
@@ -487,8 +523,8 @@ describe("BE-CAT-003 cost/price permission + history/audit", () => {
     const variant = await createVariant({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: costWritePerms,
-      actorId,
       idempotencyKey: "v-hist",
       productId: product.data.id,
       sku: "H-1",
@@ -541,6 +577,7 @@ describe("BE-CAT-003 cost/price permission + history/audit", () => {
     const product = await createProduct({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
       idempotencyKey: "p-cost-deny",
       name: "X"
@@ -548,8 +585,8 @@ describe("BE-CAT-003 cost/price permission + history/audit", () => {
     const variant = await createVariant({
       repo,
       tenantId: tenantA,
+      actorId: actorId,
       actorPermissions: writePerms,
-      actorId,
       idempotencyKey: "v-cost-deny",
       productId: product.data.id,
       sku: "X-1",

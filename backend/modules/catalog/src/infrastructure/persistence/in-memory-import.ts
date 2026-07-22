@@ -123,6 +123,7 @@ export function createInMemoryImportApplyPort(catalog: CatalogRepository): Impor
       const product = await createProduct({
         repo: catalog,
         tenantId: args.tenantId,
+        actorId: generateUuidV7(),
         actorPermissions: ["catalog.write"],
         idempotencyKey: `import-product:${args.sku}`,
         name: args.name,
@@ -131,8 +132,8 @@ export function createInMemoryImportApplyPort(catalog: CatalogRepository): Impor
       const variant = await createVariant({
         repo: catalog,
         tenantId: args.tenantId,
-        actorPermissions: ["catalog.write"],
         actorId: generateUuidV7(),
+        actorPermissions: ["catalog.write"],
         idempotencyKey: `import-variant:${args.sku}`,
         productId: product.data.id,
         sku: args.sku,

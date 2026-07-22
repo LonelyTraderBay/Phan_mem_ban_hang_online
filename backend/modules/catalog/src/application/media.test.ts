@@ -9,6 +9,7 @@ import {
 import { InMemoryCatalogRepository } from "../infrastructure/persistence/in-memory-catalog.js";
 
 const tenantA = parseUuidV7("018f65fd-7c6a-7cc8-9f68-9f5f2c7b7c1b");
+const ACTOR = parseUuidV7("018f65fd-7c6a-7cc8-9f68-9f5f2c7b7c9b");
 const tenantB = parseUuidV7("018f65fd-7c6a-7cc8-9f68-9f5f2c7b7c2b");
 const writePerms = ["catalog.read", "catalog.write"];
 
@@ -18,6 +19,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
     const product = await createProduct({
       repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: writePerms,
       idempotencyKey: "p-media",
       name: "With Media"
@@ -25,6 +27,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
     await createVariant({
       repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: writePerms,
       idempotencyKey: "v-media",
       productId: product.data.id,
@@ -34,6 +37,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
     const intent = await createMediaUploadIntent({
       mediaRepo: repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: writePerms,
       idempotencyKey: "up-1",
       filename: "hero.png",
@@ -47,6 +51,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
     const attached = await attachProductMedia({
       mediaRepo: repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: writePerms,
       idempotencyKey: "att-1",
       productId: product.data.id,
@@ -74,6 +79,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
       createMediaUploadIntent({
         mediaRepo: repo,
         tenantId: tenantA,
+        actorId: ACTOR,
         actorPermissions: writePerms,
         idempotencyKey: "bad-mime",
         filename: "x.exe",
@@ -86,6 +92,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
       createMediaUploadIntent({
         mediaRepo: repo,
         tenantId: tenantA,
+        actorId: ACTOR,
         actorPermissions: writePerms,
         idempotencyKey: "too-big",
         filename: "big.png",
@@ -101,6 +108,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
       createMediaUploadIntent({
         mediaRepo: repo,
         tenantId: tenantA,
+        actorId: ACTOR,
         actorPermissions: ["catalog.read"],
         idempotencyKey: "deny",
         filename: "a.png",
@@ -112,6 +120,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
     const product = await createProduct({
       repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: writePerms,
       idempotencyKey: "p-iso",
       name: "A"
@@ -119,6 +128,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
     await createVariant({
       repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: writePerms,
       idempotencyKey: "v-iso",
       productId: product.data.id,
@@ -127,6 +137,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
     const intent = await createMediaUploadIntent({
       mediaRepo: repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: writePerms,
       idempotencyKey: "up-iso",
       filename: "a.png",
@@ -137,6 +148,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
       attachProductMedia({
         mediaRepo: repo,
         tenantId: tenantB,
+        actorId: ACTOR,
         actorPermissions: writePerms,
         idempotencyKey: "att-iso",
         productId: product.data.id,
@@ -151,6 +163,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
       createMediaUploadIntent({
         mediaRepo: repo,
         tenantId: tenantA,
+        actorId: ACTOR,
         actorPermissions: writePerms,
         filename: "a.png",
         contentType: "image/png",
@@ -161,6 +174,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
     const first = await createMediaUploadIntent({
       mediaRepo: repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: writePerms,
       idempotencyKey: "same-up",
       filename: "a.png",
@@ -170,6 +184,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
     const second = await createMediaUploadIntent({
       mediaRepo: repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: writePerms,
       idempotencyKey: "same-up",
       filename: "b.png",
@@ -184,6 +199,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
     const product = await createProduct({
       repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: writePerms,
       idempotencyKey: "p-novar",
       name: "Empty"
@@ -191,6 +207,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
     const intent = await createMediaUploadIntent({
       mediaRepo: repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: writePerms,
       idempotencyKey: "up-novar",
       filename: "a.png",
@@ -201,6 +218,7 @@ describe("BE-CAT-004 media upload/scan/signed URL", () => {
       attachProductMedia({
         mediaRepo: repo,
         tenantId: tenantA,
+        actorId: ACTOR,
         actorPermissions: writePerms,
         idempotencyKey: "att-novar",
         productId: product.data.id,

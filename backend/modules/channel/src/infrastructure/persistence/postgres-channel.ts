@@ -275,29 +275,20 @@ function toAttempt(row: AttemptRow): OutboundAttemptRecord {
   };
 }
 
-/** v1 process-local idempotency / oauth-tenant / webhook-dedupe — migrate when wired. */
+/**
+ * Channel Postgres adapter.
+ * HTTP idempotency is via PostgresIdempotencyStore at application layer
+ * (get/save below are no-ops kept for ChannelRepository interface / InMemory parity).
+ * OAuth tenant lookup + webhook dedupe remain process-local Maps.
+ */
 export class PostgresChannelRepository implements ChannelRepository {
   /** Maps OAuth state_token → tenant_id for consumeOAuthState (no tenant in args). */
   private readonly oauthTenantByStateToken = new Map<string, string>();
   /** Process-local webhook dedupe index (also covers tenantId-null events not stored in DB). */
   private readonly webhookDedupe = new Map<string, WebhookEventRecord>();
   private readonly localWebhooksById = new Map<string, WebhookEventRecord>();
-  /** v1 process-local idempotency — migrate to app.idempotency_records when wired. */
-  private readonly idempotentResources = new Map<string, ChannelAccountResource>();
-  private readonly idempotentConnectMeta = new Map<
-    string,
-    { readonly oauth_url: string; readonly state: string }
-  >();
-  private readonly idempotentJobs = new Map<
-    string,
-    { readonly job_id: string; readonly status: JobResponseStatus; readonly status_url: string | null }
-  >();
 
   constructor(private readonly db: AppDatabase) {}
-
-  private idemKey(tenantId: string, key: string): string {
-    return `${tenantId}:${key}`;
-  }
 
   private indexWebhook(record: WebhookEventRecord): void {
     this.webhookDedupe.set(
@@ -957,55 +948,55 @@ export class PostgresChannelRepository implements ChannelRepository {
   }
 
   async getIdempotentResource(
-    tenantId: string,
-    key: string
+    _tenantId: string,
+    _key: string
   ): Promise<ChannelAccountResource | null> {
-    return this.idempotentResources.get(this.idemKey(tenantId, key)) ?? null;
+    return null;
   }
 
   async saveIdempotentResource(
-    tenantId: string,
-    key: string,
-    resource: ChannelAccountResource
+    _tenantId: string,
+    _key: string,
+    _resource: ChannelAccountResource
   ): Promise<void> {
-    this.idempotentResources.set(this.idemKey(tenantId, key), resource);
+    /* no-op — use IdempotencyStore */
   }
 
   async getIdempotentConnectMeta(
-    tenantId: string,
-    key: string
+    _tenantId: string,
+    _key: string
   ): Promise<{ readonly oauth_url: string; readonly state: string } | null> {
-    return this.idempotentConnectMeta.get(this.idemKey(tenantId, key)) ?? null;
+    return null;
   }
 
   async saveIdempotentConnectMeta(
-    tenantId: string,
-    key: string,
-    meta: { readonly oauth_url: string; readonly state: string }
+    _tenantId: string,
+    _key: string,
+    _meta: { readonly oauth_url: string; readonly state: string }
   ): Promise<void> {
-    this.idempotentConnectMeta.set(this.idemKey(tenantId, key), meta);
+    /* no-op — use IdempotencyStore */
   }
 
   async getIdempotentJobResponse(
-    tenantId: string,
-    key: string
+    _tenantId: string,
+    _key: string
   ): Promise<{
     readonly job_id: string;
     readonly status: JobResponseStatus;
     readonly status_url: string | null;
   } | null> {
-    return this.idempotentJobs.get(this.idemKey(tenantId, key)) ?? null;
+    return null;
   }
 
   async saveIdempotentJobResponse(
-    tenantId: string,
-    key: string,
-    response: {
+    _tenantId: string,
+    _key: string,
+    _response: {
       readonly job_id: string;
       readonly status: JobResponseStatus;
       readonly status_url: string | null;
     }
   ): Promise<void> {
-    this.idempotentJobs.set(this.idemKey(tenantId, key), response);
+    /* no-op — use IdempotencyStore */
   }
 }

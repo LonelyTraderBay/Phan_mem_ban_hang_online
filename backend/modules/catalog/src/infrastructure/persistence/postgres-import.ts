@@ -94,15 +94,13 @@ type JobResponse = {
   readonly status_url: string | null;
 };
 
-/** v1 process-local idempotency — migrate to app.idempotency_records when wired. */
+/**
+ * Import Postgres adapter.
+ * HTTP idempotency is via PostgresIdempotencyStore at application layer
+ * (get/save below are no-ops kept for ImportRepository interface / InMemory parity).
+ */
 export class PostgresImportRepository implements ImportRepository {
-  private readonly idempotency = new Map<string, JobResponse>();
-
   constructor(private readonly db: AppDatabase) {}
-
-  private idemKey(tenantId: string, key: string): string {
-    return `${tenantId}:${key}`;
-  }
 
   async createJob(args: {
     readonly tenantId: string;
@@ -236,15 +234,15 @@ export class PostgresImportRepository implements ImportRepository {
     });
   }
 
-  async getIdempotentJobResponse(tenantId: string, key: string): Promise<JobResponse | null> {
-    return this.idempotency.get(this.idemKey(tenantId, key)) ?? null;
+  async getIdempotentJobResponse(_tenantId: string, _key: string): Promise<JobResponse | null> {
+    return null;
   }
 
   async saveIdempotentJobResponse(
-    tenantId: string,
-    key: string,
-    response: JobResponse
+    _tenantId: string,
+    _key: string,
+    _response: JobResponse
   ): Promise<void> {
-    this.idempotency.set(this.idemKey(tenantId, key), response);
+    /* no-op — use IdempotencyStore */
   }
 }

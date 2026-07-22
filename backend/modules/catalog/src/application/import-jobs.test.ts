@@ -19,6 +19,7 @@ import {
 import { listVariants } from "./catalog.js";
 
 const tenantA = parseUuidV7("018f65fd-7c6a-7cc8-9f68-9f5f2c7b7c1b");
+const ACTOR = parseUuidV7("018f65fd-7c6a-7cc8-9f68-9f5f2c7b7c9b");
 const importPerms = ["catalog.import", "catalog.read", "catalog.write"];
 
 describe("BE-IMP-001 import job/staging", () => {
@@ -27,6 +28,7 @@ describe("BE-IMP-001 import job/staging", () => {
     const created = await createImportJob({
       repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: importPerms,
       idempotencyKey: "imp-1",
       sourceType: "csv"
@@ -49,6 +51,7 @@ describe("BE-IMP-001 import job/staging", () => {
       createImportJob({
         repo,
         tenantId: tenantA,
+        actorId: ACTOR,
         actorPermissions: ["catalog.write"],
         idempotencyKey: "x",
         sourceType: "csv"
@@ -58,6 +61,7 @@ describe("BE-IMP-001 import job/staging", () => {
       createImportJob({
         repo,
         tenantId: tenantA,
+        actorId: ACTOR,
         actorPermissions: importPerms,
         sourceType: "csv"
       })
@@ -71,6 +75,7 @@ describe("BE-IMP-002 analyze/parse", () => {
     const created = await createImportJob({
       repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: importPerms,
       idempotencyKey: "a1",
       sourceType: "csv"
@@ -78,6 +83,7 @@ describe("BE-IMP-002 analyze/parse", () => {
     const analyzed = await analyzeImport({
       repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: importPerms,
       idempotencyKey: "an1",
       jobId: created.data.job_id
@@ -94,6 +100,7 @@ describe("BE-IMP-002 analyze/parse", () => {
     const created = await createImportJob({
       repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: importPerms,
       idempotencyKey: "bad",
       sourceType: "csv"
@@ -102,6 +109,7 @@ describe("BE-IMP-002 analyze/parse", () => {
       analyzeImport({
         repo,
         tenantId: tenantA,
+        actorId: ACTOR,
         actorPermissions: importPerms,
         idempotencyKey: "bad-an",
         jobId: created.data.job_id,
@@ -117,6 +125,7 @@ describe("BE-IMP-003 preview/mapping/errors", () => {
     const created = await createImportJob({
       repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: importPerms,
       idempotencyKey: "p1",
       sourceType: "csv"
@@ -124,6 +133,7 @@ describe("BE-IMP-003 preview/mapping/errors", () => {
     await analyzeImport({
       repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: importPerms,
       idempotencyKey: "pan",
       jobId: created.data.job_id,
@@ -166,6 +176,7 @@ describe("BE-IMP-004 confirm/apply", () => {
     const created = await createImportJob({
       repo: importRepo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: importPerms,
       idempotencyKey: "c1",
       sourceType: "csv"
@@ -173,6 +184,7 @@ describe("BE-IMP-004 confirm/apply", () => {
     await analyzeImport({
       repo: importRepo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: importPerms,
       idempotencyKey: "can",
       jobId: created.data.job_id,
@@ -188,6 +200,7 @@ describe("BE-IMP-004 confirm/apply", () => {
       repo: importRepo,
       applyPort,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: importPerms,
       idempotencyKey: "confirm-1",
       jobId: created.data.job_id
@@ -204,6 +217,7 @@ describe("BE-IMP-004 confirm/apply", () => {
       repo: importRepo,
       applyPort,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: importPerms,
       idempotencyKey: "confirm-1",
       jobId: created.data.job_id
@@ -217,6 +231,7 @@ describe("BE-IMP-004 confirm/apply", () => {
     const created = await createImportJob({
       repo: importRepo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: importPerms,
       idempotencyKey: "cerr",
       sourceType: "csv"
@@ -224,6 +239,7 @@ describe("BE-IMP-004 confirm/apply", () => {
     await analyzeImport({
       repo: importRepo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: importPerms,
       idempotencyKey: "cerr-an",
       jobId: created.data.job_id,
@@ -240,6 +256,7 @@ describe("BE-IMP-004 confirm/apply", () => {
         repo: importRepo,
         applyPort: createInMemoryImportApplyPort(catalog),
         tenantId: tenantA,
+        actorId: ACTOR,
         actorPermissions: importPerms,
         idempotencyKey: "cerr-c",
         jobId: created.data.job_id
@@ -254,6 +271,7 @@ describe("BE-IMP-005 cancel/metrics", () => {
     const created = await createImportJob({
       repo,
       tenantId: tenantA,
+      actorId: ACTOR,
       actorPermissions: importPerms,
       idempotencyKey: "z1",
       sourceType: "csv"

@@ -16,6 +16,7 @@ import {
 } from "@nestjs/common";
 import type { FastifyRequest } from "fastify";
 import { DomainInvariantError, parseUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { MissingSecurityContextError } from "@ai-sales/security";
 import type { ChannelProviderAdapter } from "../../domain/adapter.js";
 import {
@@ -104,6 +105,7 @@ export function createChannelController(options: {
   readonly adapter: ChannelProviderAdapter;
   readonly webhookSecretRef?: string;
   readonly outboundSecretRef?: string;
+  readonly idempotency?: IdempotencyStore;
 }) {
   const secretRef = options.webhookSecretRef ?? "stub-webhook-secret";
   const outboundSecretRef = options.outboundSecretRef ?? "stub-outbound-secret";
@@ -139,6 +141,7 @@ export function createChannelController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           provider,
           displayName: body?.display_name ?? null,
           oauthReturnPath: body?.oauth_return_path ?? null
@@ -197,6 +200,7 @@ export function createChannelController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           accountId
         });
       } catch (error) {
@@ -214,6 +218,7 @@ export function createChannelController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           accountId
         });
       } catch (error) {
@@ -287,8 +292,10 @@ export function createChannelController(options: {
           repo: options.repo,
           adapter: options.adapter,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           eventId
         });
       } catch (error) {
@@ -323,6 +330,7 @@ export function createChannelController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key") ?? null,
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           messageId,
           secretRef: outboundSecretRef,
           externalThreadId: "thread-stub"
