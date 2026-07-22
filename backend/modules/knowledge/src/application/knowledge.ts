@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { generateUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
+import { runKnowledgeIdempotent } from "./knowledge-idempotency.js";
 
 /**
  * BE-KNW-001…006 — Knowledge application layer (sources, versions, ingestion stubs,
@@ -268,38 +270,63 @@ function versionToResource(version: KnowledgeVersionRecord): KnowledgeResource {
   };
 }
 
-async function withIdempotency(
-  repo: KnowledgeRepository,
-  tenantId: string,
-  idempotencyKey: string | null | undefined,
-  run: () => Promise<KnowledgeResource>
-): Promise<KnowledgeResource> {
-  const key = idempotencyKey?.trim();
+type JobIdempotencyResult = {
+  readonly job_id: string;
+  readonly status: JobResponseStatus;
+  readonly status_url: string | null;
+};
+
+async function withIdempotency(options: {
+  readonly repo: KnowledgeRepository;
+  readonly tenantId: string;
+  readonly actorId: string;
+  readonly scope: string;
+  readonly idempotencyKey: string | null | undefined;
+  readonly idempotency?: IdempotencyStore;
+  readonly run: () => Promise<KnowledgeResource>;
+}): Promise<KnowledgeResource> {
+  const key = options.idempotencyKey?.trim();
   if (!key) {
     throw new KnowledgeError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const cached = await repo.getIdempotentResource(tenantId, key);
-  if (cached) return cached;
-  const result = await run();
-  await repo.saveIdempotentResource(tenantId, key, result);
-  return result;
+  return runKnowledgeIdempotent({
+    idempotency: options.idempotency,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: options.scope,
+    key,
+    loadCached: () => options.repo.getIdempotentResource(options.tenantId, key),
+    rememberCached: (resource) => options.repo.saveIdempotentResource(options.tenantId, key, resource),
+    execute: options.run,
+    resourceId: (resource) => resource.id
+  });
 }
 
-async function withJobIdempotency(
-  repo: KnowledgeRepository,
-  tenantId: string,
-  idempotencyKey: string | null | undefined,
-  run: () => Promise<{ readonly job_id: string; readonly status: JobResponseStatus; readonly status_url: string | null }>
-): Promise<{ readonly job_id: string; readonly status: JobResponseStatus; readonly status_url: string | null }> {
-  const key = idempotencyKey?.trim();
+async function withJobIdempotency(options: {
+  readonly repo: KnowledgeRepository;
+  readonly tenantId: string;
+  readonly actorId: string;
+  readonly scope: string;
+  readonly idempotencyKey: string | null | undefined;
+  readonly idempotency?: IdempotencyStore;
+  readonly run: () => Promise<JobIdempotencyResult>;
+}): Promise<JobIdempotencyResult> {
+  const key = options.idempotencyKey?.trim();
   if (!key) {
     throw new KnowledgeError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
-  const cached = await repo.getIdempotentJobResponse(tenantId, key);
-  if (cached) return cached;
-  const result = await run();
-  await repo.saveIdempotentJobResponse(tenantId, key, result);
-  return result;
+  return runKnowledgeIdempotent({
+    idempotency: options.idempotency,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: options.scope,
+    key,
+    loadCached: () => options.repo.getIdempotentJobResponse(options.tenantId, key),
+    rememberCached: (response) =>
+      options.repo.saveIdempotentJobResponse(options.tenantId, key, response),
+    execute: options.run,
+    resourceId: (response) => response.job_id
+  });
 }
 
 function assertTransition(from: KnowledgeStatus, to: KnowledgeStatus): void {
@@ -519,28 +546,37 @@ export async function createKnowledgeSource(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly name: string;
   readonly type: KnowledgeSourceType;
   readonly uri?: string | null;
 }): Promise<{ readonly data: KnowledgeResource; readonly meta: Record<string, never> }> {
   requireKnowledgePermission(options.actorPermissions, "knowledge.write");
-  const data = await withIdempotency(options.repo, options.tenantId, options.idempotencyKey, async () => {
-    const name = options.name?.trim() ?? "";
-    if (!name || name.length > 300) {
-      throw new KnowledgeError("Invalid source name.", "VALIDATION_FAILED");
+  const data = await withIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "knowledge.source.create",
+    idempotencyKey: options.idempotencyKey,
+    ...(options.idempotency ? { idempotency: options.idempotency } : {}),
+    run: async () => {
+      const name = options.name?.trim() ?? "";
+      if (!name || name.length > 300) {
+        throw new KnowledgeError("Invalid source name.", "VALIDATION_FAILED");
+      }
+      if (options.type === "url" && !options.uri?.trim()) {
+        throw new KnowledgeError("uri is required for url sources.", "VALIDATION_FAILED");
+      }
+      const source = await options.repo.createSource({
+        tenantId: options.tenantId,
+        sourceId: generateUuidV7(),
+        name,
+        sourceType: options.type,
+        uri: options.uri?.trim() ?? null,
+        actorId: options.actorId
+      });
+      return sourceToResource(source);
     }
-    if (options.type === "url" && !options.uri?.trim()) {
-      throw new KnowledgeError("uri is required for url sources.", "VALIDATION_FAILED");
-    }
-    const source = await options.repo.createSource({
-      tenantId: options.tenantId,
-      sourceId: generateUuidV7(),
-      name,
-      sourceType: options.type,
-      uri: options.uri?.trim() ?? null,
-      actorId: options.actorId
-    });
-    return sourceToResource(source);
   });
   return { data, meta: {} };
 }
@@ -569,32 +605,41 @@ export async function createKnowledgeVersion(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly sourceId: string;
   readonly title: string;
   readonly bodyMarkdown?: string | null;
 }): Promise<{ readonly data: KnowledgeResource; readonly meta: Record<string, never> }> {
   requireKnowledgePermission(options.actorPermissions, "knowledge.write");
-  const data = await withIdempotency(options.repo, options.tenantId, options.idempotencyKey, async () => {
-    const title = options.title?.trim() ?? "";
-    if (!title || title.length > 500) {
-      throw new KnowledgeError("Invalid version title.", "VALIDATION_FAILED");
+  const data = await withIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "knowledge.version.create",
+    idempotencyKey: options.idempotencyKey,
+    ...(options.idempotency ? { idempotency: options.idempotency } : {}),
+    run: async () => {
+      const title = options.title?.trim() ?? "";
+      if (!title || title.length > 500) {
+        throw new KnowledgeError("Invalid version title.", "VALIDATION_FAILED");
+      }
+      if (options.bodyMarkdown != null && options.bodyMarkdown.length > 200000) {
+        throw new KnowledgeError("body_markdown too long.", "VALIDATION_FAILED");
+      }
+      const source = await options.repo.getSource({ tenantId: options.tenantId, sourceId: options.sourceId });
+      if (!source) {
+        throw new KnowledgeError("Source not found.", "RESOURCE_NOT_FOUND");
+      }
+      const version = await options.repo.createVersion({
+        tenantId: options.tenantId,
+        versionId: generateUuidV7(),
+        sourceId: options.sourceId,
+        title,
+        bodyMarkdown: options.bodyMarkdown ?? null,
+        actorId: options.actorId
+      });
+      return versionToResource(version);
     }
-    if (options.bodyMarkdown != null && options.bodyMarkdown.length > 200000) {
-      throw new KnowledgeError("body_markdown too long.", "VALIDATION_FAILED");
-    }
-    const source = await options.repo.getSource({ tenantId: options.tenantId, sourceId: options.sourceId });
-    if (!source) {
-      throw new KnowledgeError("Source not found.", "RESOURCE_NOT_FOUND");
-    }
-    const version = await options.repo.createVersion({
-      tenantId: options.tenantId,
-      versionId: generateUuidV7(),
-      sourceId: options.sourceId,
-      title,
-      bodyMarkdown: options.bodyMarkdown ?? null,
-      actorId: options.actorId
-    });
-    return versionToResource(version);
   });
   return { data, meta: {} };
 }
@@ -637,37 +682,46 @@ export async function submitKnowledgeReview(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly versionId: string;
 }): Promise<{ readonly data: KnowledgeResource; readonly meta: Record<string, never> }> {
   requireKnowledgePermission(options.actorPermissions, "knowledge.write");
-  const data = await withIdempotency(options.repo, options.tenantId, options.idempotencyKey, async () => {
-    const current = await options.repo.getVersion({ tenantId: options.tenantId, versionId: options.versionId });
-    if (!current) {
-      throw new KnowledgeError("Version not found.", "RESOURCE_NOT_FOUND");
+  const data = await withIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "knowledge.version.submit_review",
+    idempotencyKey: options.idempotencyKey,
+    ...(options.idempotency ? { idempotency: options.idempotency } : {}),
+    run: async () => {
+      const current = await options.repo.getVersion({ tenantId: options.tenantId, versionId: options.versionId });
+      if (!current) {
+        throw new KnowledgeError("Version not found.", "RESOURCE_NOT_FOUND");
+      }
+      assertTransition(current.status, "in_review");
+      const source = await options.repo.getSource({ tenantId: options.tenantId, sourceId: current.sourceId });
+      if (!source) {
+        throw new KnowledgeError("Source not found.", "RESOURCE_NOT_FOUND");
+      }
+      const extracted = extractContentStub({
+        sourceType: source.sourceType,
+        uri: source.uri,
+        bodyMarkdown: current.bodyMarkdown
+      });
+      if (!extracted.trim()) {
+        throw new KnowledgeError("Content is required before review.", "VALIDATION_FAILED");
+      }
+      const checksum = computeContentChecksum(extracted);
+      const updated = await options.repo.transitionVersion({
+        tenantId: options.tenantId,
+        versionId: options.versionId,
+        expectedVersion: current.version,
+        toStatus: "in_review",
+        actorId: options.actorId,
+        contentChecksum: checksum
+      });
+      return versionToResource(updated);
     }
-    assertTransition(current.status, "in_review");
-    const source = await options.repo.getSource({ tenantId: options.tenantId, sourceId: current.sourceId });
-    if (!source) {
-      throw new KnowledgeError("Source not found.", "RESOURCE_NOT_FOUND");
-    }
-    const extracted = extractContentStub({
-      sourceType: source.sourceType,
-      uri: source.uri,
-      bodyMarkdown: current.bodyMarkdown
-    });
-    if (!extracted.trim()) {
-      throw new KnowledgeError("Content is required before review.", "VALIDATION_FAILED");
-    }
-    const checksum = computeContentChecksum(extracted);
-    const updated = await options.repo.transitionVersion({
-      tenantId: options.tenantId,
-      versionId: options.versionId,
-      expectedVersion: current.version,
-      toStatus: "in_review",
-      actorId: options.actorId,
-      contentChecksum: checksum
-    });
-    return versionToResource(updated);
   });
   return { data, meta: {} };
 }
@@ -678,27 +732,36 @@ export async function approveKnowledgeVersion(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly versionId: string;
 }): Promise<{ readonly data: KnowledgeResource; readonly meta: Record<string, never> }> {
   requireKnowledgePermission(options.actorPermissions, "knowledge.approve");
-  const data = await withIdempotency(options.repo, options.tenantId, options.idempotencyKey, async () => {
-    const current = await options.repo.getVersion({ tenantId: options.tenantId, versionId: options.versionId });
-    if (!current) {
-      throw new KnowledgeError("Version not found.", "RESOURCE_NOT_FOUND");
+  const data = await withIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "knowledge.version.approve",
+    idempotencyKey: options.idempotencyKey,
+    ...(options.idempotency ? { idempotency: options.idempotency } : {}),
+    run: async () => {
+      const current = await options.repo.getVersion({ tenantId: options.tenantId, versionId: options.versionId });
+      if (!current) {
+        throw new KnowledgeError("Version not found.", "RESOURCE_NOT_FOUND");
+      }
+      assertTransition(current.status, "approved");
+      if (!current.contentChecksum) {
+        throw new KnowledgeError("Content checksum missing; submit review first.", "VALIDATION_FAILED");
+      }
+      const updated = await options.repo.transitionVersion({
+        tenantId: options.tenantId,
+        versionId: options.versionId,
+        expectedVersion: current.version,
+        toStatus: "approved",
+        actorId: options.actorId,
+        approvedBy: options.actorId
+      });
+      return versionToResource(updated);
     }
-    assertTransition(current.status, "approved");
-    if (!current.contentChecksum) {
-      throw new KnowledgeError("Content checksum missing; submit review first.", "VALIDATION_FAILED");
-    }
-    const updated = await options.repo.transitionVersion({
-      tenantId: options.tenantId,
-      versionId: options.versionId,
-      expectedVersion: current.version,
-      toStatus: "approved",
-      actorId: options.actorId,
-      approvedBy: options.actorId
-    });
-    return versionToResource(updated);
   });
   return { data, meta: {} };
 }
@@ -709,59 +772,68 @@ export async function publishKnowledgeVersion(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly versionId: string;
 }): Promise<{
   readonly data: { readonly job_id: string; readonly status: JobResponseStatus; readonly status_url: string | null };
   readonly meta: Record<string, never>;
 }> {
   requireKnowledgePermission(options.actorPermissions, "knowledge.publish");
-  const data = await withJobIdempotency(options.repo, options.tenantId, options.idempotencyKey, async () => {
-    const current = await options.repo.getVersion({ tenantId: options.tenantId, versionId: options.versionId });
-    if (!current) {
-      throw new KnowledgeError("Version not found.", "RESOURCE_NOT_FOUND");
+  const data = await withJobIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "knowledge.publish",
+    idempotencyKey: options.idempotencyKey,
+    ...(options.idempotency ? { idempotency: options.idempotency } : {}),
+    run: async () => {
+      const current = await options.repo.getVersion({ tenantId: options.tenantId, versionId: options.versionId });
+      if (!current) {
+        throw new KnowledgeError("Version not found.", "RESOURCE_NOT_FOUND");
+      }
+      assertTransition(current.status, "published");
+      const source = await options.repo.getSource({ tenantId: options.tenantId, sourceId: current.sourceId });
+      if (!source) {
+        throw new KnowledgeError("Source not found.", "RESOURCE_NOT_FOUND");
+      }
+      await options.repo.archivePreviousPublished({
+        tenantId: options.tenantId,
+        sourceId: current.sourceId,
+        exceptVersionId: current.id,
+        actorId: options.actorId
+      });
+      const effectiveFrom = new Date().toISOString();
+      await options.repo.transitionVersion({
+        tenantId: options.tenantId,
+        versionId: options.versionId,
+        expectedVersion: current.version,
+        toStatus: "published",
+        actorId: options.actorId,
+        publishedBy: options.actorId,
+        effectiveFrom
+      });
+      await options.repo.setIngestionState({
+        tenantId: options.tenantId,
+        versionId: options.versionId,
+        ingestionStatus: "queued"
+      });
+      const jobId = generateUuidV7();
+      void runIngestionPipeline({
+        repo: options.repo,
+        tenantId: options.tenantId,
+        versionId: options.versionId,
+        sourceType: source.sourceType,
+        uri: source.uri,
+        bodyMarkdown: current.bodyMarkdown,
+        effectiveFrom,
+        effectiveTo: null
+      });
+      return {
+        job_id: jobId,
+        status: "queued" as const,
+        status_url: `/api/v1/knowledge/versions/${options.versionId}/ingestion`
+      };
     }
-    assertTransition(current.status, "published");
-    const source = await options.repo.getSource({ tenantId: options.tenantId, sourceId: current.sourceId });
-    if (!source) {
-      throw new KnowledgeError("Source not found.", "RESOURCE_NOT_FOUND");
-    }
-    await options.repo.archivePreviousPublished({
-      tenantId: options.tenantId,
-      sourceId: current.sourceId,
-      exceptVersionId: current.id,
-      actorId: options.actorId
-    });
-    const effectiveFrom = new Date().toISOString();
-    await options.repo.transitionVersion({
-      tenantId: options.tenantId,
-      versionId: options.versionId,
-      expectedVersion: current.version,
-      toStatus: "published",
-      actorId: options.actorId,
-      publishedBy: options.actorId,
-      effectiveFrom
-    });
-    await options.repo.setIngestionState({
-      tenantId: options.tenantId,
-      versionId: options.versionId,
-      ingestionStatus: "queued"
-    });
-    const jobId = generateUuidV7();
-    void runIngestionPipeline({
-      repo: options.repo,
-      tenantId: options.tenantId,
-      versionId: options.versionId,
-      sourceType: source.sourceType,
-      uri: source.uri,
-      bodyMarkdown: current.bodyMarkdown,
-      effectiveFrom,
-      effectiveTo: null
-    });
-    return {
-      job_id: jobId,
-      status: "queued" as const,
-      status_url: `/api/v1/knowledge/versions/${options.versionId}/ingestion`
-    };
   });
   return { data, meta: {} };
 }
@@ -772,23 +844,32 @@ export async function archiveKnowledgeVersion(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey?: string | null;
+  readonly idempotency?: IdempotencyStore;
   readonly versionId: string;
 }): Promise<{ readonly data: KnowledgeResource; readonly meta: Record<string, never> }> {
   requireKnowledgePermission(options.actorPermissions, "knowledge.publish");
-  const data = await withIdempotency(options.repo, options.tenantId, options.idempotencyKey, async () => {
-    const current = await options.repo.getVersion({ tenantId: options.tenantId, versionId: options.versionId });
-    if (!current) {
-      throw new KnowledgeError("Version not found.", "RESOURCE_NOT_FOUND");
+  const data = await withIdempotency({
+    repo: options.repo,
+    tenantId: options.tenantId,
+    actorId: options.actorId,
+    scope: "knowledge.version.archive",
+    idempotencyKey: options.idempotencyKey,
+    ...(options.idempotency ? { idempotency: options.idempotency } : {}),
+    run: async () => {
+      const current = await options.repo.getVersion({ tenantId: options.tenantId, versionId: options.versionId });
+      if (!current) {
+        throw new KnowledgeError("Version not found.", "RESOURCE_NOT_FOUND");
+      }
+      assertTransition(current.status, "archived");
+      const updated = await options.repo.transitionVersion({
+        tenantId: options.tenantId,
+        versionId: options.versionId,
+        expectedVersion: current.version,
+        toStatus: "archived",
+        actorId: options.actorId
+      });
+      return versionToResource(updated);
     }
-    assertTransition(current.status, "archived");
-    const updated = await options.repo.transitionVersion({
-      tenantId: options.tenantId,
-      versionId: options.versionId,
-      expectedVersion: current.version,
-      toStatus: "archived",
-      actorId: options.actorId
-    });
-    return versionToResource(updated);
   });
   return { data, meta: {} };
 }

@@ -109,15 +109,41 @@ function toVariantResource(v: VariantRow): CatalogResource {
   };
 }
 
+type MediaUploadIntentRow = {
+  id: string;
+  tenant_id: string;
+  filename: string;
+  content_type: string;
+  byte_size: string | number;
+  object_key: string;
+  upload_url: string;
+  expires_at: Date;
+  bytes_received: boolean;
+  created_at: Date;
+};
+
+function toMediaUploadRecord(row: MediaUploadIntentRow): MediaUploadRecord {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    filename: row.filename,
+    contentType: row.content_type,
+    byteSize: Number(row.byte_size),
+    objectKey: row.object_key,
+    uploadUrl: row.upload_url,
+    expiresAt: row.expires_at.toISOString(),
+    bytesReceived: row.bytes_received,
+    createdAt: row.created_at.toISOString()
+  };
+}
+
 /**
  * Catalog Postgres adapter.
  * HTTP idempotency is via PostgresIdempotencyStore at application layer
  * (get/save below are no-ops kept for CatalogRepository interface / InMemory parity).
- * Media upload intents remain process-local until an uploads table exists.
+ * Media upload intents persist to app.media_upload_intents (000028).
  */
 export class PostgresCatalogRepository implements CatalogRepository, MediaRepository {
-  private readonly uploads = new Map<string, MediaUploadRecord & { bytesReceived: boolean }>();
-
   constructor(private readonly db: AppDatabase) {}
 
   async getIdempotentResult(_tenantId: string, _key: string): Promise<CatalogResource | null> {
@@ -816,7 +842,7 @@ export class PostgresCatalogRepository implements CatalogRepository, MediaReposi
   }
 
   // -------------------------------------------------------------------------
-  // Media (process-local upload intents; product_media persisted)
+  // Media (upload intents + product_media persisted)
   // -------------------------------------------------------------------------
 
   async createUploadIntent(args: {
@@ -829,41 +855,66 @@ export class PostgresCatalogRepository implements CatalogRepository, MediaReposi
     readonly uploadUrl: string;
     readonly expiresAt: string;
   }): Promise<MediaUploadRecord> {
-    const record: MediaUploadRecord & { bytesReceived: boolean } = {
-      id: args.uploadId,
-      tenantId: args.tenantId,
-      filename: args.filename,
-      contentType: args.contentType,
-      byteSize: args.byteSize,
-      objectKey: args.objectKey,
-      uploadUrl: args.uploadUrl,
-      expiresAt: args.expiresAt,
-      bytesReceived: false,
-      createdAt: new Date().toISOString()
-    };
-    this.uploads.set(args.uploadId, record);
-    return record;
+    const ctx = adapterSecurityContext(args.tenantId);
+    return withTenantTransaction(this.db, ctx, async (trx) => {
+      const inserted = await sql<MediaUploadIntentRow>`
+        insert into app.media_upload_intents (
+          id, tenant_id, filename, content_type, byte_size,
+          object_key, upload_url, expires_at, bytes_received
+        ) values (
+          ${args.uploadId}::uuid,
+          ${args.tenantId}::uuid,
+          ${args.filename},
+          ${args.contentType},
+          ${args.byteSize},
+          ${args.objectKey},
+          ${args.uploadUrl},
+          ${args.expiresAt}::timestamptz,
+          false
+        )
+        returning id, tenant_id, filename, content_type, byte_size,
+                  object_key, upload_url, expires_at, bytes_received, created_at
+      `.execute(trx);
+      return toMediaUploadRecord(inserted.rows[0]!);
+    });
   }
 
   async getUploadIntent(args: {
     readonly tenantId: string;
     readonly uploadId: string;
   }): Promise<MediaUploadRecord | null> {
-    const row = this.uploads.get(args.uploadId);
-    if (!row || row.tenantId !== args.tenantId) return null;
-    return row;
+    const ctx = adapterSecurityContext(args.tenantId);
+    return withTenantTransaction(this.db, ctx, async (trx) => {
+      const result = await sql<MediaUploadIntentRow>`
+        select id, tenant_id, filename, content_type, byte_size,
+               object_key, upload_url, expires_at, bytes_received, created_at
+        from app.media_upload_intents
+        where id = ${args.uploadId}::uuid and tenant_id = ${args.tenantId}::uuid
+      `.execute(trx);
+      const row = result.rows[0];
+      return row ? toMediaUploadRecord(row) : null;
+    });
   }
 
   async markUploadBytesReceived(args: {
     readonly tenantId: string;
     readonly uploadId: string;
   }): Promise<MediaUploadRecord> {
-    const row = this.uploads.get(args.uploadId);
-    if (!row || row.tenantId !== args.tenantId) {
-      throw new CatalogError("Upload intent not found.", "RESOURCE_NOT_FOUND");
-    }
-    row.bytesReceived = true;
-    return row;
+    const ctx = adapterSecurityContext(args.tenantId);
+    return withTenantTransaction(this.db, ctx, async (trx) => {
+      const updated = await sql<MediaUploadIntentRow>`
+        update app.media_upload_intents
+        set bytes_received = true, updated_at = now()
+        where id = ${args.uploadId}::uuid and tenant_id = ${args.tenantId}::uuid
+        returning id, tenant_id, filename, content_type, byte_size,
+                  object_key, upload_url, expires_at, bytes_received, created_at
+      `.execute(trx);
+      const row = updated.rows[0];
+      if (!row) {
+        throw new CatalogError("Upload intent not found.", "RESOURCE_NOT_FOUND");
+      }
+      return toMediaUploadRecord(row);
+    });
   }
 
   async findFirstActiveVariantId(args: {

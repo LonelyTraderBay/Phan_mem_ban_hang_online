@@ -8,6 +8,7 @@
     "@ai-sales/auth-context": "workspace:*",
     "@ai-sales/database": "workspace:*",
     "@ai-sales/domain-kernel": "workspace:*",
+    "@ai-sales/idempotency": "workspace:*",
     "@ai-sales/security": "workspace:*",
     "kysely": "0.29.4",
     "@nestjs/common": "11.1.28",

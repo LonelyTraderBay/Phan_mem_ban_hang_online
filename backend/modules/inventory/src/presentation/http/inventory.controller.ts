@@ -16,6 +16,7 @@ import {
 } from "@nestjs/common";
 import type { FastifyReply } from "fastify";
 import { DomainInvariantError, parseUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { MissingSecurityContextError } from "@ai-sales/security";
 import {
   convertInventoryReservation,
@@ -110,7 +111,10 @@ function mapInventoryError(error: unknown): never {
   throw error;
 }
 
-export function createInventoryController(options: { readonly repo: InventoryRepository }) {
+export function createInventoryController(options: {
+  readonly repo: InventoryRepository;
+  readonly idempotency?: IdempotencyStore;
+}) {
   @Controller("api/v1")
   class InventoryController {
     @Get("warehouses")
@@ -142,6 +146,7 @@ export function createInventoryController(options: { readonly repo: InventoryRep
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           name: body?.name ?? "",
           code: body?.code ?? "",
           ...(body?.address !== undefined ? { address: body.address } : {})
@@ -227,6 +232,7 @@ export function createInventoryController(options: { readonly repo: InventoryRep
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           warehouseId: body?.warehouse_id ?? "",
           variantId: body?.variant_id ?? "",
           quantityDelta: body?.quantity_delta ?? "",
@@ -275,6 +281,7 @@ export function createInventoryController(options: { readonly repo: InventoryRep
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           ownerType: body?.owner?.type ?? "manual",
           ownerId: body?.owner?.id ?? "",
           expiresAt: body?.expires_at ?? "",
@@ -319,7 +326,8 @@ export function createInventoryController(options: { readonly repo: InventoryRep
           reservationId,
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {})
         });
       } catch (error) {
         mapInventoryError(error);
@@ -341,6 +349,7 @@ export function createInventoryController(options: { readonly repo: InventoryRep
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           expiresAt: body?.expires_at ?? "",
           expectedVersion: body?.expected_version ?? resolveExpectedVersion(headers, undefined)
         });
@@ -364,7 +373,8 @@ export function createInventoryController(options: { readonly repo: InventoryRep
           ownerId: body?.owner_id ?? "",
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {})
         });
       } catch (error) {
         mapInventoryError(error);
@@ -382,8 +392,10 @@ export function createInventoryController(options: { readonly repo: InventoryRep
         return await createInventoryReconciliation({
           repo: options.repo,
           tenantId: actor.tenantId,
+          actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           warehouseId: body?.warehouse_id ?? ""
         });
       } catch (error) {

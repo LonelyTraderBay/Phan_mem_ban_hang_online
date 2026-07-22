@@ -257,15 +257,13 @@ function toTool(row: ToolRow): ToolCallRecord {
   };
 }
 
-/** v1 process-local idempotency — migrate to app.idempotency_records when wired. */
+/**
+ * AI orchestration Postgres adapter.
+ * HTTP idempotency is via PostgresIdempotencyStore at application layer
+ * (get/remember below are no-ops kept for AiOrchestrationRepository interface / InMemory parity).
+ */
 export class PostgresAiOrchestrationRepository implements AiOrchestrationRepository {
-  private readonly idempotency = new Map<string, string>();
-
   constructor(private readonly db: AppDatabase) {}
-
-  private idemKey(tenantId: string, key: string): string {
-    return `${tenantId}:${key}`;
-  }
 
   private async loadControls(trx: Trx, tenantId: string): Promise<ControlsRow | null> {
     const result = await sql<ControlsRow>`
@@ -821,14 +819,13 @@ export class PostgresAiOrchestrationRepository implements AiOrchestrationReposit
   }
 
   async getIdempotentJob(
-    tenantId: string,
-    key: string
+    _tenantId: string,
+    _key: string
   ): Promise<{ readonly jobId: string } | null> {
-    const jobId = this.idempotency.get(this.idemKey(tenantId, key));
-    return jobId ? { jobId } : null;
+    return null;
   }
 
-  async rememberIdempotentJob(tenantId: string, key: string, jobId: string): Promise<void> {
-    this.idempotency.set(this.idemKey(tenantId, key), jobId);
+  async rememberIdempotentJob(_tenantId: string, _key: string, _jobId: string): Promise<void> {
+    /* no-op — use IdempotencyStore */
   }
 }

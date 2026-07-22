@@ -151,6 +151,38 @@ describe("BE-CHN-005/006 webhook dedupe + normalize", () => {
     });
     expect(processed?.status).toBe("normalized");
   });
+
+  it("dedupes null-tenant webhook replay by provider external event id", async () => {
+    const repo = seed();
+    const body = Buffer.from(JSON.stringify(facebookMessageFixture));
+    const secret = "test-secret";
+    const sig = createHash("sha256").update(secret).update(body).digest("hex");
+    const first = await receiveWebhook({
+      repo,
+      adapter: stubFacebookAdapter,
+      provider: "facebook",
+      rawBody: body,
+      signatureHeader: `sha256=${sig}`,
+      secretRef: secret,
+      tenantId: null,
+      channelAccountId: null
+    });
+    expect(first.meta.duplicate).toBe(false);
+    expect(first.data.tenant_id).toBeNull();
+
+    const second = await receiveWebhook({
+      repo,
+      adapter: stubFacebookAdapter,
+      provider: "facebook",
+      rawBody: body,
+      signatureHeader: `sha256=${sig}`,
+      secretRef: secret,
+      tenantId: null,
+      channelAccountId: null
+    });
+    expect(second.meta.duplicate).toBe(true);
+    expect(second.data.id).toBe(first.data.id);
+  });
 });
 
 describe("BE-CHN-008 outbound send state machine", () => {

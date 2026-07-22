@@ -368,6 +368,7 @@ describe("BE-INV-007 reconciliation", () => {
     const job = await createInventoryReconciliation({
       repo,
       tenantId: tenantA,
+      actorId,
       actorPermissions: adjustPerms,
       idempotencyKey: "recon-1",
       warehouseId
