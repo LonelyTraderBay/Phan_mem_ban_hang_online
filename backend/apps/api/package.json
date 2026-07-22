@@ -10,6 +10,7 @@
     "@ai-sales/module-audit": "workspace:*",
     "@ai-sales/module-catalog": "workspace:*",
     "@ai-sales/module-customer": "workspace:*",
+    "@ai-sales/module-inventory": "workspace:*",
     "@ai-sales/module-identity": "workspace:*",
     "@ai-sales/module-tenant": "workspace:*",
     "@ai-sales/observability": "workspace:*",

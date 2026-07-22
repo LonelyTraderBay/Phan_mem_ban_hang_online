@@ -22,6 +22,10 @@ import {
   InMemoryCustomerRepository
 } from "@ai-sales/module-customer";
 import {
+  createInventoryController,
+  InMemoryInventoryRepository
+} from "@ai-sales/module-inventory";
+import {
   createAcceptInvitationController,
   createMeController,
   createMfaVerifyController,
@@ -56,6 +60,7 @@ const catalogRepo = new InMemoryCatalogRepository();
 const importRepo = new InMemoryImportRepository();
 const importApplyPort = createInMemoryImportApplyPort(catalogRepo);
 const customerRepo = new InMemoryCustomerRepository();
+const inventoryRepo = new InMemoryInventoryRepository();
 
 function buildOidcConfig(): OidcClientConfig | null {
   const config = loadConfig(process.env);
@@ -106,7 +111,8 @@ function buildControllers(): Type<unknown>[] {
         importRepo,
         importApplyPort
       }),
-      createCustomersController({ repo: customerRepo })
+      createCustomersController({ repo: customerRepo }),
+      createInventoryController({ repo: inventoryRepo })
     );
 
     const oidc = buildOidcConfig();

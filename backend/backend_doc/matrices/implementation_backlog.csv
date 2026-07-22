@@ -56,14 +56,14 @@ phase,task_id,title,deliverable_or_details,status,primary_paths
 19.5 Phase P3,BE-IMP-003,Validation/dedupe/preview/error report,,Done,modules/catalog/
 19.5 Phase P3,BE-IMP-004,Confirm/apply idempotent atomic merge,,Done,modules/catalog/
 19.5 Phase P3,BE-IMP-005,Large import resumability/cancellation/metrics,,Done,modules/catalog/
-19.6 Phase P4,BE-INV-001,Warehouse/balance/movement/reservation schema + constraints/RLS,,Not Started,modules/inventory/
-19.6 Phase P4,BE-INV-002,Balance query/read DTO/indexes,,Not Started,modules/inventory/
-19.6 Phase P4,BE-INV-003,Adjustment command/reason/approval/audit,,Not Started,modules/inventory/
-19.6 Phase P4,BE-INV-004,Reservation create with deterministic locks,,Not Started,modules/inventory/
-19.6 Phase P4,BE-INV-005,Release/extend/expire/convert state machine,,Not Started,modules/inventory/
-19.6 Phase P4,BE-INV-006,Expiry scheduler/worker/idempotency,,Not Started,modules/inventory/
-19.6 Phase P4,BE-INV-007,Inventory ledger/balance reconciliation,,Not Started,modules/inventory/
-19.6 Phase P4,BE-INV-008,High-contention/concurrency/property tests,,Not Started,modules/inventory/
+19.6 Phase P4,BE-INV-001,Warehouse/balance/movement/reservation schema + constraints/RLS,,Done,modules/inventory/
+19.6 Phase P4,BE-INV-002,Balance query/read DTO/indexes,,Done,modules/inventory/
+19.6 Phase P4,BE-INV-003,Adjustment command/reason/approval/audit,,Done,modules/inventory/
+19.6 Phase P4,BE-INV-004,Reservation create with deterministic locks,,Done,modules/inventory/
+19.6 Phase P4,BE-INV-005,Release/extend/expire/convert state machine,,Done,modules/inventory/
+19.6 Phase P4,BE-INV-006,Expiry scheduler/worker/idempotency,,Done,modules/inventory/
+19.6 Phase P4,BE-INV-007,Inventory ledger/balance reconciliation,,Done,modules/inventory/
+19.6 Phase P4,BE-INV-008,High-contention/concurrency/property tests,,Done,modules/inventory/
 19.6 Phase P4,BE-KNW-001,Source/version/chunk lifecycle schema,,Not Started,modules/knowledge/
 19.6 Phase P4,BE-KNW-002,CRUD/review/approve/publish/archive APIs,,Not Started,modules/knowledge/
 19.6 Phase P4,BE-KNW-003,File extraction sandbox/content checksum,,Not Started,modules/knowledge/

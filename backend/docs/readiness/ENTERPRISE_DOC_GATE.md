@@ -37,6 +37,7 @@
 | **BE-CAT-001** | **GREEN (done)** | Catalog schema + RLS (`000012`) — `docs/tickets/BE-CAT-001.md` (`done`) |
 | **BE-CAT-002** | **GREEN (done)** | Catalog CRUD + ETag — `docs/tickets/BE-CAT-002.md` (`done`) |
 | **BE-CUS / BE-CAT / BE-IMP** | **P3 CODE EXIT (in-memory)** | CUS/CAT/IMP application Done; FE sync + Postgres adapters follow |
+| **BE-INV-001…008** | **GREEN (done)** | Inventory schema (`000015`) + in-memory application + HTTP controller — `docs/tickets/BE-INV-*.md` (`done`) |
 | **Orders / Payments / F02+** | **RED until phase** | Chỉ khi phase hiện tại Done + artefacts còn consistent |
 
 ## Kickoff order (bắt buộc)
@@ -68,7 +69,8 @@
 24. BE-CAT-004 private media upload/scan/signed URL — Done
 25. BE-IMP-001…005 import pipeline — Done (in-memory + migration 000014)
 26. FE P3 slices + `contracts:sync` — next (Wave 2)
-27. P4 Inventory only after FE/P3 exit criteria acknowledged
+27. BE-INV-001…008 inventory schema + in-memory application — Done (`000015`)
+28. P5 Channel only after Inventory exit criteria acknowledged
 ```
 
 Money/tax/billing: luôn cite [`../business/HO_DEFAULTS_v1.md`](../business/HO_DEFAULTS_v1.md).

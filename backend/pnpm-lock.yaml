@@ -74,6 +74,9 @@ importers:
       '@ai-sales/module-identity':
         specifier: workspace:*
         version: link:../../modules/identity
+      '@ai-sales/module-inventory':
+        specifier: workspace:*
+        version: link:../../modules/inventory
       '@ai-sales/module-tenant':
         specifier: workspace:*
         version: link:../../modules/tenant
@@ -280,6 +283,18 @@ importers:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@nestjs/common':
+        specifier: 11.1.28
+        version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      fastify:
+        specifier: 5.10.0
+        version: 5.10.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/knowledge:
     dependencies:
