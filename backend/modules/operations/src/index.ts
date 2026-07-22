@@ -25,4 +25,8 @@ export {
 } from "./application/desktop.js";
 
 export { InMemoryOperationsRepository } from "./infrastructure/persistence/in-memory-operations.js";
+export {
+  PLATFORM_OPS_TENANT,
+  PostgresOperationsRepository
+} from "./infrastructure/persistence/postgres-operations.js";
 export { createOperationsController } from "./presentation/http/operations.controller.js";

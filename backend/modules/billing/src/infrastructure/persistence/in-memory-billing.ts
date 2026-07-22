@@ -26,11 +26,14 @@ export class InMemoryBillingRepository implements BillingRepository {
     return this.meters.get(this.meterKey(tenantId, meterKey)) ?? null;
   }
 
-  async saveMeter(meter: UsageMeterRecord): Promise<void> {
-    this.meters.set(this.meterKey(meter.tenantId, meter.meterKey), meter);
+  async saveMeter(meter: UsageMeterRecord): Promise<UsageMeterRecord> {
     if (meter.idempotencyKey) {
+      const existing = this.idempotency.get(`${meter.tenantId}:${meter.idempotencyKey}`);
+      if (existing) return existing;
       this.idempotency.set(`${meter.tenantId}:${meter.idempotencyKey}`, meter);
     }
+    this.meters.set(this.meterKey(meter.tenantId, meter.meterKey), meter);
+    return meter;
   }
 
   async findMeterByIdempotency(tenantId: string, key: string): Promise<UsageMeterRecord | null> {

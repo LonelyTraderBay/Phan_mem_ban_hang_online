@@ -61,11 +61,11 @@ import {
 } from "@ai-sales/module-analytics";
 import {
   createBillingController,
-  InMemoryBillingRepository
+  PostgresBillingRepository
 } from "@ai-sales/module-billing";
 import {
   createOperationsController,
-  InMemoryOperationsRepository
+  PostgresOperationsRepository
 } from "@ai-sales/module-operations";
 import {
   createFulfillmentController,
@@ -116,8 +116,6 @@ import { HealthController } from "./health.controller";
 const membersRolesRepo = new InMemoryMembersRolesRepository();
 const auditLogStore = new InMemoryAuditLogStore();
 const supportGrantStore = new InMemorySupportGrantStore();
-const billingRepo = new InMemoryBillingRepository();
-const operationsRepo = new InMemoryOperationsRepository();
 
 function buildConversationOutboundPort(channelRepo: ChannelRepository): OutboundQueuePort {
   return {
@@ -317,6 +315,8 @@ function buildControllers(): Type<unknown>[] {
     const knowledgeRepoPg = new PostgresKnowledgeRepository(db);
     const aiOrchestrationRepoPg = new PostgresAiOrchestrationRepository(db);
     const analyticsRepoPg = new PostgresAnalyticsRepository(db);
+    const billingRepoPg = new PostgresBillingRepository(db);
+    const operationsRepoPg = new PostgresOperationsRepository(db);
     const importApplyPort = createInMemoryImportApplyPort(catalogRepo);
     const catalogPricingPort = buildCatalogPricingPort(catalogRepo);
     const reservationPort = buildReservationPort(inventoryRepo);
@@ -379,10 +379,10 @@ function buildControllers(): Type<unknown>[] {
         outbound: aiOutboundPort
       }),
       createAnalyticsController({ repo: analyticsRepoPg }),
-      createBillingController({ repo: billingRepo }),
+      createBillingController({ repo: billingRepoPg }),
       // Support-access create stays on createSupportAccessController only
       // (avoids duplicate POST .../support-access that overwrote grantee identity).
-      createOperationsController({ repo: operationsRepo })
+      createOperationsController({ repo: operationsRepoPg })
     );
 
     const oidc = buildOidcConfig();

@@ -1,7 +1,7 @@
 # Postgres adapters — thứ tự ưu tiên
 
 **Date:** 2026-07-22  
-**Branch:** `cursor/postgres-adapters-knowledge-ai-analytics` (wave 4)  
+**Branch:** `cursor/postgres-adapters-billing-ops` (wave 5 — Billing / Ops)  
 **Pattern:** RLS + `withTenantTransaction` (không SECURITY DEFINER)
 
 ## Ưu tiên
@@ -18,7 +18,8 @@
 10. **Knowledge** — schema `000016`
 11. **AI orchestration** — schema `000021` + migration `000024` (suggestions/controls/eval tenant_id)
 12. **Analytics** — schema `000022` (+ `uq_report_exports_tenant_idempotency` in `000024`)
-13. (sau) Billing / Ops …
+13. **Billing** — schema `000023` + migration `000025` (usage/reprocess idempotency + feature_flags seed)
+14. **Operations** — schema `000023`/`000024` (HYBRID: flags/alerts/reprocess/AI disable persisted)
 
 ## Quy tắc
 
@@ -41,13 +42,16 @@
 - [x] **Knowledge (KNW)** — `PostgresKnowledgeRepository` (sources/versions/chunks/published search)
 - [x] **AI orchestration (AI)** — `PostgresAiOrchestrationRepository` + migration `000024_ai_suggestions_and_controls.sql`
 - [x] **Analytics (DAT)** — `PostgresAnalyticsRepository` (events/watermarks/metrics/exports + idempotency index)
+- [x] **Billing (BIL)** — `PostgresBillingRepository` + migration `000025` (meter/reprocess idempotency indexes + feature_flags seed)
+- [x] **Operations (OPS)** — `PostgresOperationsRepository` HYBRID (flags/alerts/reprocess/disableAi persisted)
 - [x] Wire `app.module.ts` when `DATABASE_URL`
 - [x] Typecheck + focused smoke tests (`describe.skip` integration without DB)
 
 ## Gaps (v1)
 
-- Billing / Ops vẫn InMemory
+- **Ops HYBRID:** `listTenants` returns `[]` (TENANT_ROOT RLS blocks platform enumeration); `getTenantHealth` / `getAiHealth` synthetic stubs; desktop / hardening stay stub (application layer)
 - Knowledge / AI: process-local idempotency Maps (migrate `app.idempotency_records`)
+- Ops reprocess: process-local Map + DB `idempotency_key` via `trackReprocessIdempotency`
 - AI: `tenant_ai_controls` stores full switch/budget JSON in `metadata`; column fields are denormalized
 - AI eval runs: GLOBAL table + `tenant_id` column (no RLS) — filter in adapter
 - Channel: OAuth tenant lookup + webhook dedupe (null-tenant) process-local Maps; idempotency Maps
