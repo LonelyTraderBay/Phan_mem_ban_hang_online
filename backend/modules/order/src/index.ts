@@ -34,4 +34,5 @@ export {
 } from "./application/order.js";
 
 export { InMemoryOrderRepository } from "./infrastructure/persistence/in-memory-order.js";
+export { PostgresOrderRepository } from "./infrastructure/persistence/postgres-order.js";
 export { createOrderController } from "./presentation/http/order.controller.js";

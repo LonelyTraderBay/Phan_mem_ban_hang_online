@@ -1,15 +1,18 @@
 # Postgres adapters — thứ tự ưu tiên
 
 **Date:** 2026-07-22  
-**Branch:** `cursor/postgres-adapters-priority`  
-**Pattern:** RLS + `withTenantTransaction` (không SECURITY DEFINER cho CUS/CAT/INV)
+**Branch:** `cursor/postgres-adapters-imp-ord-pay` (wave 2)  
+**Pattern:** RLS + `withTenantTransaction` (không SECURITY DEFINER cho CUS/CAT/INV/IMP/ORD/PAY)
 
 ## Ưu tiên
 
 1. **Customer** — CDP nền; schema `000011`/`000013`
 2. **Catalog** — FK cho inventory/order; schema `000012`
 3. **Inventory** — phụ thuộc variants; schema `000015`
-4. (sau) Import → Order → Payment → … 
+4. **Import** — schema `000014` (under catalog module)
+5. **Order** — schema `000019`
+6. **Payment** — schema `000020` (payments/refunds/attempts)
+7. (sau) Fulfillment / Returns / Conversation / Channel / …
 
 ## Quy tắc
 
@@ -23,14 +26,17 @@
 - [x] **Customer (CUS)** — `PostgresCustomerRepository` + PII stub + merge/outbox
 - [x] **Catalog (CAT)** — `PostgresCatalogRepository` (+ Media on same class)
 - [x] **Inventory (INV)** — `PostgresInventoryRepository`
-- [x] Wire `app.module.ts` when `DATABASE_URL`
+- [x] **Import (IMP)** — `PostgresImportRepository` (apply port vẫn dùng catalog Postgres)
+- [x] **Order (ORD)** — `PostgresOrderRepository` + status history
+- [x] **Payment (PAY)** — `PostgresPaymentRepository` + refunds + provider attempts dedupe
+- [x] Wire `app.module.ts` when `DATABASE_URL` (orderLookup/eligibility ports bind Postgres order)
 - [x] Typecheck + focused smoke tests (`describe.skip` integration without DB)
-- PR draft
 
 ## Gaps (v1)
 
-- `ImportRepository` / import apply port vẫn InMemory (BE-IMP adapter chưa làm)
-- Order, Payment, Fulfillment, … vẫn InMemory
+- Fulfillment / Returns / Conversation / Channel / Knowledge / AI / Analytics / Billing / Ops vẫn InMemory
 - Idempotency adapter: process-local Map — migrate sang `app.idempotency_records`
 - Media upload intents: process-local Map (chưa có bảng upload)
 - Reconciliation jobs: process-local Map (chưa có bảng job)
+- Payment reconciliations table unused (no repository method)
+- Import object storage (`file_key` / `error_report_key`) left nullable

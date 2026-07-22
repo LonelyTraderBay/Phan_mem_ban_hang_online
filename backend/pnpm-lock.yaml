@@ -469,6 +469,12 @@ importers:
 
   modules/order:
     dependencies:
+      '@ai-sales/auth-context':
+        specifier: workspace:*
+        version: link:../../packages/auth-context
+      '@ai-sales/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
@@ -481,12 +487,21 @@ importers:
       fastify:
         specifier: 5.10.0
         version: 5.10.0
+      kysely:
+        specifier: 0.29.4
+        version: 0.29.4
       reflect-metadata:
         specifier: 0.2.2
         version: 0.2.2
 
   modules/payment:
     dependencies:
+      '@ai-sales/auth-context':
+        specifier: workspace:*
+        version: link:../../packages/auth-context
+      '@ai-sales/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
@@ -499,6 +514,9 @@ importers:
       fastify:
         specifier: 5.10.0
         version: 5.10.0
+      kysely:
+        specifier: 0.29.4
+        version: 0.29.4
       reflect-metadata:
         specifier: 0.2.2
         version: 0.2.2

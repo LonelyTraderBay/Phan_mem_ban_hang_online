@@ -512,6 +512,9 @@ export async function getImportErrors(options: {
     "applied"
   ]);
   job.errorReportKey = job.errorReportKey ?? `imports/${job.tenantId}/${job.id}/errors.json`;
+  // Bump version so Postgres saveJob optimistic lock (version = previous) succeeds.
+  job.version += 1;
+  job.updatedAt = new Date().toISOString();
   await options.repo.saveJob(job);
   return { data: toResource(job), meta: {} };
 }
