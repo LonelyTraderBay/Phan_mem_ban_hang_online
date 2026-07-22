@@ -24,4 +24,5 @@ export {
 } from "./application/customers.js";
 
 export { InMemoryCustomerRepository } from "./infrastructure/persistence/in-memory-customers.js";
+export { PostgresCustomerRepository } from "./infrastructure/persistence/postgres-customers.js";
 export { createCustomersController } from "./presentation/http/customers.controller.js";

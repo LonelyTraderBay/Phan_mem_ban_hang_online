@@ -6,7 +6,7 @@ import type {
   ImportSourceType
 } from "../../application/import-jobs.js";
 import type { ImportApplyPort } from "../../application/import-jobs.js";
-import { InMemoryCatalogRepository } from "./in-memory-catalog.js";
+import type { CatalogRepository } from "../../application/catalog.js";
 import { createProduct, createVariant, listVariants } from "../../application/catalog.js";
 
 export class InMemoryImportRepository implements ImportRepository {
@@ -108,7 +108,7 @@ export class InMemoryImportRepository implements ImportRepository {
 }
 
 /** Apply import rows into in-memory catalog (create product+variant per new SKU). */
-export function createInMemoryImportApplyPort(catalog: InMemoryCatalogRepository): ImportApplyPort {
+export function createInMemoryImportApplyPort(catalog: CatalogRepository): ImportApplyPort {
   return {
     async upsertVariantFromImport(args) {
       const listed = await listVariants({

@@ -14,17 +14,22 @@ import {
 import {
   createCatalogController,
   createInMemoryImportApplyPort,
-  InMemoryCatalogRepository,
-  InMemoryImportRepository
+  InMemoryImportRepository,
+  PostgresCatalogRepository
 } from "@ai-sales/module-catalog";
 import {
   createCustomersController,
-  InMemoryCustomerRepository
+  PostgresCustomerRepository
 } from "@ai-sales/module-customer";
 import {
+  convertInventoryReservation,
   createInventoryController,
-  InMemoryInventoryRepository
+  createInventoryReservation,
+  PostgresInventoryRepository,
+  releaseInventoryReservation,
+  type InventoryRepository
 } from "@ai-sales/module-inventory";
+import type { CatalogRepository } from "@ai-sales/module-catalog";
 import {
   createKnowledgeController,
   InMemoryKnowledgeRepository
@@ -69,11 +74,6 @@ import {
   type OrderEligibilityPort
 } from "@ai-sales/module-fulfillment";
 import {
-  convertInventoryReservation,
-  createInventoryReservation,
-  releaseInventoryReservation
-} from "@ai-sales/module-inventory";
-import {
   createOrderController,
   InMemoryOrderRepository,
   type CatalogPricingPort,
@@ -111,15 +111,11 @@ import {
 } from "@ai-sales/module-tenant";
 import { HealthController } from "./health.controller";
 
-/** Process-local stores until Postgres SECURITY DEFINER adapters land. */
+/** Process-local stores until Postgres adapters land for remaining domains. */
 const membersRolesRepo = new InMemoryMembersRolesRepository();
 const auditLogStore = new InMemoryAuditLogStore();
 const supportGrantStore = new InMemorySupportGrantStore();
-const catalogRepo = new InMemoryCatalogRepository();
 const importRepo = new InMemoryImportRepository();
-const importApplyPort = createInMemoryImportApplyPort(catalogRepo);
-const customerRepo = new InMemoryCustomerRepository();
-const inventoryRepo = new InMemoryInventoryRepository();
 const knowledgeRepo = new InMemoryKnowledgeRepository();
 const channelRepo = new InMemoryChannelRepository();
 const conversationRepo = new InMemoryConversationRepository();
@@ -131,58 +127,63 @@ const analyticsRepo = new InMemoryAnalyticsRepository();
 const billingRepo = new InMemoryBillingRepository();
 const operationsRepo = new InMemoryOperationsRepository();
 
-const catalogPricingPort: CatalogPricingPort = {
-  async getVariantPricing(args) {
-    const row = await catalogRepo.getVariantPricing(args);
-    if (!row) return null;
-    const variant = (await catalogRepo.listVariants(args.tenantId)).find((v) => v.id === args.variantId);
-    return {
-      unitPriceMinor: row.unit_price_minor,
-      currency: row.currency,
-      costMinor: row.cost_minor,
-      sku: variant?.name ?? null
-    };
-  }
-};
+function buildCatalogPricingPort(catalogRepo: CatalogRepository): CatalogPricingPort {
+  return {
+    async getVariantPricing(args) {
+      const row = await catalogRepo.getVariantPricing(args);
+      if (!row) return null;
+      const variant = (await catalogRepo.listVariants(args.tenantId)).find(
+        (v) => v.id === args.variantId
+      );
+      return {
+        unitPriceMinor: row.unit_price_minor,
+        currency: row.currency,
+        costMinor: row.cost_minor,
+        sku: variant?.name ?? null
+      };
+    }
+  };
+}
 
-const reservationPort: ReservationPort = {
-  async createReservation(args) {
-    const expiresAt = args.expiresAt;
-    const result = await createInventoryReservation({
-      repo: inventoryRepo,
-      tenantId: args.tenantId,
-      actorId: args.actorId,
-      actorPermissions: ["inventory.reserve", "internal.order.confirm"],
-      idempotencyKey: args.idempotencyKey,
-      ownerType: "order",
-      ownerId: args.orderId,
-      expiresAt,
-      items: args.items.map((i) => ({ variant_id: i.variantId, quantity: i.quantity }))
-    });
-    return { reservationId: result.data.id as string };
-  },
-  async convertReservation(args) {
-    await convertInventoryReservation({
-      repo: inventoryRepo,
-      tenantId: args.tenantId,
-      reservationId: args.reservationId,
-      ownerId: args.orderId,
-      actorId: args.actorId,
-      actorPermissions: ["inventory.reserve", "internal.order.confirm"],
-      idempotencyKey: args.idempotencyKey
-    });
-  },
-  async releaseReservation(args) {
-    await releaseInventoryReservation({
-      repo: inventoryRepo,
-      tenantId: args.tenantId,
-      reservationId: args.reservationId,
-      actorId: args.actorId,
-      actorPermissions: ["inventory.reserve"],
-      idempotencyKey: args.idempotencyKey
-    });
-  }
-};
+function buildReservationPort(inventoryRepo: InventoryRepository): ReservationPort {
+  return {
+    async createReservation(args) {
+      const result = await createInventoryReservation({
+        repo: inventoryRepo,
+        tenantId: args.tenantId,
+        actorId: args.actorId,
+        actorPermissions: ["inventory.reserve", "internal.order.confirm"],
+        idempotencyKey: args.idempotencyKey,
+        ownerType: "order",
+        ownerId: args.orderId,
+        expiresAt: args.expiresAt,
+        items: args.items.map((i) => ({ variant_id: i.variantId, quantity: i.quantity }))
+      });
+      return { reservationId: result.data.id as string };
+    },
+    async convertReservation(args) {
+      await convertInventoryReservation({
+        repo: inventoryRepo,
+        tenantId: args.tenantId,
+        reservationId: args.reservationId,
+        ownerId: args.orderId,
+        actorId: args.actorId,
+        actorPermissions: ["inventory.reserve", "internal.order.confirm"],
+        idempotencyKey: args.idempotencyKey
+      });
+    },
+    async releaseReservation(args) {
+      await releaseInventoryReservation({
+        repo: inventoryRepo,
+        tenantId: args.tenantId,
+        reservationId: args.reservationId,
+        actorId: args.actorId,
+        actorPermissions: ["inventory.reserve"],
+        idempotencyKey: args.idempotencyKey
+      });
+    }
+  };
+}
 
 const orderLookupPort: OrderLookupPort = {
   async getOrderGrandTotal(args) {
@@ -308,6 +309,12 @@ function buildControllers(): Type<unknown>[] {
 
   if (config.DATABASE_URL) {
     const db = createDatabase(config.DATABASE_URL);
+    const catalogRepo = new PostgresCatalogRepository(db);
+    const customerRepo = new PostgresCustomerRepository(db);
+    const inventoryRepo = new PostgresInventoryRepository(db);
+    const importApplyPort = createInMemoryImportApplyPort(catalogRepo);
+    const catalogPricingPort = buildCatalogPricingPort(catalogRepo);
+    const reservationPort = buildReservationPort(inventoryRepo);
     const idempotency = new PostgresIdempotencyStore(db);
     const tenantRepo = new PostgresTenantProvisionRepository(db);
     controllers.push(
