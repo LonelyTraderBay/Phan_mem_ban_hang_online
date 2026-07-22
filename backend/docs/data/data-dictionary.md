@@ -76,12 +76,12 @@ authoritative for AI coding agents — do not re-open without ADR.
 
 | Table | Class | RLS/migration status | Notes |
 |---|---|---|---|
-| `warehouses` | TENANT_OWNED | Not started | |
-| `inventory_balances` | TENANT_OWNED | Not started | Unique `(tenant_id, warehouse_id, variant_id)`; composite FK both directions |
-| `inventory_movements` | TENANT_OWNED [ledger] | Not started | Append-only |
-| `inventory_reservations` | TENANT_OWNED | Not started | |
-| `inventory_reservation_items` | TENANT_OWNED | Not started | |
-| `inventory_adjustments` | TENANT_OWNED | Not started | |
+| `warehouses` | TENANT_OWNED | **Done** (`000015`) | |
+| `inventory_balances` | TENANT_OWNED | **Done** (`000015`) | Unique `(tenant_id, warehouse_id, variant_id)`; composite FK both directions |
+| `inventory_movements` | TENANT_OWNED [ledger] | **Done** (`000015`) | Append-only |
+| `inventory_reservations` | TENANT_OWNED | **Done** (`000015`) | |
+| `inventory_reservation_items` | TENANT_OWNED | **Done** (`000015`) | |
+| `inventory_adjustments` | TENANT_OWNED | **Done** (`000015`) | |
 
 ## Knowledge / AI (blueprint §7.9)
 
