@@ -45,7 +45,7 @@ phase,task_id,title,deliverable_or_details,status,primary_paths
 19.4 Phase P2,BE-IDN-015,Auth/RBAC/tenant isolation security suite,,Not Started,modules/identity/;modules/tenant/
 19.5 Phase P3,BE-CUS-001,Customer/identity/address/tag/consent/note schema + encryption/blind index,,Done,modules/customer/;infra/migrations/000011_customer_schema.sql
 19.5 Phase P3,BE-CUS-002,Customer CRUD/search/PII field masking,,Done,modules/customer/;modules/customer/src/application/customers.ts
-19.5 Phase P3,BE-CUS-003,Identity attach/dedupe rules,,Not Started,modules/customer/
+19.5 Phase P3,BE-CUS-003,Identity attach/dedupe rules,,Done,modules/customer/;infra/migrations/000013_customer_identity_dedupe.sql
 19.5 Phase P3,BE-CUS-004,Merge preview/merge transaction/history,,Not Started,modules/customer/
 19.5 Phase P3,BE-CAT-001,Category/product/variant/media schema + RLS/constraints,,Done,modules/catalog/;infra/migrations/000012_catalog_schema.sql
 19.5 Phase P3,BE-CAT-002,Product/category/variant CRUD + ETag,,Done,modules/catalog/

@@ -2,6 +2,7 @@ export const MODULE_NAME = "customer" as const;
 
 export {
   CustomerError,
+  addCustomerIdentity,
   createCustomer,
   getCustomer,
   listCustomers,
@@ -9,9 +10,12 @@ export {
   toCustomerResponseData,
   formatEtag,
   parseIfMatchVersion,
+  hashNormalizedIdentity,
   requireCustomerPermission,
   type CustomerRepository,
   type CustomerResource,
+  type CustomerIdentityRecord,
+  type CustomerIdentityType,
   type CustomerStatus,
   type CustomerErrorCode
 } from "./application/customers.js";

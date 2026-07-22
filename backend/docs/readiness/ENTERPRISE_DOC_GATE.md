@@ -33,9 +33,10 @@
 | **FE-F01** Auth/Settings UI | **GREEN (READY-MOCK)** | FE-F01-001…006 MSW screens + auth bootstrap/guards (2026-07-22) |
 | **BE-CUS-001** | **GREEN (done)** | Customer/CDP schema + RLS (`000011`) — `docs/tickets/BE-CUS-001.md` (`done`) |
 | **BE-CUS-002** | **GREEN (done)** | Customer CRUD + PII masking — `docs/tickets/BE-CUS-002.md` (`done`) |
+| **BE-CUS-003** | **GREEN (done)** | Identity attach/dedupe — `docs/tickets/BE-CUS-003.md` (`done`) |
 | **BE-CAT-001** | **GREEN (done)** | Catalog schema + RLS (`000012`) — `docs/tickets/BE-CAT-001.md` (`done`) |
 | **BE-CAT-002** | **GREEN (done)** | Catalog CRUD + ETag — `docs/tickets/BE-CAT-002.md` (`done`) |
-| **BE-CUS / BE-CAT** | **IN PROGRESS** | Schema+CRUD done; identity attach/merge + cost/media follow |
+| **BE-CUS / BE-CAT** | **IN PROGRESS** | CUS-003 done; CUS-004 merge + CAT-003/004 next |
 | **Orders / Payments / F02+** | **RED until phase** | Chỉ khi phase hiện tại Done + artefacts còn consistent |
 
 ## Kickoff order (bắt buộc)
@@ -61,7 +62,9 @@
 18. BE-CAT-001 catalog schema + RLS (`000012`) — done
 19. BE-CUS-002 customer CRUD + PII masking — done
 20. BE-CAT-002 catalog CRUD + ETag — done
-21. FE-F01 / later phases (CUS-003+/CAT-003+/IMP/…) when prior phase exit gates hold
+21. BE-CUS-003 identity attach/dedupe — done
+22. BE-CUS-004 merge preview/transaction — next
+23. BE-CAT-003 / BE-CAT-004 / IMP / FE slices when prior tickets Done
 ```
 
 Money/tax/billing: luôn cite [`../business/HO_DEFAULTS_v1.md`](../business/HO_DEFAULTS_v1.md).

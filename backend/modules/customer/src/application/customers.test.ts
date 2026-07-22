@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { generateUuidV7 } from "@ai-sales/domain-kernel";
 import {
+  addCustomerIdentity,
   createCustomer,
   getCustomer,
   listCustomers,
@@ -158,6 +159,180 @@ describe("BE-CUS-002 customers", () => {
         actorPermissions: ["customer.write"],
         idempotencyKey: undefined,
         displayName: "No key"
+      })
+    ).rejects.toMatchObject({ code: "IDEMPOTENCY_KEY_REQUIRED" });
+  });
+});
+
+describe("BE-CUS-003 identity attach/dedupe", () => {
+  it("attaches email identity and fills primary_email when empty", async () => {
+    const repo = new InMemoryCustomerRepository();
+    const created = await createCustomer({
+      repo,
+      tenantId: TENANT_A,
+      actorPermissions: ["customer.write", "customer.pii.read"],
+      idempotencyKey: "c-1",
+      displayName: "A"
+    });
+    const id = String(created.data.id);
+    const attached = await addCustomerIdentity({
+      repo,
+      tenantId: TENANT_A,
+      customerId: id,
+      actorPermissions: ["customer.write", "customer.pii.read"],
+      idempotencyKey: "id-1",
+      type: "email",
+      value: "A@Example.com"
+    });
+    expect(attached.data.primary_email).toBe("a@example.com");
+  });
+
+  it("conflicts when identity belongs to another customer", async () => {
+    const repo = new InMemoryCustomerRepository();
+    const a = await createCustomer({
+      repo,
+      tenantId: TENANT_A,
+      actorPermissions: ["customer.write"],
+      idempotencyKey: "ca",
+      displayName: "A"
+    });
+    const b = await createCustomer({
+      repo,
+      tenantId: TENANT_A,
+      actorPermissions: ["customer.write"],
+      idempotencyKey: "cb",
+      displayName: "B"
+    });
+    await addCustomerIdentity({
+      repo,
+      tenantId: TENANT_A,
+      customerId: String(a.data.id),
+      actorPermissions: ["customer.write"],
+      idempotencyKey: "ia",
+      type: "phone",
+      value: "+84901112233"
+    });
+    await expect(
+      addCustomerIdentity({
+        repo,
+        tenantId: TENANT_A,
+        customerId: String(b.data.id),
+        actorPermissions: ["customer.write"],
+        idempotencyKey: "ib",
+        type: "phone",
+        value: "+84901112233"
+      })
+    ).rejects.toMatchObject({ code: "CUSTOMER_IDENTITY_CONFLICT" });
+  });
+
+  it("same customer re-attach is idempotent success", async () => {
+    const repo = new InMemoryCustomerRepository();
+    const created = await createCustomer({
+      repo,
+      tenantId: TENANT_A,
+      actorPermissions: ["customer.write"],
+      idempotencyKey: "c-same",
+      displayName: "Same"
+    });
+    const id = String(created.data.id);
+    const first = await addCustomerIdentity({
+      repo,
+      tenantId: TENANT_A,
+      customerId: id,
+      actorPermissions: ["customer.write"],
+      idempotencyKey: "ext-1",
+      type: "external",
+      value: "fb:123"
+    });
+    const second = await addCustomerIdentity({
+      repo,
+      tenantId: TENANT_A,
+      customerId: id,
+      actorPermissions: ["customer.write"],
+      idempotencyKey: "ext-2",
+      type: "external",
+      value: "fb:123"
+    });
+    expect(second.data.id).toBe(first.data.id);
+  });
+
+  it("denies attach without customer.write", async () => {
+    const repo = new InMemoryCustomerRepository();
+    const created = await createCustomer({
+      repo,
+      tenantId: TENANT_A,
+      actorPermissions: ["customer.write"],
+      idempotencyKey: "c-deny",
+      displayName: "X"
+    });
+    await expect(
+      addCustomerIdentity({
+        repo,
+        tenantId: TENANT_A,
+        customerId: String(created.data.id),
+        actorPermissions: ["customer.read"],
+        idempotencyKey: "no-write",
+        type: "email",
+        value: "x@example.com"
+      })
+    ).rejects.toMatchObject({ code: "INSUFFICIENT_PERMISSION" });
+  });
+
+  it("isolates identity lookup by tenant", async () => {
+    const repo = new InMemoryCustomerRepository();
+    const a = await createCustomer({
+      repo,
+      tenantId: TENANT_A,
+      actorPermissions: ["customer.write"],
+      idempotencyKey: "ta",
+      displayName: "A"
+    });
+    const b = await createCustomer({
+      repo,
+      tenantId: TENANT_B,
+      actorPermissions: ["customer.write"],
+      idempotencyKey: "tb",
+      displayName: "B"
+    });
+    await addCustomerIdentity({
+      repo,
+      tenantId: TENANT_A,
+      customerId: String(a.data.id),
+      actorPermissions: ["customer.write"],
+      idempotencyKey: "ia",
+      type: "email",
+      value: "shared@example.com"
+    });
+    const other = await addCustomerIdentity({
+      repo,
+      tenantId: TENANT_B,
+      customerId: String(b.data.id),
+      actorPermissions: ["customer.write", "customer.pii.read"],
+      idempotencyKey: "ib",
+      type: "email",
+      value: "shared@example.com"
+    });
+    expect(other.data.primary_email).toBe("shared@example.com");
+  });
+
+  it("requires Idempotency-Key on attach", async () => {
+    const repo = new InMemoryCustomerRepository();
+    const created = await createCustomer({
+      repo,
+      tenantId: TENANT_A,
+      actorPermissions: ["customer.write"],
+      idempotencyKey: "c-idem",
+      displayName: "I"
+    });
+    await expect(
+      addCustomerIdentity({
+        repo,
+        tenantId: TENANT_A,
+        customerId: String(created.data.id),
+        actorPermissions: ["customer.write"],
+        idempotencyKey: undefined,
+        type: "email",
+        value: "i@example.com"
       })
     ).rejects.toMatchObject({ code: "IDEMPOTENCY_KEY_REQUIRED" });
   });

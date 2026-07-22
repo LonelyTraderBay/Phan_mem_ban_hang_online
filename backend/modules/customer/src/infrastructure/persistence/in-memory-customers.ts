@@ -1,6 +1,8 @@
 import { generateUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
 import {
   CustomerError,
+  type CustomerIdentityRecord,
+  type CustomerIdentityType,
   type CustomerRepository,
   type CustomerResource,
   type CustomerStatus
@@ -37,6 +39,10 @@ function toResource(row: Row): CustomerResource {
 export class InMemoryCustomerRepository implements CustomerRepository {
   private readonly byTenant = new Map<string, Map<string, Row>>();
   private readonly idempotency = new Map<string, CustomerResource>();
+  private readonly identityIdempotency = new Map<string, CustomerResource>();
+  /** key: `${tenantId}:${identityType}:${hash}` */
+  private readonly identitiesByHash = new Map<string, CustomerIdentityRecord>();
+  private readonly identitiesByCustomer = new Map<string, CustomerIdentityRecord[]>();
 
   private tenantMap(tenantId: string): Map<string, Row> {
     let map = this.byTenant.get(tenantId);
@@ -120,6 +126,69 @@ export class InMemoryCustomerRepository implements CustomerRepository {
     readonly customer: CustomerResource;
   }): Promise<void> {
     this.idempotency.set(`${args.tenantId}:${args.idempotencyKey}`, args.customer);
+  }
+
+  async findIdentityByHash(args: {
+    readonly tenantId: string;
+    readonly identityType: CustomerIdentityType;
+    readonly normalizedValueHash: string;
+  }): Promise<CustomerIdentityRecord | null> {
+    return (
+      this.identitiesByHash.get(
+        `${args.tenantId}:${args.identityType}:${args.normalizedValueHash}`
+      ) ?? null
+    );
+  }
+
+  async addIdentity(args: {
+    readonly tenantId: string;
+    readonly customerId: string;
+    readonly identityId: UuidV7;
+    readonly identityType: CustomerIdentityType;
+    readonly normalizedValueHash: string;
+    readonly externalId: string | null;
+    readonly isPrimary: boolean;
+  }): Promise<CustomerIdentityRecord> {
+    const hashKey = `${args.tenantId}:${args.identityType}:${args.normalizedValueHash}`;
+    if (this.identitiesByHash.has(hashKey)) {
+      throw new CustomerError(
+        "Identity already attached to another customer.",
+        "CUSTOMER_IDENTITY_CONFLICT"
+      );
+    }
+    if (!this.tenantMap(args.tenantId).has(args.customerId)) {
+      throw new CustomerError("Customer not found.", "RESOURCE_NOT_FOUND");
+    }
+    const record: CustomerIdentityRecord = {
+      id: args.identityId,
+      tenantId: args.tenantId,
+      customerId: args.customerId,
+      identityType: args.identityType,
+      normalizedValueHash: args.normalizedValueHash,
+      externalId: args.externalId,
+      isPrimary: args.isPrimary
+    };
+    this.identitiesByHash.set(hashKey, record);
+    const ck = `${args.tenantId}:${args.customerId}`;
+    const list = this.identitiesByCustomer.get(ck) ?? [];
+    list.push(record);
+    this.identitiesByCustomer.set(ck, list);
+    return record;
+  }
+
+  async getIdempotentIdentityAttach(args: {
+    readonly tenantId: string;
+    readonly idempotencyKey: string;
+  }): Promise<CustomerResource | null> {
+    return this.identityIdempotency.get(`${args.tenantId}:${args.idempotencyKey}`) ?? null;
+  }
+
+  async rememberIdempotentIdentityAttach(args: {
+    readonly tenantId: string;
+    readonly idempotencyKey: string;
+    readonly customer: CustomerResource;
+  }): Promise<void> {
+    this.identityIdempotency.set(`${args.tenantId}:${args.idempotencyKey}`, args.customer);
   }
 
   /** Test helper — seed a row in another tenant to prove isolation. */

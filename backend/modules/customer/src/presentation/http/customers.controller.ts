@@ -18,6 +18,7 @@ import type { FastifyReply } from "fastify";
 import { DomainInvariantError, parseUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
 import { MissingSecurityContextError } from "@ai-sales/security";
 import {
+  addCustomerIdentity,
   createCustomer,
   CustomerError,
   formatEtag,
@@ -85,6 +86,8 @@ function mapCustomerError(error: unknown): never {
         throw new HttpException({ code: error.code, message: error.message }, 412);
       case "IDEMPOTENCY_KEY_REQUIRED":
         throw new BadRequestException({ code: error.code, message: error.message });
+      case "CUSTOMER_IDENTITY_CONFLICT":
+        throw new HttpException({ code: error.code, message: error.message }, 409);
       case "VALIDATION_FAILED":
       default:
         throw new UnprocessableEntityException({ code: error.code, message: error.message });
@@ -188,6 +191,31 @@ export function createCustomersController(options: { readonly repo: CustomerRepo
           ...(body?.display_name !== undefined ? { displayName: body.display_name } : {}),
           ...(body?.primary_email !== undefined ? { primaryEmail: body.primary_email } : {}),
           ...(body?.primary_phone !== undefined ? { primaryPhone: body.primary_phone } : {})
+        });
+        reply.header("ETag", formatEtag(result.version));
+        return { data: result.data, meta: result.meta };
+      } catch (error) {
+        mapCustomerError(error);
+      }
+    }
+
+    @Post(":customer_id/identities")
+    async addIdentity(
+      @Param("customer_id") customerId: string,
+      @Body() body: { type?: string; value?: string },
+      @Headers() headers: HeaderBag,
+      @Res({ passthrough: true }) reply: FastifyReply
+    ) {
+      try {
+        const actor = parseActor(headers);
+        const result = await addCustomerIdentity({
+          repo: options.repo,
+          tenantId: actor.tenantId,
+          customerId,
+          actorPermissions: actor.permissions,
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          type: body?.type ?? "",
+          value: body?.value ?? ""
         });
         reply.header("ETag", formatEtag(result.version));
         return { data: result.data, meta: result.meta };

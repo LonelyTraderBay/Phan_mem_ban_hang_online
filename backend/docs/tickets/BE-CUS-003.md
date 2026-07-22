@@ -4,107 +4,118 @@ title: Identity attach/dedupe rules
 owner: Backend AI Agent
 phase: P3
 risk: medium
-status: doc-frozen
+status: done
 ---
 
 # Business outcome
 
-Identity attach/dedupe rules.
+Attach email/phone/external identities to a customer with tenant-scoped dedupe: the same normalized identity cannot belong to two active customers in one tenant. Conflict surfaces as merge candidates later (BE-CUS-004).
 
-Deliverable / details from backlog: (none — expand from blueprint + contracts before coding).
-
-Primary paths: `modules/customer/`.
+Primary paths: `modules/customer/`, `infra/migrations/000013_customer_identity_dedupe.sql`.
 
 # Actor and use case
 
-Actors and flows for domain **CUS** as defined in the enterprise blueprint and frozen OpenAPI/AsyncAPI contracts for this phase (P3).
+- Staff with `customer.write` calls `POST /api/v1/customers/{customer_id}/identities` (`addCustomerIdentity`).
+- System normalizes + hashes the value; attaches if free; rejects if owned by another customer.
 
 # In scope / Out of scope
 
 In scope:
-- Identity attach/dedupe rules
-- Align with frozen contracts, permission/error matrices, and data-dictionary classes (W1–W4).
-- Tests required by acceptance criteria below.
+- `addCustomerIdentity` application + HTTP + in-memory repo
+- Dedupe on `(tenant_id, identity_type, normalized_value_hash)`
+- Idempotent replay via Idempotency-Key; same identity on same customer → success
+- Error `CUSTOMER_IDENTITY_CONFLICT` (409) in error catalog
+- Unique index migration `000013`
+- Permission negative + tenant isolation + conflict tests
 
 Out of scope:
-- Unrelated modules
-- FE UI (FE consumes contracts after sync)
-- Inventing permissions, money rules, or schema classes not in freeze docs
+- Merge preview/transaction (BE-CUS-004)
+- FE UI
+- Postgres adapter (in-memory until later)
+- Inventing provider/channel fields beyond OpenAPI `type` + `value`
 
 # Dependencies
 
-- Enterprise freeze gate: feature coding forbidden until `FULL_PRODUCT_DOC_FREEZE.md` = PASS (except freeze-wave doc work).
-- Prefer prior phase tickets Done; consult `docs/p0/epic-dependency-board.md`.
-- Cite related `docs/tickets/BE-*.md` siblings in the same domain when implementing.
+- FULL_PRODUCT_DOC_FREEZE=PASS
+- BE-CUS-001 / BE-CUS-002 done
+- OpenAPI: `addCustomerIdentity` frozen (W1)
 
-Money N/A for this ticket unless a later scope change adds priced entities — then cite HO_DEFAULTS_v1.
+Money N/A.
 
-# Domain invariants and state transitions
+# Domain invariants
 
-- Never trust client `tenant_id` for authorization; set tenant context server-side.
-- Apply state machines from `docs/domain/state-machine-transition-matrices.md` where this ticket owns transitions.
-- Ledger / append-only tables: no hard DELETE; compensating rows only.
-- Follow `docs/data/data-dictionary.md` + `rls-intent-catalog.md` for any table this ticket creates/touches.
+- Never trust client `tenant_id` for authorization.
+- No hard-delete of identities in this ticket (attach only).
+- Merged/anonymized customers cannot receive new identities.
 
 # Contract
 
-- OpenAPI operation/schema: slice with `pnpm agent:contract-slice` for CUS; implement only operations this ticket owns.
-- AsyncAPI events: emit/consume only events listed for this deliverable in `backend_doc/contracts/asyncapi.yaml`.
-- Error codes: `backend_doc/matrices/error_catalog.csv` only — no ad-hoc codes.
-- Realtime event: only if AsyncAPI / ops channel lists one for this work.
+- OpenAPI: `addCustomerIdentity` — `x-permission: customer.write`, `x-idempotency: required`
+- Request: `{ type: email|phone|external, value: string }`
+- Response: `CustomerResource` wrapper (existing schemas)
+- Error: `CUSTOMER_IDENTITY_CONFLICT` (new), plus existing `RESOURCE_NOT_FOUND`, `VALIDATION_FAILED`, `INSUFFICIENT_PERMISSION`, `IDEMPOTENCY_KEY_REQUIRED`
 
 # Authorization and data classification
 
-- Required permission: every public operation must have `x-permission` resolving to `permission_matrix.csv`.
-- Tenant/RLS behavior: per table class in data-dictionary; FORCE RLS for tenant-scoped tables.
-- Field-level restrictions: blueprint §5.5 / cost fields where applicable.
-- Data classification: secrets hashed/encrypted; PII redacted in logs/audit.
+- Permission: `customer.write`
+- Tenant/RLS: `customer_identities` already FORCE RLS (000011)
+- PII: identity values hashed at rest in identity row (`normalized_value_hash`); raw value not logged
 
 # Persistence and migration
 
-- Tables/columns/constraints/indexes/RLS: only those required by this deliverable; class must already be frozen (no `Needs confirmation`).
-- Backfill: document if any; default none for greenfield.
-- Rolling-deploy compatibility: expand/contract only.
+- `000013_customer_identity_dedupe.sql` — unique index on `(tenant_id, identity_type, normalized_value_hash)`
+- No backfill
 
 # Transaction, concurrency and idempotency
 
-- Transaction boundary: business mutation + outbox/audit/idempotency in one tenant transaction where required.
-- Lock order/isolation: follow module invariants; avoid cross-aggregate deadlocks.
-- Idempotency scope/TTL: required on critical mutators per OpenAPI `x-idempotency` / blueprint §8.7.
-- Retry behavior: fail-closed on non-retryable; DLQ for workers.
+- Idempotency-Key required on attach
+- Same key → replay same customer response
+- Concurrent attach of same identity to two customers: unique index / repo check → conflict
 
 # Audit, telemetry and operations
 
-- Audit action: record security/business-significant mutations via audit port.
-- Logs/traces/metrics: correlation IDs; no secrets in clear text.
-- Alert/runbook impact: note new alerts if this ticket adds SLO-sensitive paths.
-- Feature flag/rollout: prefer flag when changing tenant-visible behavior.
-- Rollback: disable route/flag; no destructive down-migrations of ledger data.
+- Audit/outbox deferred until shared customer audit port lands (same pattern as CUS-002)
+- Rollback: disable route; index is expand-only
 
 # Acceptance criteria
 
-- [ ] Happy path matches contract + backlog deliverable
-- [ ] Validation / business conflict codes from error catalog
-- [ ] Permission + tenant isolation tests (deny cross-tenant)
-- [ ] Idempotency / retry where mutator is critical
-- [ ] Transaction rollback / concurrency when applicable
-- [ ] Audit / outbox / domain events as required
-- [ ] Contract / generated client note for FE sync
-- [ ] Staging smoke checklist item when phase reaches staging
+- [x] Happy path attach email/phone/external
+- [x] Conflict when identity belongs to another customer
+- [x] Same customer re-attach is idempotent success
+- [x] Permission + tenant isolation tests
+- [x] Idempotency-Key required
+- [x] Contract note for FE: re-sync error catalog after merge
+- [ ] Staging smoke when phase reaches staging
 
 # Test cases
 
-Derive from BE domain test matrices / blueprint §13 where present; otherwise write permission-negative + happy-path + isolation cases before coding.
+- attach email → listed under customer
+- duplicate hash other customer → CUSTOMER_IDENTITY_CONFLICT
+- same customer + same value → 200 idempotent
+- no customer.write → INSUFFICIENT_PERMISSION
+- wrong tenant customer id → RESOURCE_NOT_FOUND
+- missing Idempotency-Key → IDEMPOTENCY_KEY_REQUIRED
+
+# Preflight (2026-07-22)
+
+| Item | Value |
+|------|--------|
+| Domain | CUS / P3 |
+| Operation | `addCustomerIdentity` |
+| Permission | `customer.write` |
+| Idempotency | required |
+| Migration | `000013_customer_identity_dedupe.sql` |
+| Error added | `CUSTOMER_IDENTITY_CONFLICT` |
+| Rollback | route off; keep index |
 
 # Completion manifest
 
-- Contracts changed:
-- Migration:
+- Contracts changed: `error_catalog.csv` (+`CUSTOMER_IDENTITY_CONFLICT`); OpenAPI unchanged (op already frozen)
+- Migration: `000013_customer_identity_dedupe.sql`
 - Tests/evidence:
-- Known risks:
-
-# Freeze provenance
-
-- Generated/updated: 2026-07-22 (enterprise freeze W5)
-- Backlog status at freeze: Not Started
-- Source: `backend_doc/matrices/implementation_backlog.csv`
+  - `pnpm exec vitest run modules/customer` — 13/13 pass
+  - `pnpm contracts:validate` — pass
+  - `pnpm typecheck` — pass
+  - `pnpm test` — 143 passed / 4 skipped
+  - `pnpm verify` blocked on local Node 24.5.0 ≠ pin 24.18.0; lint has **pre-existing** errors outside customer (identity/tenant/tools)
+- Known risks: in-memory only until Postgres identity adapter; FE must sync error catalog for `CUSTOMER_IDENTITY_CONFLICT`

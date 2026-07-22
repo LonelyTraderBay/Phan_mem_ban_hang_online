@@ -1,20 +1,25 @@
+import { createHash } from "node:crypto";
 import { generateUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
 import { applyFieldPolicies } from "@ai-sales/security";
 
 /**
  * BE-CUS-002 — Customer CRUD/search/PII field masking.
+ * BE-CUS-003 — Identity attach/dedupe (email/phone/external).
  * In-memory until Postgres adapter; PII stored as plaintext in process memory only
  * (envelope encryption deferred — see ticket completion notes).
  */
 
 export type CustomerStatus = "active" | "merged" | "anonymized";
 
+export type CustomerIdentityType = "email" | "phone" | "external";
+
 export type CustomerErrorCode =
   | "VALIDATION_FAILED"
   | "INSUFFICIENT_PERMISSION"
   | "RESOURCE_NOT_FOUND"
   | "RESOURCE_VERSION_MISMATCH"
-  | "IDEMPOTENCY_KEY_REQUIRED";
+  | "IDEMPOTENCY_KEY_REQUIRED"
+  | "CUSTOMER_IDENTITY_CONFLICT";
 
 export class CustomerError extends Error {
   constructor(
@@ -37,6 +42,16 @@ export interface CustomerResource {
   readonly version: number;
   readonly created_at: string;
   readonly updated_at: string;
+}
+
+export interface CustomerIdentityRecord {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly customerId: string;
+  readonly identityType: CustomerIdentityType;
+  readonly normalizedValueHash: string;
+  readonly externalId: string | null;
+  readonly isPrimary: boolean;
 }
 
 export interface CustomerRepository {
@@ -63,6 +78,29 @@ export interface CustomerRepository {
     readonly idempotencyKey: string;
   }): Promise<CustomerResource | null>;
   rememberIdempotentCreate(args: {
+    readonly tenantId: string;
+    readonly idempotencyKey: string;
+    readonly customer: CustomerResource;
+  }): Promise<void>;
+  findIdentityByHash(args: {
+    readonly tenantId: string;
+    readonly identityType: CustomerIdentityType;
+    readonly normalizedValueHash: string;
+  }): Promise<CustomerIdentityRecord | null>;
+  addIdentity(args: {
+    readonly tenantId: string;
+    readonly customerId: string;
+    readonly identityId: UuidV7;
+    readonly identityType: CustomerIdentityType;
+    readonly normalizedValueHash: string;
+    readonly externalId: string | null;
+    readonly isPrimary: boolean;
+  }): Promise<CustomerIdentityRecord>;
+  getIdempotentIdentityAttach(args: {
+    readonly tenantId: string;
+    readonly idempotencyKey: string;
+  }): Promise<CustomerResource | null>;
+  rememberIdempotentIdentityAttach(args: {
     readonly tenantId: string;
     readonly idempotencyKey: string;
     readonly customer: CustomerResource;
@@ -267,4 +305,145 @@ export function parseIfMatchVersion(ifMatch: string | undefined): number | null 
   const m = /^"v(\d+)"$/.exec(ifMatch.trim());
   if (!m) return null;
   return Number(m[1]);
+}
+
+export function hashNormalizedIdentity(normalized: string): string {
+  return createHash("sha256").update(normalized, "utf8").digest("hex");
+}
+
+function parseIdentityType(raw: string | undefined): CustomerIdentityType {
+  if (raw === "email" || raw === "phone" || raw === "external") return raw;
+  throw new CustomerError("identity type must be email, phone, or external.", "VALIDATION_FAILED");
+}
+
+function normalizeIdentityValue(type: CustomerIdentityType, value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    throw new CustomerError("identity value required.", "VALIDATION_FAILED");
+  }
+  if (type === "email") {
+    const email = normalizeEmail(trimmed);
+    if (!email) throw new CustomerError("Invalid email identity.", "VALIDATION_FAILED");
+    return email;
+  }
+  if (type === "phone") {
+    const phone = normalizePhone(trimmed);
+    if (!phone) throw new CustomerError("Invalid phone identity.", "VALIDATION_FAILED");
+    return phone;
+  }
+  if (trimmed.length > 320) {
+    throw new CustomerError("external identity too long.", "VALIDATION_FAILED");
+  }
+  return trimmed;
+}
+
+/** BE-CUS-003 — attach identity with tenant-scoped dedupe. */
+export async function addCustomerIdentity(options: {
+  readonly repo: CustomerRepository;
+  readonly tenantId: string;
+  readonly customerId: string;
+  readonly actorPermissions: readonly string[];
+  readonly idempotencyKey: string | undefined;
+  readonly type: string;
+  readonly value: string;
+}): Promise<{
+  readonly data: Record<string, unknown>;
+  readonly meta: Record<string, never>;
+  readonly version: number;
+}> {
+  requireCustomerPermission(options.actorPermissions, "customer.write");
+  if (!options.idempotencyKey?.trim()) {
+    throw new CustomerError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
+  }
+  const key = options.idempotencyKey.trim();
+  const replay = await options.repo.getIdempotentIdentityAttach({
+    tenantId: options.tenantId,
+    idempotencyKey: key
+  });
+  if (replay) {
+    return {
+      data: toCustomerResponseData(replay, options.actorPermissions),
+      meta: {},
+      version: replay.version
+    };
+  }
+
+  const customer = await options.repo.getCustomer({
+    tenantId: options.tenantId,
+    customerId: options.customerId
+  });
+  if (!customer || customer.status !== "active") {
+    throw new CustomerError("Customer not found.", "RESOURCE_NOT_FOUND");
+  }
+
+  const identityType = parseIdentityType(options.type);
+  const normalized = normalizeIdentityValue(identityType, options.value);
+  const hash = hashNormalizedIdentity(normalized);
+
+  const existing = await options.repo.findIdentityByHash({
+    tenantId: options.tenantId,
+    identityType,
+    normalizedValueHash: hash
+  });
+  if (existing) {
+    if (existing.customerId !== options.customerId) {
+      throw new CustomerError(
+        "Identity already attached to another customer.",
+        "CUSTOMER_IDENTITY_CONFLICT"
+      );
+    }
+    await options.repo.rememberIdempotentIdentityAttach({
+      tenantId: options.tenantId,
+      idempotencyKey: key,
+      customer
+    });
+    return {
+      data: toCustomerResponseData(customer, options.actorPermissions),
+      meta: {},
+      version: customer.version
+    };
+  }
+
+  await options.repo.addIdentity({
+    tenantId: options.tenantId,
+    customerId: options.customerId,
+    identityId: generateUuidV7(),
+    identityType,
+    normalizedValueHash: hash,
+    externalId: identityType === "external" ? normalized : null,
+    isPrimary: true
+  });
+
+  let updated = customer;
+  if (identityType === "email" && !customer.primary_email) {
+    updated = await options.repo.updateCustomer({
+      tenantId: options.tenantId,
+      customerId: options.customerId,
+      expectedVersion: customer.version,
+      displayName: undefined,
+      primaryEmail: normalized,
+      primaryPhone: undefined
+    });
+  } else if (identityType === "phone" && !customer.primary_phone) {
+    updated = await options.repo.updateCustomer({
+      tenantId: options.tenantId,
+      customerId: options.customerId,
+      expectedVersion: customer.version,
+      displayName: undefined,
+      primaryEmail: undefined,
+      primaryPhone: normalized
+    });
+  }
+
+  await options.repo.rememberIdempotentIdentityAttach({
+    tenantId: options.tenantId,
+    idempotencyKey: key,
+    customer: updated
+  });
+
+  return {
+    data: toCustomerResponseData(updated, options.actorPermissions),
+    meta: {},
+    version: updated.version
+  };
 }
