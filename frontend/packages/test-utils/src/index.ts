@@ -11,6 +11,9 @@ export {
   alwaysForbidden,
 } from "./msw/authHandlers";
 export { settingsHandlers } from "./msw/settingsHandlers";
+export { customerHandlers } from "./msw/customerHandlers";
+export { catalogHandlers } from "./msw/catalogHandlers";
+export { importHandlers } from "./msw/importHandlers";
 export type { HandlerDescriptor } from "./msw/generated/handlerDescriptors";
 export { buildGenericResource, resetGenericResourceCounter } from "./factories/genericResource";
 export { buildSessionBootstrap } from "./factories/sessionBootstrap";

@@ -4,7 +4,7 @@ title: Chunk/embed generation/versioning
 owner: Backend AI Agent
 phase: P4
 risk: medium
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

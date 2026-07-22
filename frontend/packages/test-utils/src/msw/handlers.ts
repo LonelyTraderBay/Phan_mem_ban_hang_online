@@ -2,6 +2,9 @@ import { http, HttpResponse, type JsonBodyType } from "msw";
 import { handlerDescriptors } from "./generated/handlerDescriptors";
 import { authHandlers } from "./authHandlers";
 import { settingsHandlers } from "./settingsHandlers";
+import { customerHandlers } from "./customerHandlers";
+import { catalogHandlers } from "./catalogHandlers";
+import { importHandlers } from "./importHandlers";
 
 /**
  * Turns the generated descriptors into real MSW handlers. Kept as a runtime mapping step
@@ -15,5 +18,13 @@ const generatedHandlers = handlerDescriptors.map((descriptor) =>
   }),
 );
 
-// Hand-written auth/settings overrides come first: MSW resolves to the first matching handler.
-export const handlers = [...authHandlers, ...settingsHandlers, ...generatedHandlers];
+// Hand-written overrides come first: MSW resolves to the first matching handler.
+const overrideHandlers = [
+  ...authHandlers,
+  ...settingsHandlers,
+  ...customerHandlers,
+  ...catalogHandlers,
+  ...importHandlers,
+];
+
+export const handlers = [...overrideHandlers, ...generatedHandlers];

@@ -4,7 +4,7 @@ title: Outbound message state/attempt/provider send
 owner: Backend AI Agent
 phase: P5
 risk: high
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

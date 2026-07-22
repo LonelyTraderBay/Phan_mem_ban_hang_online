@@ -4,7 +4,7 @@ title: AI-R001⬦AI-R010 enforcement and blocked output records
 owner: Backend AI Agent
 phase: P8
 risk: critical
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

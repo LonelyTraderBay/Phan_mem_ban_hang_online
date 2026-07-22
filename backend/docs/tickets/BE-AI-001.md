@@ -4,7 +4,7 @@ title: FastAPI skeleton, model gateway, OTel, health/timeouts
 owner: Backend AI Agent
 phase: P8
 risk: high
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

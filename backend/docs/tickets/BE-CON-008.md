@@ -4,7 +4,7 @@ title: Lead score v1 with rule version/provenance
 owner: Backend AI Agent
 phase: P6
 risk: medium
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

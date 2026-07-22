@@ -69,87 +69,87 @@ authoritative for AI coding agents — do not re-open without ADR.
 | `product_variants` | TENANT_OWNED | **Done** (`000012`) | `cost_minor` field-level protected (§5.5); `price_minor` = tax-**inclusive** đồng per HO_DEFAULTS_v1 |
 | `product_media` | TENANT_OWNED | **Done** (`000012`) | |
 | `price_history` | TENANT_OWNED [ledger] | **Done** (`000012`) | Append-only; SELECT/INSERT only, no UPDATE/DELETE grant |
-| `import_jobs` | TENANT_OWNED | Not started | Owned by BE-IMP-001, not BE-CAT-001 — see `docs/tickets/BE-IMP-001.md` |
-| `import_job_rows` | TENANT_OWNED | Not started | Owned by BE-IMP-001, not BE-CAT-001 — see `docs/tickets/BE-IMP-001.md` |
+| `import_jobs` | TENANT_OWNED | **Done** (`000014`) | Owned by BE-IMP-001…005 |
+| `import_job_rows` | TENANT_OWNED | **Done** (`000014`) | Staging rows; FORCE RLS |
 
 ## Inventory (blueprint §7.8)
 
 | Table | Class | RLS/migration status | Notes |
 |---|---|---|---|
-| `warehouses` | TENANT_OWNED | Not started | |
-| `inventory_balances` | TENANT_OWNED | Not started | Unique `(tenant_id, warehouse_id, variant_id)`; composite FK both directions |
-| `inventory_movements` | TENANT_OWNED [ledger] | Not started | Append-only |
-| `inventory_reservations` | TENANT_OWNED | Not started | |
-| `inventory_reservation_items` | TENANT_OWNED | Not started | |
-| `inventory_adjustments` | TENANT_OWNED | Not started | |
+| `warehouses` | TENANT_OWNED | **Done** (`000015`) | |
+| `inventory_balances` | TENANT_OWNED | **Done** (`000015`) | Unique `(tenant_id, warehouse_id, variant_id)`; composite FK both directions |
+| `inventory_movements` | TENANT_OWNED [ledger] | **Done** (`000015`) | Append-only |
+| `inventory_reservations` | TENANT_OWNED | **Done** (`000015`) | |
+| `inventory_reservation_items` | TENANT_OWNED | **Done** (`000015`) | |
+| `inventory_adjustments` | TENANT_OWNED | **Done** (`000015`) | |
 
 ## Knowledge / AI (blueprint §7.9)
 
 | Table | Class | RLS/migration status | Notes |
 |---|---|---|---|
-| `knowledge_sources` | TENANT_OWNED | Not started | |
-| `knowledge_source_versions` | TENANT_OWNED | Not started | Only one published version effective at a time (unless scoped otherwise) |
-| `knowledge_chunks` | TENANT_OWNED | Not started | Retrieval query MUST filter tenant + published version (§4.3.7) |
-| `prompt_versions` | TENANT_OWNED | Not started | Technical default (not HO business decision): consistent with sibling AI tables + per-tenant `ai.configure`/`ai.activate`. Platform-wide-only prompts → override via ADR. |
-| `ai_logs` | TENANT_OWNED | Not started | |
-| `ai_tool_calls` | TENANT_OWNED | Not started | |
-| `ai_evaluation_sets` | GLOBAL | Not started | Platform-owned eval harness (blueprint §13.13) — not tenant data |
-| `ai_evaluation_cases` | GLOBAL | Not started | Child of `ai_evaluation_sets`; no `tenant_id` |
-| `ai_evaluation_runs` | GLOBAL | Not started | Child of `ai_evaluation_sets`; no `tenant_id` |
-| `ai_evaluation_results` | GLOBAL | Not started | Child of `ai_evaluation_sets`; no `tenant_id` |
-| `ai_blocked_outputs` | TENANT_OWNED | Not started | Per-tenant incident record |
+| `knowledge_sources` | TENANT_OWNED | Done (`000016`) | |
+| `knowledge_source_versions` | TENANT_OWNED | Done (`000016`) | Only one published version effective at a time (unless scoped otherwise) |
+| `knowledge_chunks` | TENANT_OWNED | Done (`000016`) | Retrieval query MUST filter tenant + published version (§4.3.7) |
+| `prompt_versions` | TENANT_OWNED | Done (`000021`) | Technical default (not HO business decision): consistent with sibling AI tables + per-tenant `ai.configure`/`ai.activate`. Platform-wide-only prompts → override via ADR. |
+| `ai_logs` | TENANT_OWNED | Done (`000021`) | |
+| `ai_tool_calls` | TENANT_OWNED | Done (`000021`) | |
+| `ai_evaluation_sets` | GLOBAL | Done (`000021`) | Platform-owned eval harness (blueprint §13.13) — not tenant data |
+| `ai_evaluation_cases` | GLOBAL | Done (`000021`) | Child of `ai_evaluation_sets`; no `tenant_id` |
+| `ai_evaluation_runs` | GLOBAL | Done (`000021`) | Child of `ai_evaluation_sets`; no `tenant_id` |
+| `ai_evaluation_results` | GLOBAL | Done (`000021`) | Child of `ai_evaluation_sets`; no `tenant_id` |
+| `ai_blocked_outputs` | TENANT_OWNED | Done (`000021`) | Per-tenant incident record |
 
 ## Channel / Conversation (blueprint §7.10)
 
 | Table | Class | RLS/migration status | Notes |
 |---|---|---|---|
-| `channel_accounts` | TENANT_OWNED | Not started | |
-| `channel_credentials` | TENANT_OWNED | Not started | Never expose via normal repository/DTO |
-| `webhook_events` | TENANT_OWNED | Not started | Dedupe `(provider, channel_account_id, external_event_id)` |
-| `conversations` | TENANT_OWNED | Not started | 5 independent state dimensions — see ERD.md §6 |
-| `messages` | TENANT_OWNED | Not started | |
-| `message_attachments` | TENANT_OWNED | Not started | |
-| `conversation_assignments` | TENANT_OWNED [ledger-like history] | Not started | Current assignee denormalized on `conversations`; this table is the audit source |
-| `conversation_notes` | TENANT_OWNED | Not started | |
-| `outbound_messages` | TENANT_OWNED | Not started | |
-| `outbound_delivery_attempts` | TENANT_OWNED | Not started | |
+| `channel_accounts` | TENANT_OWNED | **Done** (`000017`) | |
+| `channel_credentials` | TENANT_OWNED | **Done** (`000017`) | Never expose via normal repository/DTO |
+| `webhook_events` | TENANT_OWNED | **Done** (`000017`) | Dedupe `(provider, channel_account_id, external_event_id)` |
+| `conversations` | TENANT_OWNED | **Done** (`000018`) | 5 independent state dimensions — see ERD.md §6 |
+| `messages` | TENANT_OWNED | **Done** (`000018`) | |
+| `message_attachments` | TENANT_OWNED | **Done** (`000018`) | |
+| `conversation_assignments` | TENANT_OWNED [ledger-like history] | **Done** (`000018`) | Current assignee denormalized on `conversations`; this table is the audit source |
+| `conversation_notes` | TENANT_OWNED | **Done** (`000018`) | |
+| `outbound_messages` | TENANT_OWNED | **Done** (`000017`) | |
+| `outbound_delivery_attempts` | TENANT_OWNED | **Done** (`000017`) | |
 
 ## Order / Payment / Fulfillment (blueprint §7.11)
 
 | Table | Class | RLS/migration status | Notes |
 |---|---|---|---|
-| `orders` | TENANT_OWNED | Not started | Unique `order_code` per tenant; HO_DEFAULTS: `tax_rate_bps=1000`, `prices_tax_inclusive=true` |
-| `order_items` | TENANT_OWNED | Not started | Immutable snapshot after confirm; unit prices tax-inclusive |
-| `order_status_history` | TENANT_OWNED [ledger] | Not started | |
-| `payments` | TENANT_OWNED | Not started | |
-| `payment_reconciliations` | TENANT_OWNED | Not started | |
-| `shipments` | TENANT_OWNED | Not started | |
-| `shipment_items` | TENANT_OWNED | Not started | |
+| `orders` | TENANT_OWNED | **Done** (`000019`) | Unique `order_code` per tenant; HO_DEFAULTS: `tax_rate_bps=1000`, `prices_tax_inclusive=true` |
+| `order_items` | TENANT_OWNED | **Done** (`000019`) | Immutable snapshot after confirm; unit prices tax-inclusive |
+| `order_status_history` | TENANT_OWNED [ledger] | **Done** (`000019`) | |
+| `payments` | TENANT_OWNED | **Done** (`000020`) | |
+| `payment_reconciliations` | TENANT_OWNED | **Done** (`000020`) | |
+| `shipments` | TENANT_OWNED | **Done** (`000020`) | |
+| `shipment_items` | TENANT_OWNED | **Done** (`000020`) | |
 | `shipping_labels` | TENANT_OWNED | Not started | |
-| `returns` | TENANT_OWNED | Not started | |
-| `return_items` | TENANT_OWNED | Not started | |
-| `refunds` | TENANT_OWNED | Not started | |
+| `returns` | TENANT_OWNED | **Done** (`000020`) | |
+| `return_items` | TENANT_OWNED | **Done** (`000020`) | |
+| `refunds` | TENANT_OWNED | **Done** (`000020`) | |
 
 ## Analytics / Billing / Ops (blueprint §7.12)
 
 | Table | Class | RLS/migration status | Notes |
 |---|---|---|---|
-| `event_logs` | TENANT_OWNED | Not started | Projection, not a source of truth — doesn't replace outbox |
-| `daily_tenant_metrics` | TENANT_OWNED | Not started | Fact table |
-| `daily_channel_metrics` | TENANT_OWNED | Not started | Fact table |
-| `daily_sales_agent_metrics` | TENANT_OWNED | Not started | Fact table |
-| `daily_product_metrics` | TENANT_OWNED | Not started | Fact table |
-| `conversation_conversion_facts` | TENANT_OWNED | Not started | Fact table |
-| `order_profit_facts` | TENANT_OWNED | Not started | Fact table |
-| `ai_quality_facts` | TENANT_OWNED | Not started | Fact table |
-| `plans` | GLOBAL | Not started | Seed ids: `plan_free` \| `plan_pro` \| `plan_business` (HO_DEFAULTS_v1) |
-| `subscriptions` | TENANT_OWNED | Not started | Over-limit: soft_warn → hard_block, no auto-upgrade (HO_DEFAULTS) |
-| `usage_meters` | TENANT_OWNED | Not started | |
-| `feature_flags` | GLOBAL | Not started | |
-| `feature_flag_overrides` | TENANT_OVERRIDE | Not started | Global key + `tenant_id` |
-| `system_alerts` | GLOBAL | Not started | Platform SRE alert; `ops.*` only — never tenant role |
+| `event_logs` | TENANT_OWNED | **Done** (`000022`) | Projection, not a source of truth — doesn't replace outbox |
+| `daily_tenant_metrics` | TENANT_OWNED | **Done** (`000022`) | Fact table |
+| `daily_channel_metrics` | TENANT_OWNED | **Done** (`000022`) | Fact table |
+| `daily_sales_agent_metrics` | TENANT_OWNED | **Done** (`000022`) | Fact table |
+| `daily_product_metrics` | TENANT_OWNED | **Done** (`000022`) | Fact table |
+| `conversation_conversion_facts` | TENANT_OWNED | **Done** (`000022`) | Fact table |
+| `order_profit_facts` | TENANT_OWNED | **Done** (`000022`) | Fact table |
+| `ai_quality_facts` | TENANT_OWNED | Done (`000021`) | Fact table |
+| `plans` | GLOBAL | **Done** (`000023`) | Seed ids: `plan_free` \| `plan_pro` \| `plan_business` (HO_DEFAULTS_v1) |
+| `subscriptions` | TENANT_OWNED | **Done** (`000023`) | Over-limit: soft_warn → hard_block, no auto-upgrade (HO_DEFAULTS) |
+| `usage_meters` | TENANT_OWNED | **Done** (`000023`) | |
+| `feature_flags` | GLOBAL | **Done** (`000023`) | |
+| `feature_flag_overrides` | TENANT_OVERRIDE | **Done** (`000023`) | Global key + `tenant_id` |
+| `system_alerts` | GLOBAL | **Done** (`000023`) | Platform SRE alert; `ops.*` only — never tenant role |
 | `support_tickets` | TENANT_OWNED | Not started | |
-| `reprocess_requests` | GLOBAL | Not started | Ops API (`ops.reprocess`); optional nullable `target_tenant_id` filter column (not RLS ownership) |
+| `reprocess_requests` | GLOBAL | **Done** (`000023`) | Ops API (`ops.reprocess`); optional nullable `target_tenant_id` filter column (not RLS ownership) |
 | `job_runs` | SYSTEM_INTERNAL | Not started | Not exposed through user APIs (§6.1) |
 | `audit_logs` | TENANT_OWNED (nullable tenant) [ledger] | Not started | Domain ledger (§7.12.5); converge with skeleton `audit_events` via expand/contract |
 

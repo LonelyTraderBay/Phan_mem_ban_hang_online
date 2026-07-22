@@ -1083,10 +1083,10 @@ Một task Backend chỉ được xem là xong khi:
 
 ## Order/Dashboard
 
-- [ ] Order draft/confirm/cancel schema
-- [ ] Reservation error code
-- [ ] Payment/shipping schema
-- [ ] Packing slip payload
+- [x] Order draft/confirm/cancel schema (`000019`, P7 in-memory)
+- [x] Reservation error code (wired via inventory port)
+- [x] Payment/shipping schema (`000020`, P7 in-memory)
+- [x] Packing slip payload (job stub, `packing_slip.print`)
 - [ ] Dashboard metric schema
 - [ ] Report filter schema
 

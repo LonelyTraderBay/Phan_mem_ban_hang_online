@@ -4,7 +4,7 @@ title: Reply command -> outbound queue
 owner: Backend AI Agent
 phase: P6
 risk: medium
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

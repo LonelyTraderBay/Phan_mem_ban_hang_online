@@ -4,7 +4,7 @@ title: Source/version/chunk lifecycle schema
 owner: Backend AI Agent
 phase: P4
 risk: high
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

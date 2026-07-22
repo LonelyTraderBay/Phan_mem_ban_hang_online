@@ -4,7 +4,7 @@ title: Catalog/inventory/policy/customer/order read tools
 owner: Backend AI Agent
 phase: P8
 risk: critical
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

@@ -4,109 +4,75 @@ title: Cost/price permission + history/audit
 owner: Backend AI Agent
 phase: P3
 risk: high
-status: doc-frozen
+status: done
 ---
 
 # Business outcome
 
-Cost/price permission + history/audit.
-
-Deliverable / details from backlog: (none — expand from blueprint + contracts before coding).
+Cost/price permission + history/audit for catalog variants (HO_DEFAULTS_v1 tax-inclusive prices).
 
 Primary paths: `modules/catalog/`.
 
 # Actor and use case
 
-Actors and flows for domain **CAT** as defined in the enterprise blueprint and frozen OpenAPI/AsyncAPI contracts for this phase (P3).
+- Actors with `catalog.write` may change tax-inclusive `unit_price_minor` (existing PATCH).
+- Actors need `catalog.cost.write` to set `cost_minor` (`setVariantCost` / create with cost).
+- Actors need `catalog.cost.read` to see `cost_minor` on pricing views and cost columns on history.
+- Price/cost mutations append `price_history` + audit records (in-memory until Postgres adapter).
 
 # In scope / Out of scope
 
 In scope:
-- Cost/price permission + history/audit
-- Align with frozen contracts, permission/error matrices, and data-dictionary classes (W1–W4).
-- Tests required by acceptance criteria below.
+- Field-level cost permission (`COST_PERMISSION_REQUIRED`, `catalog.cost.*`)
+- `getVariantPricing` / `listVariantPriceHistory` / `setVariantCost`
+- Append-only history + audit on price/cost change
+- HO assertion: `prices_tax_inclusive: true`
 
 Out of scope:
-- Unrelated modules
-- FE UI (FE consumes contracts after sync)
-- Inventing permissions, money rules, or schema classes not in freeze docs
+- Inventing OpenAPI fields on frozen `CatalogResource` / request bodies for cost
+- FE UI
+- Postgres SECURITY DEFINER adapter (follow-up)
 
 # Dependencies
 
-- Enterprise freeze gate: feature coding forbidden until `FULL_PRODUCT_DOC_FREEZE.md` = PASS (except freeze-wave doc work).
-- Prefer prior phase tickets Done; consult `docs/p0/epic-dependency-board.md`.
-- Cite related `docs/tickets/BE-*.md` siblings in the same domain when implementing.
-
-Money/tax/billing MUST follow `docs/business/HO_DEFAULTS_v1.md` (VAT 10% tax-inclusive;
-plans Free/Pro/Business; over-limit soft_warn → hard_block, no auto-upgrade). Do not invent rates.
-
-# Domain invariants and state transitions
-
-- Never trust client `tenant_id` for authorization; set tenant context server-side.
-- Apply state machines from `docs/domain/state-machine-transition-matrices.md` where this ticket owns transitions.
-- Ledger / append-only tables: no hard DELETE; compensating rows only.
-- Follow `docs/data/data-dictionary.md` + `rls-intent-catalog.md` for any table this ticket creates/touches.
+- BE-CAT-002 Done
+- Schema `price_history` from `000012`
+- `applyFieldPolicies` / `DEFAULT_FIELD_POLICIES` (BE-IDN-012)
 
 # Contract
 
-- OpenAPI operation/schema: slice with `pnpm agent:contract-slice` for CAT; implement only operations this ticket owns.
-- AsyncAPI events: emit/consume only events listed for this deliverable in `backend_doc/contracts/asyncapi.yaml`.
-- Error codes: `backend_doc/matrices/error_catalog.csv` only — no ad-hoc codes.
-- Realtime event: only if AsyncAPI / ops channel lists one for this work.
-
-# Authorization and data classification
-
-- Required permission: every public operation must have `x-permission` resolving to `permission_matrix.csv`.
-- Tenant/RLS behavior: per table class in data-dictionary; FORCE RLS for tenant-scoped tables.
-- Field-level restrictions: blueprint §5.5 / cost fields where applicable.
-- Data classification: secrets hashed/encrypted; PII redacted in logs/audit.
-
-# Persistence and migration
-
-- Tables/columns/constraints/indexes/RLS: only those required by this deliverable; class must already be frozen (no `Needs confirmation`).
-- Backfill: document if any; default none for greenfield.
-- Rolling-deploy compatibility: expand/contract only.
-
-# Transaction, concurrency and idempotency
-
-- Transaction boundary: business mutation + outbox/audit/idempotency in one tenant transaction where required.
-- Lock order/isolation: follow module invariants; avoid cross-aggregate deadlocks.
-- Idempotency scope/TTL: required on critical mutators per OpenAPI `x-idempotency` / blueprint §8.7.
-- Retry behavior: fail-closed on non-retryable; DLQ for workers.
-
-# Audit, telemetry and operations
-
-- Audit action: record security/business-significant mutations via audit port.
-- Logs/traces/metrics: correlation IDs; no secrets in clear text.
-- Alert/runbook impact: note new alerts if this ticket adds SLO-sensitive paths.
-- Feature flag/rollout: prefer flag when changing tenant-visible behavior.
-- Rollback: disable route/flag; no destructive down-migrations of ledger data.
+- OpenAPI unchanged (cost not on frozen Catalog resource/request)
+- Error: existing `COST_PERMISSION_REQUIRED`
+- Permissions: `catalog.cost.read`, `catalog.cost.write`
 
 # Acceptance criteria
 
-- [ ] Happy path matches contract + backlog deliverable
-- [ ] Validation / business conflict codes from error catalog
-- [ ] Permission + tenant isolation tests (deny cross-tenant)
-- [ ] Idempotency / retry where mutator is critical
-- [ ] Transaction rollback / concurrency when applicable
-- [ ] Audit / outbox / domain events as required
-- [ ] Contract / generated client note for FE sync
-- [ ] Staging smoke checklist item when phase reaches staging
-- [ ] Money/tax/billing assertions match HO_DEFAULTS_v1
+- [x] Happy path matches backlog deliverable
+- [x] Validation / business conflict codes from error catalog
+- [x] Permission + tenant isolation tests
+- [x] Audit / price_history as required
+- [x] Money/tax assertions match HO_DEFAULTS_v1 (`prices_tax_inclusive`)
+- [ ] Staging smoke when phase reaches staging
 
 # Test cases
 
-Derive from BE domain test matrices / blueprint §13 where present; otherwise write permission-negative + happy-path + isolation cases before coding.
+- omit cost without catalog.cost.read
+- create with cost without catalog.cost.write → COST_PERMISSION_REQUIRED
+- price update + setVariantCost → history + audit; history masks cost without read
+- setVariantCost without cost.write → COST_PERMISSION_REQUIRED
+
+# Preflight (2026-07-22)
+
+| Item | Value |
+|------|--------|
+| Domain | CAT / P3 |
+| Migration | none (uses 000012 price_history) |
+| Error | COST_PERMISSION_REQUIRED (existing) |
+| Rollback | disable cost write path; keep ledger rows |
 
 # Completion manifest
 
-- Contracts changed:
-- Migration:
-- Tests/evidence:
-- Known risks:
-
-# Freeze provenance
-
-- Generated/updated: 2026-07-22 (enterprise freeze W5)
-- Backlog status at freeze: Not Started
-- Source: `backend_doc/matrices/implementation_backlog.csv`
+- Contracts changed: none
+- Migration: none
+- Tests/evidence: `pnpm exec vitest run modules/catalog` — 19/19; `pnpm typecheck` clean
+- Known risks: cost HTTP body not in OpenAPI yet — application `setVariantCost` until contract wave; in-memory history only

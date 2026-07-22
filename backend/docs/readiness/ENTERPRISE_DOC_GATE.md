@@ -33,10 +33,27 @@
 | **FE-F01** Auth/Settings UI | **GREEN (READY-MOCK)** | FE-F01-001…006 MSW screens + auth bootstrap/guards (2026-07-22) |
 | **BE-CUS-001** | **GREEN (done)** | Customer/CDP schema + RLS (`000011`) — `docs/tickets/BE-CUS-001.md` (`done`) |
 | **BE-CUS-002** | **GREEN (done)** | Customer CRUD + PII masking — `docs/tickets/BE-CUS-002.md` (`done`) |
+| **BE-CUS-003** | **GREEN (done)** | Identity attach/dedupe — `docs/tickets/BE-CUS-003.md` (`done`) |
 | **BE-CAT-001** | **GREEN (done)** | Catalog schema + RLS (`000012`) — `docs/tickets/BE-CAT-001.md` (`done`) |
 | **BE-CAT-002** | **GREEN (done)** | Catalog CRUD + ETag — `docs/tickets/BE-CAT-002.md` (`done`) |
-| **BE-CUS / BE-CAT** | **IN PROGRESS** | Schema+CRUD done; identity attach/merge + cost/media follow |
-| **Orders / Payments / F02+** | **RED until phase** | Chỉ khi phase hiện tại Done + artefacts còn consistent |
+| **BE-CUS / BE-CAT / BE-IMP** | **P3 CODE EXIT (in-memory)** | CUS/CAT/IMP application Done; FE sync + Postgres adapters follow |
+| **BE-INV-001…008** | **GREEN (done)** | Inventory schema (`000015`) + in-memory application + HTTP controller — `docs/tickets/BE-INV-*.md` (`done`) |
+| **BE-KNW-001…006** | **GREEN (done)** | Knowledge schema (`000016`) + in-memory application + HTTP controller — `docs/tickets/BE-KNW-*.md` (`done`) |
+| **BE-CHN-001…011** | **GREEN (done)** | Channel schema (`000017`) + in-memory application + HTTP controller — `docs/tickets/BE-CHN-*.md` (`done`) |
+| **BE-CON-001…012** | **GREEN (done)** | Conversation schema (`000018`) + in-memory application + HTTP controller — `docs/tickets/BE-CON-*.md` (`done`) |
+| **BE-ORD-001…008** | **GREEN (done)** | Order schema (`000019`) + money calc HO_DEFAULTS_v1 + in-memory application — `docs/tickets/BE-ORD-*.md` (`done`) |
+| **BE-PAY-001…003** | **GREEN (done)** | Payment schema (`000020`) + manual payment + provider callback stub — `docs/tickets/BE-PAY-*.md` (`done`) |
+| **BE-FUL-001…002** | **GREEN (done)** | Shipment/pack/ship/deliver (`000020`) — `docs/tickets/BE-FUL-*.md` (`done`) |
+| **BE-RET-001** | **GREEN (done)** | Return/receive/inspect/restock/refund flow stub (`000020`) — `docs/tickets/BE-RET-001.md` (`done`) |
+| **BE-AI-001…016** | **GREEN (done)** | AI orchestration schema (`000021`) + in-memory application + HTTP controller + ai-service stub — `docs/tickets/BE-AI-*.md` (`done`) |
+| **BE-DAT-001…010** | **GREEN (done)** | Analytics schema (`000022`) + in-memory application + HTTP controller — `docs/tickets/BE-DAT-*.md` (`done`) |
+| **BE-BIL-001…003** | **GREEN (done)** | Billing schema (`000023`) + HO_DEFAULTS_v1 plans/entitlements + in-memory application — `docs/tickets/BE-BIL-*.md` (`done`) |
+| **BE-OPS-001…005** | **GREEN (done)** | Operations super-admin APIs + in-memory application — `docs/tickets/BE-OPS-*.md` (`done`) |
+| **BE-DSK-001…005** | **GREEN (done)** | Desktop contract stubs (identity devices / fulfillment packing / ops telemetry) — `docs/tickets/BE-DSK-*.md` (`done`) |
+| **BE-HRD-002…008** | **GREEN (done)** | Hardening rehearsal stubs (`tools/hardening/*`) — code-complete; staging execution HO |
+| **BE-FND-015** | **BLOCKED-HO** | Staging infra — cloud spend / Human Owner only |
+| **BE-HRD-001/004/009/010** | **BLOCKED-HO** | Pentest, PITR drill, pilot tenant, production readiness — HO signoff |
+| **P9 Analytics / F02+** | **CODE EXIT (in-memory)** | P9–P10 BE domains code-complete; Postgres adapters + staging HO follow |
 
 ## Kickoff order (bắt buộc)
 
@@ -61,7 +78,25 @@
 18. BE-CAT-001 catalog schema + RLS (`000012`) — done
 19. BE-CUS-002 customer CRUD + PII masking — done
 20. BE-CAT-002 catalog CRUD + ETag — done
-21. FE-F01 / later phases (CUS-003+/CAT-003+/IMP/…) when prior phase exit gates hold
+21. BE-CUS-003 identity attach/dedupe — done
+22. BE-CUS-004 merge preview/transaction — Done
+23. BE-CAT-003 cost/price permission + audit — Done
+24. BE-CAT-004 private media upload/scan/signed URL — Done
+25. BE-IMP-001…005 import pipeline — Done (in-memory + migration 000014)
+26. FE P3 slices + `contracts:sync` — Done (Wave 2)
+27. BE-INV-001…008 inventory schema + in-memory application — Done (`000015`)
+28. BE-KNW-001…006 knowledge schema + in-memory application — Done (`000016`)
+29. BE-CHN-001…011 channel schema + in-memory application — Done (`000017`)
+30. BE-CON-001…012 conversation schema + in-memory application — Done (`000018`)
+31. BE-ORD-001…008 order schema + money calc + in-memory application — Done (`000019`)
+32. BE-PAY-001…003 payment schema + manual payment + callback stub — Done (`000020`)
+33. BE-FUL-001…002 + BE-RET-001 fulfillment/returns — Done (`000020`)
+34. BE-AI-001…016 AI orchestration — Done (`000021`)
+35. BE-DAT-001…010 Analytics — Done (`000022`)
+36. BE-BIL-001…003 Billing — Done (`000023`)
+37. BE-OPS-001…005 + BE-DSK-001…005 Operations/desktop — Done (`000023`)
+38. BE-HRD-002…008 Hardening rehearsal stubs — Done (`tools/hardening/`)
+39. BE-FND-015 / BE-HRD-001/004/009/010 — BLOCKED-HO (staging / production signoff)
 ```
 
 Money/tax/billing: luôn cite [`../business/HO_DEFAULTS_v1.md`](../business/HO_DEFAULTS_v1.md).

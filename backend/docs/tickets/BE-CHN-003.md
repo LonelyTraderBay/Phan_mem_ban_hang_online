@@ -4,7 +4,7 @@ title: OAuth state/PKCE where applicable/callback/token vault
 owner: Backend AI Agent
 phase: P5
 risk: critical
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

@@ -4,7 +4,7 @@ title: Prompt lifecycle/eval runner/activation/rollback
 owner: Backend AI Agent
 phase: P8
 risk: high
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

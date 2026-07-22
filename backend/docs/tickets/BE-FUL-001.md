@@ -4,7 +4,7 @@ title: Shipment/item/tracking/packing-slip data
 owner: Backend AI Agent
 phase: P7
 risk: medium
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

@@ -1,10 +1,18 @@
-import type { UuidV7 } from "@ai-sales/domain-kernel";
+import { generateUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
 import {
   CatalogError,
+  type CatalogAuditRecord,
   type CatalogRepository,
   type CatalogResource,
-  type CatalogStatus
+  type CatalogStatus,
+  type PriceHistoryRecord
 } from "../../application/catalog.js";
+import type {
+  MediaRepository,
+  MediaScanStatus,
+  MediaUploadRecord,
+  ProductMediaRecord
+} from "../../application/media.js";
 
 interface StoredCategory {
   id: string;
@@ -39,7 +47,7 @@ interface StoredVariant {
   sku: string;
   unitPriceMinor: number;
   currency: string;
-  /** Internal only — CAT-003 will decide how/whether to expose cost. */
+  /** Field-level protected — expose via getVariantPricing + catalog.cost.read. */
   costMinor: number | null;
   barcode: string | null;
   status: "active" | "archived";
@@ -48,11 +56,24 @@ interface StoredVariant {
   updatedAt: Date;
 }
 
-export class InMemoryCatalogRepository implements CatalogRepository {
+export class InMemoryCatalogRepository implements CatalogRepository, MediaRepository {
   readonly categories = new Map<string, StoredCategory>();
   readonly products = new Map<string, StoredProduct>();
   readonly variants = new Map<string, StoredVariant>();
+  readonly priceHistory: PriceHistoryRecord[] = [];
+  readonly audits: CatalogAuditRecord[] = [];
+  readonly uploads = new Map<string, MediaUploadRecord & { bytesReceived: boolean }>();
+  readonly media = new Map<string, ProductMediaRecord>();
   private readonly idempotency = new Map<string, CatalogResource>();
+  private readonly mediaJobIdempotency = new Map<
+    string,
+    {
+      job_id: string;
+      status: "queued" | "running" | "completed" | "failed" | "cancelled";
+      status_url: string | null;
+    }
+  >();
+  private readonly mediaAttachIdempotency = new Map<string, CatalogResource>();
 
   private toCategoryResource(c: StoredCategory): CatalogResource {
     return {
@@ -392,12 +413,80 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       .map((v) => this.toVariantResource(v));
   }
 
+  async getVariantPricing(args: {
+    readonly tenantId: string;
+    readonly variantId: string;
+  }): Promise<{
+    readonly id: string;
+    readonly tenant_id: string;
+    readonly unit_price_minor: number;
+    readonly currency: string;
+    readonly cost_minor: number | null;
+    readonly version: number;
+  } | null> {
+    const variant = this.variants.get(args.variantId);
+    if (!variant || variant.tenantId !== args.tenantId) return null;
+    return {
+      id: variant.id,
+      tenant_id: variant.tenantId,
+      unit_price_minor: variant.unitPriceMinor,
+      currency: variant.currency,
+      cost_minor: variant.costMinor,
+      version: variant.version
+    };
+  }
+
+  async listPriceHistory(args: {
+    readonly tenantId: string;
+    readonly variantId: string;
+  }): Promise<readonly PriceHistoryRecord[]> {
+    return this.priceHistory.filter(
+      (h) => h.tenantId === args.tenantId && h.variantId === args.variantId
+    );
+  }
+
+  async recordInitialPriceHistory(args: {
+    readonly tenantId: string;
+    readonly variantId: string;
+    readonly newPriceMinor: number;
+    readonly newCostMinor: number | null;
+    readonly actorId: string;
+    readonly source: string;
+  }): Promise<void> {
+    const at = new Date().toISOString();
+    this.priceHistory.push({
+      id: generateUuidV7(),
+      tenantId: args.tenantId,
+      variantId: args.variantId,
+      oldPriceMinor: null,
+      newPriceMinor: args.newPriceMinor,
+      oldCostMinor: null,
+      newCostMinor: args.newCostMinor,
+      reason: null,
+      source: args.source,
+      actorId: args.actorId,
+      effectiveAt: at
+    });
+    this.audits.push({
+      action: "catalog.price_history.append",
+      tenantId: args.tenantId,
+      actorId: args.actorId,
+      variantId: args.variantId,
+      detail: { source: args.source, new_price_minor: args.newPriceMinor },
+      at
+    });
+  }
+
   async updateVariant(args: {
     readonly tenantId: string;
     readonly variantId: string;
     readonly expectedVersion: number;
     readonly unitPriceMinor: number | null | undefined;
+    readonly costMinor: number | null | undefined;
     readonly status: "active" | "archived" | null | undefined;
+    readonly actorId: string;
+    readonly reason: string | null;
+    readonly source: string;
   }): Promise<CatalogResource> {
     const variant = this.variants.get(args.variantId);
     if (!variant || variant.tenantId !== args.tenantId || variant.status === "archived") {
@@ -406,10 +495,54 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     if (variant.version !== args.expectedVersion) {
       throw new CatalogError("Variant version conflict.", "RESOURCE_VERSION_MISMATCH");
     }
-    if (args.unitPriceMinor != null) variant.unitPriceMinor = args.unitPriceMinor;
+
+    const oldPrice = variant.unitPriceMinor;
+    const oldCost = variant.costMinor;
+    let priceChanged = false;
+    let costChanged = false;
+
+    if (args.unitPriceMinor != null && args.unitPriceMinor !== variant.unitPriceMinor) {
+      variant.unitPriceMinor = args.unitPriceMinor;
+      priceChanged = true;
+    }
+    if (args.costMinor !== undefined && args.costMinor !== variant.costMinor) {
+      variant.costMinor = args.costMinor;
+      costChanged = true;
+    }
     if (args.status != null) variant.status = args.status;
     variant.version += 1;
     variant.updatedAt = new Date();
+
+    if (priceChanged || costChanged) {
+      const at = variant.updatedAt.toISOString();
+      this.priceHistory.push({
+        id: generateUuidV7(),
+        tenantId: args.tenantId,
+        variantId: variant.id,
+        oldPriceMinor: priceChanged ? oldPrice : null,
+        newPriceMinor: priceChanged ? variant.unitPriceMinor : null,
+        oldCostMinor: costChanged ? oldCost : null,
+        newCostMinor: costChanged ? variant.costMinor : null,
+        reason: args.reason,
+        source: args.source,
+        actorId: args.actorId,
+        effectiveAt: at
+      });
+      this.audits.push({
+        action: costChanged ? "catalog.cost.update" : "catalog.price.update",
+        tenantId: args.tenantId,
+        actorId: args.actorId,
+        variantId: variant.id,
+        detail: {
+          source: args.source,
+          price_changed: priceChanged,
+          cost_changed: costChanged,
+          reason: args.reason
+        },
+        at
+      });
+    }
+
     return this.toVariantResource(variant);
   }
 
@@ -429,5 +562,169 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     variant.version += 1;
     variant.updatedAt = new Date();
     return this.toVariantResource(variant);
+  }
+
+  // -------------------------------------------------------------------------
+  // Media (BE-CAT-004)
+  // -------------------------------------------------------------------------
+
+  async createUploadIntent(args: {
+    readonly tenantId: string;
+    readonly uploadId: UuidV7;
+    readonly filename: string;
+    readonly contentType: string;
+    readonly byteSize: number;
+    readonly objectKey: string;
+    readonly uploadUrl: string;
+    readonly expiresAt: string;
+  }): Promise<MediaUploadRecord> {
+    const record: MediaUploadRecord & { bytesReceived: boolean } = {
+      id: args.uploadId,
+      tenantId: args.tenantId,
+      filename: args.filename,
+      contentType: args.contentType,
+      byteSize: args.byteSize,
+      objectKey: args.objectKey,
+      uploadUrl: args.uploadUrl,
+      expiresAt: args.expiresAt,
+      bytesReceived: false,
+      createdAt: new Date().toISOString()
+    };
+    this.uploads.set(args.uploadId, record);
+    return record;
+  }
+
+  async getUploadIntent(args: {
+    readonly tenantId: string;
+    readonly uploadId: string;
+  }): Promise<MediaUploadRecord | null> {
+    const row = this.uploads.get(args.uploadId);
+    if (!row || row.tenantId !== args.tenantId) return null;
+    return row;
+  }
+
+  async markUploadBytesReceived(args: {
+    readonly tenantId: string;
+    readonly uploadId: string;
+  }): Promise<MediaUploadRecord> {
+    const row = this.uploads.get(args.uploadId);
+    if (!row || row.tenantId !== args.tenantId) {
+      throw new CatalogError("Upload intent not found.", "RESOURCE_NOT_FOUND");
+    }
+    row.bytesReceived = true;
+    return row;
+  }
+
+  async findFirstActiveVariantId(args: {
+    readonly tenantId: string;
+    readonly productId: string;
+  }): Promise<string | null> {
+    for (const v of this.variants.values()) {
+      if (v.tenantId === args.tenantId && v.productId === args.productId && v.status === "active") {
+        return v.id;
+      }
+    }
+    return null;
+  }
+
+  async assertProductAttachable(args: {
+    readonly tenantId: string;
+    readonly productId: string;
+  }): Promise<void> {
+    const product = this.products.get(args.productId);
+    if (!product || product.tenantId !== args.tenantId) {
+      throw new CatalogError("Product not found.", "RESOURCE_NOT_FOUND");
+    }
+    if (product.status === "archived") {
+      throw new CatalogError("Product is archived.", "PRODUCT_ARCHIVED");
+    }
+  }
+
+  async attachMedia(args: {
+    readonly tenantId: string;
+    readonly mediaId: UuidV7;
+    readonly productId: string;
+    readonly variantId: string;
+    readonly uploadId: string;
+    readonly objectKey: string;
+    readonly mediaType: string;
+    readonly sizeBytes: number;
+    readonly sortOrder: number;
+    readonly altText: string | null;
+    readonly filename: string;
+    readonly scanStatus: MediaScanStatus;
+    readonly checksum: string | null;
+  }): Promise<ProductMediaRecord> {
+    const now = new Date().toISOString();
+    const record: ProductMediaRecord = {
+      id: args.mediaId,
+      tenantId: args.tenantId,
+      productId: args.productId,
+      variantId: args.variantId,
+      uploadId: args.uploadId,
+      objectKey: args.objectKey,
+      mediaType: args.mediaType,
+      checksum: args.checksum,
+      sizeBytes: args.sizeBytes,
+      sortOrder: args.sortOrder,
+      scanStatus: args.scanStatus,
+      altText: args.altText,
+      filename: args.filename,
+      version: 1,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.media.set(record.id, record);
+    return record;
+  }
+
+  async getIdempotentMediaJob(
+    tenantId: string,
+    key: string
+  ): Promise<{
+    readonly job_id: string;
+    readonly status: "queued" | "running" | "completed" | "failed" | "cancelled";
+    readonly status_url: string | null;
+  } | null> {
+    return this.mediaJobIdempotency.get(`${tenantId}:${key}`) ?? null;
+  }
+
+  async saveIdempotentMediaJob(
+    tenantId: string,
+    key: string,
+    job: {
+      readonly job_id: string;
+      readonly status: "queued" | "running" | "completed" | "failed" | "cancelled";
+      readonly status_url: string | null;
+    }
+  ): Promise<void> {
+    this.mediaJobIdempotency.set(`${tenantId}:${key}`, job);
+  }
+
+  async getIdempotentMediaAttach(tenantId: string, key: string): Promise<CatalogResource | null> {
+    return this.mediaAttachIdempotency.get(`${tenantId}:${key}`) ?? null;
+  }
+
+  async saveIdempotentMediaAttach(
+    tenantId: string,
+    key: string,
+    resource: CatalogResource
+  ): Promise<void> {
+    this.mediaAttachIdempotency.set(`${tenantId}:${key}`, resource);
+  }
+
+  async signDownloadUrl(args: {
+    readonly tenantId: string;
+    readonly mediaId: string;
+  }): Promise<string> {
+    const media = this.media.get(args.mediaId);
+    if (!media || media.tenantId !== args.tenantId) {
+      throw new CatalogError("Media not found.", "RESOURCE_NOT_FOUND");
+    }
+    if (media.scanStatus !== "clean") {
+      throw new CatalogError("Media is not available for download.", "VALIDATION_FAILED");
+    }
+    const expires = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    return `memory://download/${args.tenantId}/${media.id}?expires=${encodeURIComponent(expires)}`;
   }
 }

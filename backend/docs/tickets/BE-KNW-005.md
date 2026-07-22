@@ -4,7 +4,7 @@ title: Published/effective-only tenant retrieval API
 owner: Backend AI Agent
 phase: P4
 risk: medium
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

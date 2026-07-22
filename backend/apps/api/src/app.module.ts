@@ -11,11 +11,79 @@ import {
   PostgresOutboxWriter,
   PostgresWalkingSkeletonTracer
 } from "@ai-sales/module-audit";
-import { createCatalogController, InMemoryCatalogRepository } from "@ai-sales/module-catalog";
+import {
+  createCatalogController,
+  createInMemoryImportApplyPort,
+  InMemoryCatalogRepository,
+  InMemoryImportRepository
+} from "@ai-sales/module-catalog";
 import {
   createCustomersController,
   InMemoryCustomerRepository
 } from "@ai-sales/module-customer";
+import {
+  createInventoryController,
+  InMemoryInventoryRepository
+} from "@ai-sales/module-inventory";
+import {
+  createKnowledgeController,
+  InMemoryKnowledgeRepository
+} from "@ai-sales/module-knowledge";
+import {
+  createChannelController,
+  InMemoryChannelRepository,
+  queueOutboundMessage,
+  stubFacebookAdapter
+} from "@ai-sales/module-channel";
+import {
+  createConversationController,
+  InMemoryConversationRepository,
+  type OutboundQueuePort
+} from "@ai-sales/module-conversation";
+import {
+  createAiOrchestrationController,
+  createKnowledgeRetrievalClient,
+  InMemoryAiOrchestrationRepository,
+  type ConversationLookupPort,
+  type OutboundSendPort
+} from "@ai-sales/module-ai-orchestration";
+import {
+  createAnalyticsController,
+  InMemoryAnalyticsRepository
+} from "@ai-sales/module-analytics";
+import {
+  createBillingController,
+  InMemoryBillingRepository
+} from "@ai-sales/module-billing";
+import {
+  createOperationsController,
+  InMemoryOperationsRepository
+} from "@ai-sales/module-operations";
+import {
+  searchPublishedKnowledge
+} from "@ai-sales/module-knowledge";
+import {
+  createFulfillmentController,
+  InMemoryFulfillmentRepository,
+  type InventoryRestockPort,
+  type OrderEligibilityPort
+} from "@ai-sales/module-fulfillment";
+import {
+  convertInventoryReservation,
+  createInventoryReservation,
+  releaseInventoryReservation
+} from "@ai-sales/module-inventory";
+import {
+  createOrderController,
+  InMemoryOrderRepository,
+  type CatalogPricingPort,
+  type ReservationPort
+} from "@ai-sales/module-order";
+import {
+  createPaymentController,
+  InMemoryPaymentRepository,
+  type OrderLookupPort
+} from "@ai-sales/module-payment";
 import {
   createAcceptInvitationController,
   createMeController,
@@ -48,7 +116,166 @@ const membersRolesRepo = new InMemoryMembersRolesRepository();
 const auditLogStore = new InMemoryAuditLogStore();
 const supportGrantStore = new InMemorySupportGrantStore();
 const catalogRepo = new InMemoryCatalogRepository();
+const importRepo = new InMemoryImportRepository();
+const importApplyPort = createInMemoryImportApplyPort(catalogRepo);
 const customerRepo = new InMemoryCustomerRepository();
+const inventoryRepo = new InMemoryInventoryRepository();
+const knowledgeRepo = new InMemoryKnowledgeRepository();
+const channelRepo = new InMemoryChannelRepository();
+const conversationRepo = new InMemoryConversationRepository();
+const orderRepo = new InMemoryOrderRepository();
+const paymentRepo = new InMemoryPaymentRepository();
+const fulfillmentRepo = new InMemoryFulfillmentRepository();
+const aiOrchestrationRepo = new InMemoryAiOrchestrationRepository();
+const analyticsRepo = new InMemoryAnalyticsRepository();
+const billingRepo = new InMemoryBillingRepository();
+const operationsRepo = new InMemoryOperationsRepository();
+
+const catalogPricingPort: CatalogPricingPort = {
+  async getVariantPricing(args) {
+    const row = await catalogRepo.getVariantPricing(args);
+    if (!row) return null;
+    const variant = (await catalogRepo.listVariants(args.tenantId)).find((v) => v.id === args.variantId);
+    return {
+      unitPriceMinor: row.unit_price_minor,
+      currency: row.currency,
+      costMinor: row.cost_minor,
+      sku: variant?.name ?? null
+    };
+  }
+};
+
+const reservationPort: ReservationPort = {
+  async createReservation(args) {
+    const expiresAt = args.expiresAt;
+    const result = await createInventoryReservation({
+      repo: inventoryRepo,
+      tenantId: args.tenantId,
+      actorId: args.actorId,
+      actorPermissions: ["inventory.reserve", "internal.order.confirm"],
+      idempotencyKey: args.idempotencyKey,
+      ownerType: "order",
+      ownerId: args.orderId,
+      expiresAt,
+      items: args.items.map((i) => ({ variant_id: i.variantId, quantity: i.quantity }))
+    });
+    return { reservationId: result.data.id as string };
+  },
+  async convertReservation(args) {
+    await convertInventoryReservation({
+      repo: inventoryRepo,
+      tenantId: args.tenantId,
+      reservationId: args.reservationId,
+      ownerId: args.orderId,
+      actorId: args.actorId,
+      actorPermissions: ["inventory.reserve", "internal.order.confirm"],
+      idempotencyKey: args.idempotencyKey
+    });
+  },
+  async releaseReservation(args) {
+    await releaseInventoryReservation({
+      repo: inventoryRepo,
+      tenantId: args.tenantId,
+      reservationId: args.reservationId,
+      actorId: args.actorId,
+      actorPermissions: ["inventory.reserve"],
+      idempotencyKey: args.idempotencyKey
+    });
+  }
+};
+
+const orderLookupPort: OrderLookupPort = {
+  async getOrderGrandTotal(args) {
+    const order = await orderRepo.getOrder({
+      tenantId: args.tenantId,
+      orderId: args.orderId
+    });
+    if (!order) return null;
+    return { grandTotalMinor: order.grandTotalMinor, currency: order.currency };
+  }
+};
+
+const orderEligibilityPort: OrderEligibilityPort = {
+  async isOrderConfirmed(args) {
+    const order = await orderRepo.getOrder({
+      tenantId: args.tenantId,
+      orderId: args.orderId
+    });
+    return order?.status === "confirmed";
+  },
+  async getOrderItemIds(args) {
+    const order = await orderRepo.getOrder({
+      tenantId: args.tenantId,
+      orderId: args.orderId
+    });
+    return order?.items.map((i) => i.id) ?? [];
+  }
+};
+
+const inventoryRestockPort: InventoryRestockPort = {
+  async restockStub() {
+    /* BE-RET-001 stub — inventory adjustment wiring follows Postgres adapter */
+  }
+};
+
+const conversationOutboundPort: OutboundQueuePort = {
+  async queueReply(args) {
+    const queued = await queueOutboundMessage({
+      repo: channelRepo,
+      tenantId: args.tenantId,
+      actorId: args.actorId,
+      channelAccountId: args.channelAccountId,
+      idempotencyKey: args.idempotencyKey,
+      contentType: "text",
+      text: args.text
+    });
+    return { outboundMessageId: queued.id, status: "queued" };
+  }
+};
+
+const conversationLookupPort: ConversationLookupPort = {
+  async conversationExists(args) {
+    const conv = await conversationRepo.getConversation({
+      tenantId: args.tenantId,
+      conversationId: args.conversationId
+    });
+    return conv !== null;
+  }
+};
+
+const aiKnowledgePort = createKnowledgeRetrievalClient({
+  async search(args) {
+    return searchPublishedKnowledge({
+      repo: knowledgeRepo,
+      tenantId: args.tenantId,
+      query: args.query,
+      ...(args.topK !== undefined ? { topK: args.topK } : {})
+    });
+  }
+});
+
+const aiOutboundPort: OutboundSendPort = {
+  async queueSuggestionSend(args) {
+    const conv = await conversationRepo.getConversation({
+      tenantId: args.tenantId,
+      conversationId: args.conversationId
+    });
+    if (!conv?.channelAccountId) {
+      // Fail closed: never report success when nothing was enqueued.
+      throw new Error("Conversation has no channel account for outbound send.");
+    }
+    const queued = await queueOutboundMessage({
+      repo: channelRepo,
+      tenantId: args.tenantId,
+      actorId: args.actorId,
+      channelAccountId: conv.channelAccountId,
+      idempotencyKey: args.idempotencyKey,
+      contentType: "text",
+      text: args.text
+    });
+    return { jobId: queued.id, status: "queued" };
+  }
+};
 
 function buildOidcConfig(): OidcClientConfig | null {
   const config = loadConfig(process.env);
@@ -94,8 +321,38 @@ function buildControllers(): Type<unknown>[] {
       createAuditLogsController({ store: auditLogStore }),
       createAuditExportsController({ store: auditLogStore }),
       createSupportAccessController({ store: supportGrantStore }),
-      createCatalogController({ repo: catalogRepo }),
-      createCustomersController({ repo: customerRepo })
+      createCatalogController({
+        repo: catalogRepo,
+        importRepo,
+        importApplyPort
+      }),
+      createCustomersController({ repo: customerRepo }),
+      createInventoryController({ repo: inventoryRepo }),
+      createKnowledgeController({ repo: knowledgeRepo }),
+      createChannelController({ repo: channelRepo, adapter: stubFacebookAdapter }),
+      createConversationController({ repo: conversationRepo, outbound: conversationOutboundPort }),
+      createOrderController({
+        repo: orderRepo,
+        catalog: catalogPricingPort,
+        reservation: reservationPort
+      }),
+      createPaymentController({ repo: paymentRepo, orders: orderLookupPort }),
+      createFulfillmentController({
+        repo: fulfillmentRepo,
+        orders: orderEligibilityPort,
+        inventory: inventoryRestockPort
+      }),
+      createAiOrchestrationController({
+        repo: aiOrchestrationRepo,
+        conversations: conversationLookupPort,
+        knowledge: aiKnowledgePort,
+        outbound: aiOutboundPort
+      }),
+      createAnalyticsController({ repo: analyticsRepo }),
+      createBillingController({ repo: billingRepo }),
+      // Support-access create stays on createSupportAccessController only
+      // (avoids duplicate POST .../support-access that overwrote grantee identity).
+      createOperationsController({ repo: operationsRepo })
     );
 
     const oidc = buildOidcConfig();

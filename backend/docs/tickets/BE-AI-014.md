@@ -4,7 +4,7 @@ title: P0/P1 eval sets/red-team regression
 owner: Backend AI Agent
 phase: P8
 risk: high
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

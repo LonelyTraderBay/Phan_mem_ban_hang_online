@@ -4,7 +4,7 @@ title: SSE authorization/fan-out/replay/resync
 owner: Backend AI Agent
 phase: P6
 risk: critical
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

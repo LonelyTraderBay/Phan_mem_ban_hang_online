@@ -4,7 +4,7 @@ title: Prompt/model/tool/retrieval config version model
 owner: Backend AI Agent
 phase: P8
 risk: high
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

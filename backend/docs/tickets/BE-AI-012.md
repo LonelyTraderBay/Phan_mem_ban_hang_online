@@ -4,7 +4,7 @@ title: Suggestion/log/review/send APIs
 owner: Backend AI Agent
 phase: P8
 risk: high
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

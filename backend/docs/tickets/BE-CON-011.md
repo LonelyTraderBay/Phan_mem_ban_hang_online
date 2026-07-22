@@ -4,7 +4,7 @@ title: Attachment download security/malware state
 owner: Backend AI Agent
 phase: P6
 risk: critical
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

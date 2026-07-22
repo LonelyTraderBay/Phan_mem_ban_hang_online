@@ -153,6 +153,19 @@ errors:
     retryable: false
     user_message_vi: Dữ liệu không hợp lệ.
     description: Field/business validation errors
+  - code: CUSTOMER_IDENTITY_CONFLICT
+    http_status: 409
+    category: customers
+    retryable: false
+    user_message_vi: Định danh khách hàng đã gắn với hồ sơ khác.
+    description: Tenant-scoped identity already attached to another customer
+      (attach/dedupe — BE-CUS-003)
+  - code: CUSTOMER_MERGE_CONFLICT
+    http_status: 409
+    category: customers
+    retryable: false
+    user_message_vi: Không thể gộp khách hàng ở trạng thái hiện tại.
+    description: Survivor/source not active or already merged (BE-CUS-004)
   - code: REQUEST_TOO_LARGE
     http_status: 413
     category: validation

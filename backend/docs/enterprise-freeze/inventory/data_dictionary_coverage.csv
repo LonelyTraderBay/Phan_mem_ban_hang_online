@@ -42,24 +42,24 @@ inventory_adjustments,TENANT_OWNED,not_started,no,frozen
 knowledge_sources,TENANT_OWNED,not_started,no,frozen
 knowledge_source_versions,TENANT_OWNED,not_started,no,frozen
 knowledge_chunks,TENANT_OWNED,not_started,no,frozen
-prompt_versions,TENANT_OWNED,not_started,no,frozen
-ai_logs,TENANT_OWNED,not_started,no,frozen
-ai_tool_calls,TENANT_OWNED,not_started,no,frozen
-ai_evaluation_sets,GLOBAL,not_started,no,frozen
-ai_evaluation_cases,GLOBAL,not_started,no,frozen
-ai_evaluation_runs,GLOBAL,not_started,no,frozen
-ai_evaluation_results,GLOBAL,not_started,no,frozen
-ai_blocked_outputs,TENANT_OWNED,not_started,no,frozen
-channel_accounts,TENANT_OWNED,not_started,no,frozen
-channel_credentials,TENANT_OWNED,not_started,no,frozen
-webhook_events,TENANT_OWNED,not_started,no,frozen
+prompt_versions,TENANT_OWNED,done,yes,frozen
+ai_logs,TENANT_OWNED,done,yes,frozen
+ai_tool_calls,TENANT_OWNED,done,yes,frozen
+ai_evaluation_sets,GLOBAL,done,yes,frozen
+ai_evaluation_cases,GLOBAL,done,yes,frozen
+ai_evaluation_runs,GLOBAL,done,yes,frozen
+ai_evaluation_results,GLOBAL,done,yes,frozen
+ai_blocked_outputs,TENANT_OWNED,done,yes,frozen
+channel_accounts,TENANT_OWNED,done,yes,frozen
+channel_credentials,TENANT_OWNED,done,yes,frozen
+webhook_events,TENANT_OWNED,done,yes,frozen
 conversations,TENANT_OWNED,not_started,no,frozen
 messages,TENANT_OWNED,not_started,no,frozen
 message_attachments,TENANT_OWNED,not_started,no,frozen
 conversation_assignments,TENANT_OWNED [ledger-like history],not_started,no,frozen
 conversation_notes,TENANT_OWNED,not_started,no,frozen
-outbound_messages,TENANT_OWNED,not_started,no,frozen
-outbound_delivery_attempts,TENANT_OWNED,not_started,no,frozen
+outbound_messages,TENANT_OWNED,done,yes,frozen
+outbound_delivery_attempts,TENANT_OWNED,done,yes,frozen
 orders,TENANT_OWNED,not_started,no,frozen
 order_items,TENANT_OWNED,not_started,no,frozen
 order_status_history,TENANT_OWNED [ledger],not_started,no,frozen
@@ -78,7 +78,7 @@ daily_sales_agent_metrics,TENANT_OWNED,not_started,no,frozen
 daily_product_metrics,TENANT_OWNED,not_started,no,frozen
 conversation_conversion_facts,TENANT_OWNED,not_started,no,frozen
 order_profit_facts,TENANT_OWNED,not_started,no,frozen
-ai_quality_facts,TENANT_OWNED,not_started,no,frozen
+ai_quality_facts,TENANT_OWNED,done,yes,frozen
 plans,GLOBAL,not_started,no,frozen
 subscriptions,TENANT_OWNED,not_started,no,frozen
 usage_meters,TENANT_OWNED,not_started,no,frozen

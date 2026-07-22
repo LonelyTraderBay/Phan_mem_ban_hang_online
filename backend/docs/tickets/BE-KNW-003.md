@@ -4,7 +4,7 @@ title: File extraction sandbox/content checksum
 owner: Backend AI Agent
 phase: P4
 risk: medium
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

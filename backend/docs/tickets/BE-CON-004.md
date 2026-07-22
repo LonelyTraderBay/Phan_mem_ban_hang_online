@@ -4,7 +4,7 @@ title: Multidimensional state handlers
 owner: Backend AI Agent
 phase: P6
 risk: medium
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

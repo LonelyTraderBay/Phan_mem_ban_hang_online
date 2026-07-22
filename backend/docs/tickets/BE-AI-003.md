@@ -4,7 +4,7 @@ title: Context builder/minimization/untrusted-content separation
 owner: Backend AI Agent
 phase: P8
 risk: high
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

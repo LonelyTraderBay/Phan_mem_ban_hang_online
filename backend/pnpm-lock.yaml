@@ -62,18 +62,51 @@ importers:
       '@ai-sales/idempotency':
         specifier: workspace:*
         version: link:../../packages/idempotency
+      '@ai-sales/module-ai-orchestration':
+        specifier: workspace:*
+        version: link:../../modules/ai-orchestration
+      '@ai-sales/module-analytics':
+        specifier: workspace:*
+        version: link:../../modules/analytics
       '@ai-sales/module-audit':
         specifier: workspace:*
         version: link:../../modules/audit
+      '@ai-sales/module-billing':
+        specifier: workspace:*
+        version: link:../../modules/billing
       '@ai-sales/module-catalog':
         specifier: workspace:*
         version: link:../../modules/catalog
+      '@ai-sales/module-channel':
+        specifier: workspace:*
+        version: link:../../modules/channel
+      '@ai-sales/module-conversation':
+        specifier: workspace:*
+        version: link:../../modules/conversation
       '@ai-sales/module-customer':
         specifier: workspace:*
         version: link:../../modules/customer
+      '@ai-sales/module-fulfillment':
+        specifier: workspace:*
+        version: link:../../modules/fulfillment
       '@ai-sales/module-identity':
         specifier: workspace:*
         version: link:../../modules/identity
+      '@ai-sales/module-inventory':
+        specifier: workspace:*
+        version: link:../../modules/inventory
+      '@ai-sales/module-knowledge':
+        specifier: workspace:*
+        version: link:../../modules/knowledge
+      '@ai-sales/module-operations':
+        specifier: workspace:*
+        version: link:../../modules/operations
+      '@ai-sales/module-order':
+        specifier: workspace:*
+        version: link:../../modules/order
+      '@ai-sales/module-payment':
+        specifier: workspace:*
+        version: link:../../modules/payment
       '@ai-sales/module-tenant':
         specifier: workspace:*
         version: link:../../modules/tenant
@@ -147,12 +180,39 @@ importers:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/module-knowledge':
+        specifier: workspace:*
+        version: link:../knowledge
+      '@ai-sales/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@nestjs/common':
+        specifier: 11.1.28
+        version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      fastify:
+        specifier: 5.10.0
+        version: 5.10.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/analytics:
     dependencies:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@nestjs/common':
+        specifier: 11.1.28
+        version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      fastify:
+        specifier: 5.10.0
+        version: 5.10.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/audit:
     dependencies:
@@ -190,6 +250,18 @@ importers:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@nestjs/common':
+        specifier: 11.1.28
+        version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      fastify:
+        specifier: 5.10.0
+        version: 5.10.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/catalog:
     dependencies:
@@ -214,12 +286,39 @@ importers:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@nestjs/common':
+        specifier: 11.1.28
+        version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      fastify:
+        specifier: 5.10.0
+        version: 5.10.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/conversation:
     dependencies:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/module-channel':
+        specifier: workspace:*
+        version: link:../channel
+      '@ai-sales/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@nestjs/common':
+        specifier: 11.1.28
+        version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      fastify:
+        specifier: 5.10.0
+        version: 5.10.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/customer:
     dependencies:
@@ -244,6 +343,18 @@ importers:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@nestjs/common':
+        specifier: 11.1.28
+        version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      fastify:
+        specifier: 5.10.0
+        version: 5.10.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/identity:
     dependencies:
@@ -280,30 +391,90 @@ importers:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@nestjs/common':
+        specifier: 11.1.28
+        version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      fastify:
+        specifier: 5.10.0
+        version: 5.10.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/knowledge:
     dependencies:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@nestjs/common':
+        specifier: 11.1.28
+        version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      fastify:
+        specifier: 5.10.0
+        version: 5.10.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/operations:
     dependencies:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@nestjs/common':
+        specifier: 11.1.28
+        version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      fastify:
+        specifier: 5.10.0
+        version: 5.10.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/order:
     dependencies:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@nestjs/common':
+        specifier: 11.1.28
+        version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      fastify:
+        specifier: 5.10.0
+        version: 5.10.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/payment:
     dependencies:
       '@ai-sales/domain-kernel':
         specifier: workspace:*
         version: link:../../packages/domain-kernel
+      '@ai-sales/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@nestjs/common':
+        specifier: 11.1.28
+        version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      fastify:
+        specifier: 5.10.0
+        version: 5.10.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
   modules/tenant:
     dependencies:

@@ -1,23 +1,65 @@
 import { DomainInvariantError, generateUuidV7, Money, type UuidV7 } from "@ai-sales/domain-kernel";
+import { applyFieldPolicies } from "@ai-sales/security";
 
 /**
  * BE-CAT-002 — Product/category/variant CRUD + ETag.
+ * BE-CAT-003 — Cost/price permission + price_history ledger + audit.
  * Mirrors BE-IDN-010 style (modules/tenant: members.ts + members-roles.controller.ts + in-memory repo).
+ *
+ * Note: frozen OpenAPI `CatalogResource` does not include `unit_price_minor` / `cost_minor`.
+ * Pricing is exposed via `getVariantPricing` / `listVariantPriceHistory` (field-policy gated).
+ * Cost writes use `setVariantCost` until a future contract adds cost on request bodies.
  */
 
 export type CatalogStatus = "draft" | "active" | "archived";
-export type CatalogPermission = "catalog.read" | "catalog.write";
+export type CatalogPermission =
+  | "catalog.read"
+  | "catalog.write"
+  | "catalog.cost.read"
+  | "catalog.cost.write"
+  | "catalog.import";
 
 export type CatalogErrorCode =
   | "VALIDATION_FAILED"
   | "INSUFFICIENT_PERMISSION"
+  | "COST_PERMISSION_REQUIRED"
   | "RESOURCE_NOT_FOUND"
   | "RESOURCE_VERSION_MISMATCH"
   | "SKU_DUPLICATE"
   | "BARCODE_DUPLICATE"
   | "CATEGORY_CYCLE"
   | "PRODUCT_ARCHIVED"
-  | "IDEMPOTENCY_KEY_REQUIRED";
+  | "IDEMPOTENCY_KEY_REQUIRED"
+  | "UNSUPPORTED_MEDIA_TYPE"
+  | "REQUEST_TOO_LARGE"
+  | "IMPORT_FILE_INVALID"
+  | "IMPORT_MAPPING_INVALID"
+  | "IMPORT_PREVIEW_STALE"
+  | "IMPORT_JOB_STATE_INVALID"
+  | "IMPORT_APPLY_FAILED";
+
+export interface PriceHistoryRecord {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly variantId: string;
+  readonly oldPriceMinor: number | null;
+  readonly newPriceMinor: number | null;
+  readonly oldCostMinor: number | null;
+  readonly newCostMinor: number | null;
+  readonly reason: string | null;
+  readonly source: string | null;
+  readonly actorId: string;
+  readonly effectiveAt: string;
+}
+
+export interface CatalogAuditRecord {
+  readonly action: string;
+  readonly tenantId: string;
+  readonly actorId: string;
+  readonly variantId: string;
+  readonly detail: Record<string, unknown>;
+  readonly at: string;
+}
 
 export class CatalogError extends Error {
   constructor(
@@ -117,19 +159,52 @@ export interface CatalogRepository {
     readonly variantId: string;
     readonly expectedVersion: number;
     readonly unitPriceMinor: number | null | undefined;
+    readonly costMinor: number | null | undefined;
     readonly status: "active" | "archived" | null | undefined;
+    readonly actorId: string;
+    readonly reason: string | null;
+    readonly source: string;
   }): Promise<CatalogResource>;
   archiveVariant(args: {
     readonly tenantId: string;
     readonly variantId: string;
     readonly expectedVersion: number | null;
   }): Promise<CatalogResource>;
+  getVariantPricing(args: {
+    readonly tenantId: string;
+    readonly variantId: string;
+  }): Promise<{
+    readonly id: string;
+    readonly tenant_id: string;
+    readonly unit_price_minor: number;
+    readonly currency: string;
+    readonly cost_minor: number | null;
+    readonly version: number;
+  } | null>;
+  listPriceHistory(args: {
+    readonly tenantId: string;
+    readonly variantId: string;
+  }): Promise<readonly PriceHistoryRecord[]>;
+  recordInitialPriceHistory(args: {
+    readonly tenantId: string;
+    readonly variantId: string;
+    readonly newPriceMinor: number;
+    readonly newCostMinor: number | null;
+    readonly actorId: string;
+    readonly source: string;
+  }): Promise<void>;
 
   // Idempotency (create*/archive* per OpenAPI x-idempotency: required) — simple
   // tenant+key -> last resource map; a Postgres adapter can later back this with
   // @ai-sales/idempotency's request-hash store.
   getIdempotentResult(tenantId: string, key: string): Promise<CatalogResource | null>;
   saveIdempotentResult(tenantId: string, key: string, resource: CatalogResource): Promise<void>;
+}
+
+function requireCostWrite(actorPermissions: readonly string[]): void {
+  if (!actorPermissions.includes("catalog.cost.write")) {
+    throw new CatalogError("catalog.cost.write required to change cost.", "COST_PERMISSION_REQUIRED");
+  }
 }
 
 export function requireCatalogPermission(
@@ -402,16 +477,23 @@ export async function createVariant(options: {
   readonly repo: CatalogRepository;
   readonly tenantId: string;
   readonly actorPermissions: readonly string[];
+  readonly actorId?: string;
   readonly idempotencyKey?: string | null;
   readonly productId: string;
   readonly sku: string;
   readonly unitPriceMinor?: number | null;
   readonly currency?: string | null;
-  /** Internal-only (not on the frozen CreateVariantRequest contract); forward-compat for CAT-003. */
+  /** Application-level cost (not on frozen CreateVariantRequest); requires catalog.cost.write. */
   readonly costMinor?: number | null;
   readonly barcode?: string | null;
 }): Promise<{ readonly data: CatalogResource; readonly meta: Record<string, never> }> {
   requireCatalogPermission(options.actorPermissions, "catalog.write");
+  if (options.costMinor != null) {
+    requireCostWrite(options.actorPermissions);
+    if (options.costMinor < 0) {
+      throw new CatalogError("cost_minor must not be negative.", "VALIDATION_FAILED");
+    }
+  }
   const data = await withIdempotency(options.repo, options.tenantId, options.idempotencyKey, async () => {
     const sku = options.sku?.trim() ?? "";
     if (!sku || sku.length > 100) {
@@ -421,16 +503,28 @@ export async function createVariant(options: {
     const currency = (options.currency ?? "VND").trim().toUpperCase();
     validateMoney(unitPriceMinor, currency);
     const barcode = options.barcode?.trim() ? options.barcode.trim() : null;
-    return options.repo.createVariant({
+    const variantId = generateUuidV7();
+    const created = await options.repo.createVariant({
       tenantId: options.tenantId,
       productId: options.productId,
-      variantId: generateUuidV7(),
+      variantId,
       sku,
       unitPriceMinor,
       currency,
       costMinor: options.costMinor ?? null,
       barcode
     });
+    if (options.actorId) {
+      await options.repo.recordInitialPriceHistory({
+        tenantId: options.tenantId,
+        variantId: created.id,
+        newPriceMinor: unitPriceMinor,
+        newCostMinor: options.costMinor ?? null,
+        actorId: options.actorId,
+        source: "create_variant"
+      });
+    }
+    return created;
   });
   return { data, meta: {} };
 }
@@ -439,10 +533,12 @@ export async function updateVariant(options: {
   readonly repo: CatalogRepository;
   readonly tenantId: string;
   readonly actorPermissions: readonly string[];
+  readonly actorId: string;
   readonly variantId: string;
   readonly expectedVersion: number;
   readonly unitPriceMinor?: number | null;
   readonly status?: "active" | "archived" | null;
+  readonly reason?: string | null;
 }): Promise<{ readonly data: CatalogResource; readonly meta: Record<string, never> }> {
   requireCatalogPermission(options.actorPermissions, "catalog.write");
   if (options.unitPriceMinor != null) {
@@ -456,7 +552,117 @@ export async function updateVariant(options: {
     variantId: options.variantId,
     expectedVersion: options.expectedVersion,
     unitPriceMinor: options.unitPriceMinor,
-    status: options.status
+    costMinor: undefined,
+    status: options.status,
+    actorId: options.actorId,
+    reason: options.reason ?? null,
+    source: "update_variant"
+  });
+  return { data, meta: {} };
+}
+
+/** BE-CAT-003 — change cost_minor (tax-exclusive input stored as minor units; HO prices are tax-inclusive). */
+export async function setVariantCost(options: {
+  readonly repo: CatalogRepository;
+  readonly tenantId: string;
+  readonly actorPermissions: readonly string[];
+  readonly actorId: string;
+  readonly variantId: string;
+  readonly expectedVersion: number;
+  readonly costMinor: number;
+  readonly reason?: string | null;
+}): Promise<{ readonly data: CatalogResource; readonly meta: Record<string, never> }> {
+  requireCatalogPermission(options.actorPermissions, "catalog.write");
+  requireCostWrite(options.actorPermissions);
+  if (!Number.isInteger(options.costMinor) || options.costMinor < 0) {
+    throw new CatalogError("cost_minor must be a non-negative integer.", "VALIDATION_FAILED");
+  }
+  const data = await options.repo.updateVariant({
+    tenantId: options.tenantId,
+    variantId: options.variantId,
+    expectedVersion: options.expectedVersion,
+    unitPriceMinor: undefined,
+    costMinor: options.costMinor,
+    status: undefined,
+    actorId: options.actorId,
+    reason: options.reason ?? null,
+    source: "set_variant_cost"
+  });
+  return { data, meta: {} };
+}
+
+/** BE-CAT-003 — pricing view with cost omitted unless catalog.cost.read. */
+export async function getVariantPricing(options: {
+  readonly repo: CatalogRepository;
+  readonly tenantId: string;
+  readonly actorPermissions: readonly string[];
+  readonly variantId: string;
+}): Promise<{
+  readonly data: Record<string, unknown>;
+  readonly meta: Record<string, never>;
+}> {
+  requireCatalogPermission(options.actorPermissions, "catalog.read");
+  const row = await options.repo.getVariantPricing({
+    tenantId: options.tenantId,
+    variantId: options.variantId
+  });
+  if (!row) {
+    throw new CatalogError("Variant not found.", "RESOURCE_NOT_FOUND");
+  }
+  const raw: Record<string, unknown> = {
+    id: row.id,
+    tenant_id: row.tenant_id,
+    unit_price_minor: row.unit_price_minor,
+    currency: row.currency,
+    cost_minor: row.cost_minor,
+    version: row.version,
+    prices_tax_inclusive: true
+  };
+  return {
+    data: applyFieldPolicies(raw, options.actorPermissions) as Record<string, unknown>,
+    meta: {}
+  };
+}
+
+/** BE-CAT-003 — append-only price/cost history; cost columns omitted without catalog.cost.read. */
+export async function listVariantPriceHistory(options: {
+  readonly repo: CatalogRepository;
+  readonly tenantId: string;
+  readonly actorPermissions: readonly string[];
+  readonly variantId: string;
+}): Promise<{
+  readonly data: Record<string, unknown>[];
+  readonly meta: Record<string, never>;
+}> {
+  requireCatalogPermission(options.actorPermissions, "catalog.read");
+  const pricing = await options.repo.getVariantPricing({
+    tenantId: options.tenantId,
+    variantId: options.variantId
+  });
+  if (!pricing) {
+    throw new CatalogError("Variant not found.", "RESOURCE_NOT_FOUND");
+  }
+  const rows = await options.repo.listPriceHistory({
+    tenantId: options.tenantId,
+    variantId: options.variantId
+  });
+  const canReadCost = options.actorPermissions.includes("catalog.cost.read");
+  const data = rows.map((r) => {
+    const raw: Record<string, unknown> = {
+      id: r.id,
+      variant_id: r.variantId,
+      old_price_minor: r.oldPriceMinor,
+      new_price_minor: r.newPriceMinor,
+      reason: r.reason,
+      source: r.source,
+      actor_id: r.actorId,
+      effective_at: r.effectiveAt
+    };
+    if (canReadCost) {
+      raw.old_cost_minor = r.oldCostMinor;
+      raw.new_cost_minor = r.newCostMinor;
+    }
+    return raw;
   });
   return { data, meta: {} };
 }
