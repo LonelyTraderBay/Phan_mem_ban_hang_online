@@ -1,8 +1,10 @@
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { generateUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
 import {
   normalizeProviderCallbackStub,
   type ProviderCallbackPayload
 } from "../domain/provider-callback.js";
+import { runPaymentIdempotent } from "./payment-idempotency.js";
 
 /**
  * BE-PAY-001…003 — Payment application layer (manual record/confirm/refund + provider callback stub).
@@ -198,6 +200,7 @@ export async function recordPayment(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly amountMinor: number;
   readonly currency: string;
   readonly method: string;
@@ -208,36 +211,45 @@ export async function recordPayment(options: {
     throw new PaymentError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentPayment(options.tenantId, key);
-  if (cached) {
-    return { data: toPaymentResponse(cached), meta: {} };
-  }
-  if (!Number.isInteger(options.amountMinor) || options.amountMinor <= 0) {
-    throw new PaymentError("amount_minor invalid.", "VALIDATION_FAILED");
-  }
-  const order = await options.orders.getOrderGrandTotal({
+  return runPaymentIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    orderId: options.orderId
-  });
-  if (!order) {
-    throw new PaymentError("Order not found.", "RESOURCE_NOT_FOUND");
-  }
-  if (order.currency !== options.currency.trim().toUpperCase()) {
-    throw new PaymentError("Currency mismatch.", "VALIDATION_FAILED");
-  }
-  const payment = await options.repo.recordPayment({
-    tenantId: options.tenantId,
-    paymentId: generateUuidV7(),
-    orderId: options.orderId,
     actorId: options.actorId,
-    amountMinor: options.amountMinor,
-    currency: options.currency.trim().toUpperCase(),
-    method: options.method,
-    providerRef: options.providerRef ?? null,
-    idempotencyKey: key
+    scope: "payment.record",
+    key,
+    loadCached: () => options.repo.getIdempotentPayment(options.tenantId, key),
+    rememberCached: (payment) =>
+      options.repo.rememberIdempotentPayment(options.tenantId, key, payment),
+    loadById: (paymentId) => options.repo.getPayment({ tenantId: options.tenantId, paymentId }),
+    toResult: (payment) => ({ data: toPaymentResponse(payment), meta: {} }),
+    execute: async () => {
+      if (!Number.isInteger(options.amountMinor) || options.amountMinor <= 0) {
+        throw new PaymentError("amount_minor invalid.", "VALIDATION_FAILED");
+      }
+      const order = await options.orders.getOrderGrandTotal({
+        tenantId: options.tenantId,
+        orderId: options.orderId
+      });
+      if (!order) {
+        throw new PaymentError("Order not found.", "RESOURCE_NOT_FOUND");
+      }
+      if (order.currency !== options.currency.trim().toUpperCase()) {
+        throw new PaymentError("Currency mismatch.", "VALIDATION_FAILED");
+      }
+      const payment = await options.repo.recordPayment({
+        tenantId: options.tenantId,
+        paymentId: generateUuidV7(),
+        orderId: options.orderId,
+        actorId: options.actorId,
+        amountMinor: options.amountMinor,
+        currency: options.currency.trim().toUpperCase(),
+        method: options.method,
+        providerRef: options.providerRef ?? null,
+        idempotencyKey: key
+      });
+      return { payment, result: { data: toPaymentResponse(payment), meta: {} } };
+    }
   });
-  await options.repo.rememberIdempotentPayment(options.tenantId, key, payment);
-  return { data: toPaymentResponse(payment), meta: {} };
 }
 
 export async function confirmPayment(options: {
@@ -247,6 +259,7 @@ export async function confirmPayment(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly expectedVersion: number;
   readonly providerRef?: string | null;
 }) {
@@ -255,19 +268,28 @@ export async function confirmPayment(options: {
     throw new PaymentError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentPayment(options.tenantId, key);
-  if (cached) {
-    return { data: toPaymentResponse(cached), meta: {} };
-  }
-  const payment = await options.repo.confirmPayment({
+  return runPaymentIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    paymentId: options.paymentId,
     actorId: options.actorId,
-    expectedVersion: options.expectedVersion,
-    providerRef: options.providerRef ?? null
+    scope: "payment.confirm",
+    key,
+    loadCached: () => options.repo.getIdempotentPayment(options.tenantId, key),
+    rememberCached: (payment) =>
+      options.repo.rememberIdempotentPayment(options.tenantId, key, payment),
+    loadById: (paymentId) => options.repo.getPayment({ tenantId: options.tenantId, paymentId }),
+    toResult: (payment) => ({ data: toPaymentResponse(payment), meta: {} }),
+    execute: async () => {
+      const payment = await options.repo.confirmPayment({
+        tenantId: options.tenantId,
+        paymentId: options.paymentId,
+        actorId: options.actorId,
+        expectedVersion: options.expectedVersion,
+        providerRef: options.providerRef ?? null
+      });
+      return { payment, result: { data: toPaymentResponse(payment), meta: {} } };
+    }
   });
-  await options.repo.rememberIdempotentPayment(options.tenantId, key, payment);
-  return { data: toPaymentResponse(payment), meta: {} };
 }
 
 export async function createRefund(options: {
@@ -277,6 +299,7 @@ export async function createRefund(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly amountMinor: number;
   readonly reason: string;
 }) {
@@ -285,25 +308,34 @@ export async function createRefund(options: {
     throw new PaymentError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentPayment(options.tenantId, key);
-  if (cached) {
-    return { data: toPaymentResponse(cached), meta: {} };
-  }
-  const reason = options.reason?.trim();
-  if (!reason) {
-    throw new PaymentError("reason is required.", "VALIDATION_FAILED");
-  }
-  const payment = await options.repo.createRefund({
+  return runPaymentIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    refundId: generateUuidV7(),
-    paymentId: options.paymentId,
     actorId: options.actorId,
-    amountMinor: options.amountMinor,
-    reason,
-    idempotencyKey: key
+    scope: "payment.refund",
+    key,
+    loadCached: () => options.repo.getIdempotentPayment(options.tenantId, key),
+    rememberCached: (payment) =>
+      options.repo.rememberIdempotentPayment(options.tenantId, key, payment),
+    loadById: (paymentId) => options.repo.getPayment({ tenantId: options.tenantId, paymentId }),
+    toResult: (payment) => ({ data: toPaymentResponse(payment), meta: {} }),
+    execute: async () => {
+      const reason = options.reason?.trim();
+      if (!reason) {
+        throw new PaymentError("reason is required.", "VALIDATION_FAILED");
+      }
+      const payment = await options.repo.createRefund({
+        tenantId: options.tenantId,
+        refundId: generateUuidV7(),
+        paymentId: options.paymentId,
+        actorId: options.actorId,
+        amountMinor: options.amountMinor,
+        reason,
+        idempotencyKey: key
+      });
+      return { payment, result: { data: toPaymentResponse(payment), meta: {} } };
+    }
   });
-  await options.repo.rememberIdempotentPayment(options.tenantId, key, payment);
-  return { data: toPaymentResponse(payment), meta: {} };
 }
 
 /** BE-PAY-003 — process provider callback via stub adapter (idempotent by provider_event_id). */

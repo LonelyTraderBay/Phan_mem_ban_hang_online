@@ -17,6 +17,7 @@ import {
 import type { FastifyReply } from "fastify";
 import { DomainInvariantError, parseUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
 import { MissingSecurityContextError } from "@ai-sales/security";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import {
   cancelOrder,
   confirmOrder,
@@ -113,6 +114,7 @@ export function createOrderController(options: {
   readonly repo: OrderRepository;
   readonly catalog: CatalogPricingPort;
   readonly reservation: ReservationPort;
+  readonly idempotency?: IdempotencyStore;
 }) {
   @Controller("api/v1")
   class OrderController {
@@ -154,6 +156,7 @@ export function createOrderController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           customerId: body?.customer_id ?? "",
           ...(body?.conversation_id !== undefined ? { conversationId: body.conversation_id } : {}),
           ...(body?.currency !== undefined ? { currency: body.currency } : {}),
@@ -236,7 +239,8 @@ export function createOrderController(options: {
           orderId,
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {})
         });
         return { data: result.data, meta: result.meta };
       } catch (error) {
@@ -255,7 +259,8 @@ export function createOrderController(options: {
           orderId,
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {})
         });
       } catch (error) {
         mapOrderError(error);
@@ -285,6 +290,7 @@ export function createOrderController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           expectedOrderVersion: body?.expected_order_version ?? 1,
           quoteVersion: body?.quote_version ?? "",
           reservationId: body?.reservation_id ?? ""
@@ -310,6 +316,7 @@ export function createOrderController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           expectedVersion: body?.expected_version ?? resolveExpectedVersion(headers, undefined),
           reason: body?.reason ?? ""
         });
@@ -329,7 +336,8 @@ export function createOrderController(options: {
           orderId,
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
-          idempotencyKey: optionalHeader(headers, "idempotency-key")
+          idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {})
         });
       } catch (error) {
         mapOrderError(error);

@@ -58,9 +58,12 @@ function toPayment(row: PaymentRow, refundedMinor: number): PaymentRecord {
   };
 }
 
-/** v1 process-local idempotency — migrate to app.idempotency_records when wired. */
+/**
+ * Payment Postgres adapter.
+ * HTTP idempotency via PostgresIdempotencyStore at application layer.
+ * `providerEvents` Map remains for webhook event-id dedupe (not HTTP Idempotency-Key).
+ */
 export class PostgresPaymentRepository implements PaymentRepository {
-  private readonly idempotent = new Map<string, PaymentRecord>();
   private readonly providerEvents = new Map<string, PaymentRecord>();
 
   constructor(private readonly db: AppDatabase) {}
@@ -394,16 +397,16 @@ export class PostgresPaymentRepository implements PaymentRepository {
     });
   }
 
-  async getIdempotentPayment(tenantId: string, key: string): Promise<PaymentRecord | null> {
-    return this.idempotent.get(this.idemKey(tenantId, key)) ?? null;
+  async getIdempotentPayment(_tenantId: string, _key: string): Promise<PaymentRecord | null> {
+    return null;
   }
 
   async rememberIdempotentPayment(
-    tenantId: string,
-    key: string,
-    payment: PaymentRecord
+    _tenantId: string,
+    _key: string,
+    _payment: PaymentRecord
   ): Promise<void> {
-    this.idempotent.set(this.idemKey(tenantId, key), payment);
+    /* no-op — use IdempotencyStore */
   }
 
   async getProviderEvent(tenantId: string, providerEventId: string): Promise<PaymentRecord | null> {

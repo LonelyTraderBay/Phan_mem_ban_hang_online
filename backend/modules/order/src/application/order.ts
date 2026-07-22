@@ -1,3 +1,4 @@
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import { generateUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
 import { buildOrderFingerprint } from "../domain/fingerprint.js";
 import {
@@ -5,6 +6,7 @@ import {
   TAX_RATE_BPS,
   type CalculatedLineItem
 } from "../domain/order-calculation.js";
+import { runOrderIdempotent } from "./order-idempotency.js";
 
 /**
  * BE-ORD-001…008 — Order application layer (draft, calc, reserve, confirm, cancel).
@@ -402,6 +404,7 @@ export async function createOrderDraft(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly customerId: string;
   readonly conversationId?: string | null;
   readonly currency?: string;
@@ -415,62 +418,81 @@ export async function createOrderDraft(options: {
     throw new OrderError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentOrder(options.tenantId, key);
-  if (cached) {
-    return { data: toOrderResponse(cached), meta: {}, version: cached.version };
-  }
-  if (!options.customerId?.trim() || !options.items?.length) {
-    throw new OrderError("customer_id and items are required.", "VALIDATION_FAILED");
-  }
-  const currency = (options.currency ?? "VND").trim().toUpperCase();
-  const fingerprint = buildOrderFingerprint({
-    customerId: options.customerId,
-    items: options.items.map((i) => ({ variantId: i.variant_id, quantity: i.quantity }))
-  });
-  const duplicate = await options.repo.findByFingerprint({
+  return runOrderIdempotent<{
+    data: ReturnType<typeof toOrderResponse>;
+    meta: Record<string, unknown>;
+    version: number;
+  }>({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    fingerprint
-  });
-  if (duplicate && options.rejectDuplicate) {
-    throw new OrderError("Duplicate order suspected.", "ORDER_DUPLICATE_SUSPECTED");
-  }
-  const { totals, rows } = await buildTotalsFromItems({
-    catalog: options.catalog,
-    tenantId: options.tenantId,
-    currency,
-    items: options.items
-  });
-  const quoteVersion = nextQuoteVersion();
-  const order = await options.repo.createOrderDraft({
-    tenantId: options.tenantId,
-    orderId: generateUuidV7(),
     actorId: options.actorId,
-    customerId: options.customerId,
-    conversationId: options.conversationId ?? null,
-    currency,
-    shippingAddressId: options.shippingAddressId ?? null,
-    notes: options.notes?.trim() ?? null,
-    duplicateFingerprint: fingerprint,
-    quoteVersion,
-    totals,
-    items: rows.map((r) => ({
-      itemId: generateUuidV7(),
-      variantId: r.variantId,
-      skuSnapshot: r.skuSnapshot,
-      unitPriceMinor: r.unitPriceMinor,
-      unitCostMinor: r.unitCostMinor,
-      quantity: r.quantity,
-      calc: totals.lineItems.find((l) => l.variantId === r.variantId)!
-    })),
-    idempotencyKey: key
+    scope: "order.create",
+    key,
+    loadCached: () => options.repo.getIdempotentOrder(options.tenantId, key),
+    rememberCached: (order) => options.repo.rememberIdempotentOrder(options.tenantId, key, order),
+    loadById: (orderId) => options.repo.getOrder({ tenantId: options.tenantId, orderId }),
+    toResult: (order) => ({
+      data: toOrderResponse(order),
+      meta: {} as Record<string, unknown>,
+      version: order.version
+    }),
+    execute: async () => {
+      if (!options.customerId?.trim() || !options.items?.length) {
+        throw new OrderError("customer_id and items are required.", "VALIDATION_FAILED");
+      }
+      const currency = (options.currency ?? "VND").trim().toUpperCase();
+      const fingerprint = buildOrderFingerprint({
+        customerId: options.customerId,
+        items: options.items.map((i) => ({ variantId: i.variant_id, quantity: i.quantity }))
+      });
+      const duplicate = await options.repo.findByFingerprint({
+        tenantId: options.tenantId,
+        fingerprint
+      });
+      if (duplicate && options.rejectDuplicate) {
+        throw new OrderError("Duplicate order suspected.", "ORDER_DUPLICATE_SUSPECTED");
+      }
+      const { totals, rows } = await buildTotalsFromItems({
+        catalog: options.catalog,
+        tenantId: options.tenantId,
+        currency,
+        items: options.items
+      });
+      const quoteVersion = nextQuoteVersion();
+      const order = await options.repo.createOrderDraft({
+        tenantId: options.tenantId,
+        orderId: generateUuidV7(),
+        actorId: options.actorId,
+        customerId: options.customerId,
+        conversationId: options.conversationId ?? null,
+        currency,
+        shippingAddressId: options.shippingAddressId ?? null,
+        notes: options.notes?.trim() ?? null,
+        duplicateFingerprint: fingerprint,
+        quoteVersion,
+        totals,
+        items: rows.map((r) => ({
+          itemId: generateUuidV7(),
+          variantId: r.variantId,
+          skuSnapshot: r.skuSnapshot,
+          unitPriceMinor: r.unitPriceMinor,
+          unitCostMinor: r.unitCostMinor,
+          quantity: r.quantity,
+          calc: totals.lineItems.find((l) => l.variantId === r.variantId)!
+        })),
+        idempotencyKey: key
+      });
+      const meta: Record<string, unknown> = {};
+      if (duplicate) {
+        meta.duplicate_suspected = true;
+        meta.duplicate_order_id = duplicate.id;
+      }
+      return {
+        order,
+        result: { data: toOrderResponse(order), meta, version: order.version }
+      };
+    }
   });
-  await options.repo.rememberIdempotentOrder(options.tenantId, key, order);
-  const meta: Record<string, unknown> = {};
-  if (duplicate) {
-    meta.duplicate_suspected = true;
-    meta.duplicate_order_id = duplicate.id;
-  }
-  return { data: toOrderResponse(order), meta, version: order.version };
 }
 
 export async function getOrder(options: {
@@ -588,56 +610,68 @@ export async function recalculateOrder(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
 }) {
   requireOrderPermission(options.actorPermissions, "order.create");
   if (!options.idempotencyKey?.trim()) {
     throw new OrderError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentCommand(options.tenantId, key);
-  if (cached) {
-    return { data: toOrderResponse(cached), meta: {}, version: cached.version };
-  }
-  const existing = await options.repo.getOrder({
+  return runOrderIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    orderId: options.orderId
-  });
-  if (!existing) {
-    throw new OrderError("Order not found.", "RESOURCE_NOT_FOUND");
-  }
-  if (existing.status !== "draft" && existing.status !== "reserved") {
-    throw new OrderError("Order cannot be recalculated.", "ORDER_STATE_INVALID");
-  }
-  const items = existing.items.map((i) => ({
-    variant_id: i.variantId,
-    quantity: i.quantity
-  }));
-  const { totals, rows } = await buildTotalsFromItems({
-    catalog: options.catalog,
-    tenantId: options.tenantId,
-    currency: existing.currency,
-    items
-  });
-  const order = await options.repo.updateOrderDraft({
-    tenantId: options.tenantId,
-    orderId: options.orderId,
     actorId: options.actorId,
-    expectedVersion: existing.version,
-    items: items.map((i) => ({ variantId: i.variant_id, quantity: i.quantity })),
-    totals,
-    itemRows: rows.map((r) => ({
-      itemId: generateUuidV7(),
-      variantId: r.variantId,
-      skuSnapshot: r.skuSnapshot,
-      unitPriceMinor: r.unitPriceMinor,
-      unitCostMinor: r.unitCostMinor,
-      quantity: r.quantity,
-      calc: totals.lineItems.find((l) => l.variantId === r.variantId)!
-    })),
-    quoteVersion: nextQuoteVersion()
+    scope: "order.recalculate",
+    key,
+    loadCached: () => options.repo.getIdempotentCommand(options.tenantId, key),
+    rememberCached: (order) => options.repo.rememberIdempotentCommand(options.tenantId, key, order),
+    loadById: (orderId) => options.repo.getOrder({ tenantId: options.tenantId, orderId }),
+    toResult: (order) => ({ data: toOrderResponse(order), meta: {}, version: order.version }),
+    execute: async () => {
+      const existing = await options.repo.getOrder({
+        tenantId: options.tenantId,
+        orderId: options.orderId
+      });
+      if (!existing) {
+        throw new OrderError("Order not found.", "RESOURCE_NOT_FOUND");
+      }
+      if (existing.status !== "draft" && existing.status !== "reserved") {
+        throw new OrderError("Order cannot be recalculated.", "ORDER_STATE_INVALID");
+      }
+      const items = existing.items.map((i) => ({
+        variant_id: i.variantId,
+        quantity: i.quantity
+      }));
+      const { totals, rows } = await buildTotalsFromItems({
+        catalog: options.catalog,
+        tenantId: options.tenantId,
+        currency: existing.currency,
+        items
+      });
+      const order = await options.repo.updateOrderDraft({
+        tenantId: options.tenantId,
+        orderId: options.orderId,
+        actorId: options.actorId,
+        expectedVersion: existing.version,
+        items: items.map((i) => ({ variantId: i.variant_id, quantity: i.quantity })),
+        totals,
+        itemRows: rows.map((r) => ({
+          itemId: generateUuidV7(),
+          variantId: r.variantId,
+          skuSnapshot: r.skuSnapshot,
+          unitPriceMinor: r.unitPriceMinor,
+          unitCostMinor: r.unitCostMinor,
+          quantity: r.quantity,
+          calc: totals.lineItems.find((l) => l.variantId === r.variantId)!
+        })),
+        quoteVersion: nextQuoteVersion()
+      });
+      return {
+        order,
+        result: { data: toOrderResponse(order), meta: {}, version: order.version }
+      };
+    }
   });
-  await options.repo.rememberIdempotentCommand(options.tenantId, key, order);
-  return { data: toOrderResponse(order), meta: {}, version: order.version };
 }
 
 export async function reserveOrderInventory(options: {
@@ -648,6 +682,7 @@ export async function reserveOrderInventory(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly expiresAt?: string;
 }) {
   requireOrderPermission(options.actorPermissions, "inventory.reserve");
@@ -655,38 +690,46 @@ export async function reserveOrderInventory(options: {
     throw new OrderError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentCommand(options.tenantId, key);
-  if (cached) {
-    return { data: toOrderResponse(cached), meta: {} };
-  }
-  const existing = await options.repo.getOrder({
-    tenantId: options.tenantId,
-    orderId: options.orderId
-  });
-  if (!existing) {
-    throw new OrderError("Order not found.", "RESOURCE_NOT_FOUND");
-  }
-  if (existing.status !== "draft") {
-    throw new OrderError("Only draft orders can be reserved.", "ORDER_STATE_INVALID");
-  }
-  const expiresAt =
-    options.expiresAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-  const { reservationId } = await options.reservation.createReservation({
+  return runOrderIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
     actorId: options.actorId,
-    orderId: options.orderId,
-    idempotencyKey: key,
-    expiresAt,
-    items: existing.items.map((i) => ({ variantId: i.variantId, quantity: i.quantity }))
+    scope: "order.reserve",
+    key,
+    loadCached: () => options.repo.getIdempotentCommand(options.tenantId, key),
+    rememberCached: (order) => options.repo.rememberIdempotentCommand(options.tenantId, key, order),
+    loadById: (orderId) => options.repo.getOrder({ tenantId: options.tenantId, orderId }),
+    toResult: (order) => ({ data: toOrderResponse(order), meta: {} }),
+    execute: async () => {
+      const existing = await options.repo.getOrder({
+        tenantId: options.tenantId,
+        orderId: options.orderId
+      });
+      if (!existing) {
+        throw new OrderError("Order not found.", "RESOURCE_NOT_FOUND");
+      }
+      if (existing.status !== "draft") {
+        throw new OrderError("Only draft orders can be reserved.", "ORDER_STATE_INVALID");
+      }
+      const expiresAt =
+        options.expiresAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const { reservationId } = await options.reservation.createReservation({
+        tenantId: options.tenantId,
+        actorId: options.actorId,
+        orderId: options.orderId,
+        idempotencyKey: key,
+        expiresAt,
+        items: existing.items.map((i) => ({ variantId: i.variantId, quantity: i.quantity }))
+      });
+      const order = await options.repo.setReservation({
+        tenantId: options.tenantId,
+        orderId: options.orderId,
+        reservationId,
+        actorId: options.actorId
+      });
+      return { order, result: { data: toOrderResponse(order), meta: {} } };
+    }
   });
-  const order = await options.repo.setReservation({
-    tenantId: options.tenantId,
-    orderId: options.orderId,
-    reservationId,
-    actorId: options.actorId
-  });
-  await options.repo.rememberIdempotentCommand(options.tenantId, key, order);
-  return { data: toOrderResponse(order), meta: {} };
 }
 
 export async function confirmOrder(options: {
@@ -698,6 +741,7 @@ export async function confirmOrder(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly expectedOrderVersion: number;
   readonly quoteVersion: string;
   readonly reservationId: string;
@@ -707,82 +751,90 @@ export async function confirmOrder(options: {
     throw new OrderError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentCommand(options.tenantId, key);
-  if (cached) {
-    return { data: toOrderResponse(cached), meta: {} };
-  }
-  const existing = await options.repo.getOrder({
-    tenantId: options.tenantId,
-    orderId: options.orderId
-  });
-  if (!existing) {
-    throw new OrderError("Order not found.", "RESOURCE_NOT_FOUND");
-  }
-  if (existing.status !== "draft" && existing.status !== "reserved") {
-    throw new OrderError("Order cannot be confirmed.", "ORDER_STATE_INVALID");
-  }
-  if (existing.version !== options.expectedOrderVersion) {
-    throw new OrderError("Version mismatch.", "RESOURCE_VERSION_MISMATCH");
-  }
-  if (existing.quoteVersion !== options.quoteVersion) {
-    throw new OrderError("Quote is stale.", "ORDER_QUOTE_STALE");
-  }
-  if (!existing.reservationId || existing.reservationId !== options.reservationId) {
-    throw new OrderError("Reservation mismatch.", "INVENTORY_RESERVATION_OWNER_MISMATCH");
-  }
-
-  const items = existing.items.map((i) => ({
-    variant_id: i.variantId,
-    quantity: i.quantity
-  }));
-  const { totals, rows } = await buildTotalsFromItems({
-    catalog: options.catalog,
-    tenantId: options.tenantId,
-    currency: existing.currency,
-    items
-  });
-  if (totals.grandTotalMinor !== existing.grandTotalMinor) {
-    throw new OrderError("Order total changed.", "ORDER_TOTAL_CHANGED");
-  }
-
-  await options.reservation.convertReservation({
+  return runOrderIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
     actorId: options.actorId,
-    reservationId: options.reservationId,
-    orderId: options.orderId,
-    idempotencyKey: `${key}:convert`
-  });
+    scope: "order.confirm",
+    key,
+    loadCached: () => options.repo.getIdempotentCommand(options.tenantId, key),
+    rememberCached: (order) => options.repo.rememberIdempotentCommand(options.tenantId, key, order),
+    loadById: (orderId) => options.repo.getOrder({ tenantId: options.tenantId, orderId }),
+    toResult: (order) => ({ data: toOrderResponse(order), meta: {} }),
+    execute: async () => {
+      const existing = await options.repo.getOrder({
+        tenantId: options.tenantId,
+        orderId: options.orderId
+      });
+      if (!existing) {
+        throw new OrderError("Order not found.", "RESOURCE_NOT_FOUND");
+      }
+      if (existing.status !== "draft" && existing.status !== "reserved") {
+        throw new OrderError("Order cannot be confirmed.", "ORDER_STATE_INVALID");
+      }
+      if (existing.version !== options.expectedOrderVersion) {
+        throw new OrderError("Version mismatch.", "RESOURCE_VERSION_MISMATCH");
+      }
+      if (existing.quoteVersion !== options.quoteVersion) {
+        throw new OrderError("Quote is stale.", "ORDER_QUOTE_STALE");
+      }
+      if (!existing.reservationId || existing.reservationId !== options.reservationId) {
+        throw new OrderError("Reservation mismatch.", "INVENTORY_RESERVATION_OWNER_MISMATCH");
+      }
 
-  const snapshotItems: OrderItemRecord[] = rows.map((r, idx) => {
-    const calc = totals.lineItems.find((l) => l.variantId === r.variantId)!;
-    const prior = existing.items[idx];
-    return {
-      id: prior?.id ?? generateUuidV7(),
-      tenantId: options.tenantId,
-      orderId: options.orderId,
-      variantId: r.variantId,
-      skuSnapshot: r.skuSnapshot,
-      unitPriceMinor: r.unitPriceMinor,
-      unitCostMinor: r.unitCostMinor,
-      quantity: r.quantity,
-      lineSubtotalMinor: calc.lineSubtotalMinor,
-      lineDiscountMinor: calc.lineDiscountMinor,
-      lineTaxMinor: calc.lineTaxMinor,
-      lineTotalMinor: calc.lineTotalMinor
-    };
-  });
+      const items = existing.items.map((i) => ({
+        variant_id: i.variantId,
+        quantity: i.quantity
+      }));
+      const { totals, rows } = await buildTotalsFromItems({
+        catalog: options.catalog,
+        tenantId: options.tenantId,
+        currency: existing.currency,
+        items
+      });
+      if (totals.grandTotalMinor !== existing.grandTotalMinor) {
+        throw new OrderError("Order total changed.", "ORDER_TOTAL_CHANGED");
+      }
 
-  const order = await options.repo.confirmOrder({
-    tenantId: options.tenantId,
-    orderId: options.orderId,
-    actorId: options.actorId,
-    expectedVersion: options.expectedOrderVersion,
-    quoteVersion: options.quoteVersion,
-    totals,
-    snapshotItems
+      await options.reservation.convertReservation({
+        tenantId: options.tenantId,
+        actorId: options.actorId,
+        reservationId: options.reservationId,
+        orderId: options.orderId,
+        idempotencyKey: `${key}:convert`
+      });
+
+      const snapshotItems: OrderItemRecord[] = rows.map((r, idx) => {
+        const calc = totals.lineItems.find((l) => l.variantId === r.variantId)!;
+        const prior = existing.items[idx];
+        return {
+          id: prior?.id ?? generateUuidV7(),
+          tenantId: options.tenantId,
+          orderId: options.orderId,
+          variantId: r.variantId,
+          skuSnapshot: r.skuSnapshot,
+          unitPriceMinor: r.unitPriceMinor,
+          unitCostMinor: r.unitCostMinor,
+          quantity: r.quantity,
+          lineSubtotalMinor: calc.lineSubtotalMinor,
+          lineDiscountMinor: calc.lineDiscountMinor,
+          lineTaxMinor: calc.lineTaxMinor,
+          lineTotalMinor: calc.lineTotalMinor
+        };
+      });
+
+      const order = await options.repo.confirmOrder({
+        tenantId: options.tenantId,
+        orderId: options.orderId,
+        actorId: options.actorId,
+        expectedVersion: options.expectedOrderVersion,
+        quoteVersion: options.quoteVersion,
+        totals,
+        snapshotItems
+      });
+      return { order, result: { data: toOrderResponse(order), meta: {} } };
+    }
   });
-  await options.repo.rememberIdempotentCommand(options.tenantId, key, order);
-  return { data: toOrderResponse(order), meta: {} };
 }
 
 export async function cancelOrder(options: {
@@ -793,6 +845,7 @@ export async function cancelOrder(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
   readonly expectedVersion: number;
   readonly reason: string;
 }) {
@@ -801,43 +854,54 @@ export async function cancelOrder(options: {
     throw new OrderError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentCommand(options.tenantId, key);
-  if (cached) {
-    return { data: toOrderResponse(cached), meta: {} };
-  }
-  const existing = await options.repo.getOrder({
+  return runOrderIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    orderId: options.orderId
-  });
-  if (!existing) {
-    throw new OrderError("Order not found.", "RESOURCE_NOT_FOUND");
-  }
-  if (existing.status === "confirmed") {
-    throw new OrderError("Confirmed orders cannot be cancelled here.", "ORDER_CANCELLATION_NOT_ALLOWED");
-  }
-  if (existing.status === "cancelled" || existing.status === "expired") {
-    throw new OrderError("Order already terminal.", "ORDER_STATE_INVALID");
-  }
-  if (existing.version !== options.expectedVersion) {
-    throw new OrderError("Version mismatch.", "RESOURCE_VERSION_MISMATCH");
-  }
-  if (existing.reservationId) {
-    await options.reservation.releaseReservation({
-      tenantId: options.tenantId,
-      actorId: options.actorId,
-      reservationId: existing.reservationId,
-      idempotencyKey: `${key}:release`
-    });
-  }
-  const order = await options.repo.cancelOrder({
-    tenantId: options.tenantId,
-    orderId: options.orderId,
     actorId: options.actorId,
-    expectedVersion: options.expectedVersion,
-    reason: options.reason.trim()
+    scope: "order.cancel",
+    key,
+    loadCached: () => options.repo.getIdempotentCommand(options.tenantId, key),
+    rememberCached: (order) => options.repo.rememberIdempotentCommand(options.tenantId, key, order),
+    loadById: (orderId) => options.repo.getOrder({ tenantId: options.tenantId, orderId }),
+    toResult: (order) => ({ data: toOrderResponse(order), meta: {} }),
+    execute: async () => {
+      const existing = await options.repo.getOrder({
+        tenantId: options.tenantId,
+        orderId: options.orderId
+      });
+      if (!existing) {
+        throw new OrderError("Order not found.", "RESOURCE_NOT_FOUND");
+      }
+      if (existing.status === "confirmed") {
+        throw new OrderError(
+          "Confirmed orders cannot be cancelled here.",
+          "ORDER_CANCELLATION_NOT_ALLOWED"
+        );
+      }
+      if (existing.status === "cancelled" || existing.status === "expired") {
+        throw new OrderError("Order already terminal.", "ORDER_STATE_INVALID");
+      }
+      if (existing.version !== options.expectedVersion) {
+        throw new OrderError("Version mismatch.", "RESOURCE_VERSION_MISMATCH");
+      }
+      if (existing.reservationId) {
+        await options.reservation.releaseReservation({
+          tenantId: options.tenantId,
+          actorId: options.actorId,
+          reservationId: existing.reservationId,
+          idempotencyKey: `${key}:release`
+        });
+      }
+      const order = await options.repo.cancelOrder({
+        tenantId: options.tenantId,
+        orderId: options.orderId,
+        actorId: options.actorId,
+        expectedVersion: options.expectedVersion,
+        reason: options.reason.trim()
+      });
+      return { order, result: { data: toOrderResponse(order), meta: {} } };
+    }
   });
-  await options.repo.rememberIdempotentCommand(options.tenantId, key, order);
-  return { data: toOrderResponse(order), meta: {} };
 }
 
 export async function expireOrder(options: {
@@ -848,6 +912,7 @@ export async function expireOrder(options: {
   readonly actorId: string;
   readonly actorPermissions: readonly string[];
   readonly idempotencyKey: string | undefined;
+  readonly idempotency?: IdempotencyStore;
 }) {
   if (!options.actorPermissions.includes("internal.system")) {
     throw new OrderError("Permission denied.", "INSUFFICIENT_PERMISSION");
@@ -856,32 +921,40 @@ export async function expireOrder(options: {
     throw new OrderError("Idempotency-Key header is required.", "IDEMPOTENCY_KEY_REQUIRED");
   }
   const key = options.idempotencyKey.trim();
-  const cached = await options.repo.getIdempotentCommand(options.tenantId, key);
-  if (cached) {
-    return { data: toOrderResponse(cached), meta: {} };
-  }
-  const existing = await options.repo.getOrder({
+  return runOrderIdempotent({
+    idempotency: options.idempotency,
     tenantId: options.tenantId,
-    orderId: options.orderId
+    actorId: options.actorId,
+    scope: "order.expire",
+    key,
+    loadCached: () => options.repo.getIdempotentCommand(options.tenantId, key),
+    rememberCached: (order) => options.repo.rememberIdempotentCommand(options.tenantId, key, order),
+    loadById: (orderId) => options.repo.getOrder({ tenantId: options.tenantId, orderId }),
+    toResult: (order) => ({ data: toOrderResponse(order), meta: {} }),
+    execute: async () => {
+      const existing = await options.repo.getOrder({
+        tenantId: options.tenantId,
+        orderId: options.orderId
+      });
+      if (!existing) {
+        throw new OrderError("Order not found.", "RESOURCE_NOT_FOUND");
+      }
+      if (existing.reservationId) {
+        await options.reservation.releaseReservation({
+          tenantId: options.tenantId,
+          actorId: options.actorId,
+          reservationId: existing.reservationId,
+          idempotencyKey: `${key}:release`
+        });
+      }
+      const order = await options.repo.expireOrder({
+        tenantId: options.tenantId,
+        orderId: options.orderId,
+        actorId: options.actorId
+      });
+      return { order, result: { data: toOrderResponse(order), meta: {} } };
+    }
   });
-  if (!existing) {
-    throw new OrderError("Order not found.", "RESOURCE_NOT_FOUND");
-  }
-  if (existing.reservationId) {
-    await options.reservation.releaseReservation({
-      tenantId: options.tenantId,
-      actorId: options.actorId,
-      reservationId: existing.reservationId,
-      idempotencyKey: `${key}:release`
-    });
-  }
-  const order = await options.repo.expireOrder({
-    tenantId: options.tenantId,
-    orderId: options.orderId,
-    actorId: options.actorId
-  });
-  await options.repo.rememberIdempotentCommand(options.tenantId, key, order);
-  return { data: toOrderResponse(order), meta: {} };
 }
 
 export async function getOrderHistory(options: {
