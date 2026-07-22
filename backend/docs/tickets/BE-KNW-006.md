@@ -4,7 +4,7 @@ title: Ingestion health/retry/rebuild/test search
 owner: Backend AI Agent
 phase: P4
 risk: medium
-status: doc-frozen
+status: done
 ---
 
 # Business outcome

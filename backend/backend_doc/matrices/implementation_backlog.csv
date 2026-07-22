@@ -64,12 +64,12 @@ phase,task_id,title,deliverable_or_details,status,primary_paths
 19.6 Phase P4,BE-INV-006,Expiry scheduler/worker/idempotency,,Done,modules/inventory/
 19.6 Phase P4,BE-INV-007,Inventory ledger/balance reconciliation,,Done,modules/inventory/
 19.6 Phase P4,BE-INV-008,High-contention/concurrency/property tests,,Done,modules/inventory/
-19.6 Phase P4,BE-KNW-001,Source/version/chunk lifecycle schema,,Not Started,modules/knowledge/
-19.6 Phase P4,BE-KNW-002,CRUD/review/approve/publish/archive APIs,,Not Started,modules/knowledge/
-19.6 Phase P4,BE-KNW-003,File extraction sandbox/content checksum,,Not Started,modules/knowledge/
-19.6 Phase P4,BE-KNW-004,Chunk/embed generation/versioning,,Not Started,modules/knowledge/
-19.6 Phase P4,BE-KNW-005,Published/effective-only tenant retrieval API,,Not Started,modules/knowledge/
-19.6 Phase P4,BE-KNW-006,Ingestion health/retry/rebuild/test search,,Not Started,modules/knowledge/
+19.6 Phase P4,BE-KNW-001,Source/version/chunk lifecycle schema,,Done,modules/knowledge/
+19.6 Phase P4,BE-KNW-002,CRUD/review/approve/publish/archive APIs,,Done,modules/knowledge/
+19.6 Phase P4,BE-KNW-003,File extraction sandbox/content checksum,,Done,modules/knowledge/
+19.6 Phase P4,BE-KNW-004,Chunk/embed generation/versioning,,Done,modules/knowledge/
+19.6 Phase P4,BE-KNW-005,Published/effective-only tenant retrieval API,,Done,modules/knowledge/
+19.6 Phase P4,BE-KNW-006,Ingestion health/retry/rebuild/test search,,Done,modules/knowledge/
 19.7 Phase P5,BE-CHN-001,Provider adapter interfaces + normalized schemas,,Not Started,modules/channel/
 19.7 Phase P5,BE-CHN-002,Channel account/credential/health schema,,Not Started,modules/channel/
 19.7 Phase P5,BE-CHN-003,OAuth state/PKCE where applicable/callback/token vault,,Not Started,modules/channel/

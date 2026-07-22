@@ -87,9 +87,9 @@ authoritative for AI coding agents — do not re-open without ADR.
 
 | Table | Class | RLS/migration status | Notes |
 |---|---|---|---|
-| `knowledge_sources` | TENANT_OWNED | Not started | |
-| `knowledge_source_versions` | TENANT_OWNED | Not started | Only one published version effective at a time (unless scoped otherwise) |
-| `knowledge_chunks` | TENANT_OWNED | Not started | Retrieval query MUST filter tenant + published version (§4.3.7) |
+| `knowledge_sources` | TENANT_OWNED | Done (`000016`) | |
+| `knowledge_source_versions` | TENANT_OWNED | Done (`000016`) | Only one published version effective at a time (unless scoped otherwise) |
+| `knowledge_chunks` | TENANT_OWNED | Done (`000016`) | Retrieval query MUST filter tenant + published version (§4.3.7) |
 | `prompt_versions` | TENANT_OWNED | Not started | Technical default (not HO business decision): consistent with sibling AI tables + per-tenant `ai.configure`/`ai.activate`. Platform-wide-only prompts → override via ADR. |
 | `ai_logs` | TENANT_OWNED | Not started | |
 | `ai_tool_calls` | TENANT_OWNED | Not started | |

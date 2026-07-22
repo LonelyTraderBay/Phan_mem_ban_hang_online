@@ -4,7 +4,7 @@ title: CRUD/review/approve/publish/archive APIs
 owner: Backend AI Agent
 phase: P4
 risk: medium
-status: doc-frozen
+status: done
 ---
 
 # Business outcome
