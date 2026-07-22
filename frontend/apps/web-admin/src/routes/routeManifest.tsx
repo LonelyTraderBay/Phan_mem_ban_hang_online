@@ -17,6 +17,12 @@ const SettingsUsersRoute = lazy(() => import("../features/settings/routes/Settin
 const SettingsRolesRoute = lazy(() => import("../features/settings/routes/SettingsRolesRoute"));
 const SettingsDevicesRoute = lazy(() => import("../features/settings/routes/SettingsDevicesRoute"));
 const ProductCatalogRoute = lazy(() => import("../features/product-catalog/routes/ProductCatalogRoute"));
+const ProductDetailRoute = lazy(() => import("../features/product-catalog/routes/ProductDetailRoute"));
+const ProductImportRoute = lazy(() => import("../features/product-catalog/routes/ProductImportRoute"));
+const ProductImportJobRoute = lazy(() => import("../features/product-catalog/routes/ProductImportJobRoute"));
+const CustomersListRoute = lazy(() => import("../features/customers/routes/CustomersListRoute"));
+const CustomerDetailRoute = lazy(() => import("../features/customers/routes/CustomerDetailRoute"));
+const CustomerMergeRoute = lazy(() => import("../features/customers/routes/CustomerMergeRoute"));
 
 function withSuspense(Element: React.LazyExoticComponent<() => React.JSX.Element>) {
   return (
@@ -46,6 +52,36 @@ export const routeManifest: RouteObject[] = [
   {
     path: "/products",
     element: <Protected>{withSuspense(ProductCatalogRoute)}</Protected>,
+    errorElement: <RouteChunkErrorBoundary />,
+  },
+  {
+    path: "/products/import",
+    element: <Protected>{withSuspense(ProductImportRoute)}</Protected>,
+    errorElement: <RouteChunkErrorBoundary />,
+  },
+  {
+    path: "/products/import/:jobId",
+    element: <Protected>{withSuspense(ProductImportJobRoute)}</Protected>,
+    errorElement: <RouteChunkErrorBoundary />,
+  },
+  {
+    path: "/products/:productId",
+    element: <Protected>{withSuspense(ProductDetailRoute)}</Protected>,
+    errorElement: <RouteChunkErrorBoundary />,
+  },
+  {
+    path: "/customers",
+    element: <Protected>{withSuspense(CustomersListRoute)}</Protected>,
+    errorElement: <RouteChunkErrorBoundary />,
+  },
+  {
+    path: "/customers/merge",
+    element: <Protected>{withSuspense(CustomerMergeRoute)}</Protected>,
+    errorElement: <RouteChunkErrorBoundary />,
+  },
+  {
+    path: "/customers/:customerId",
+    element: <Protected>{withSuspense(CustomerDetailRoute)}</Protected>,
     errorElement: <RouteChunkErrorBoundary />,
   },
   {
