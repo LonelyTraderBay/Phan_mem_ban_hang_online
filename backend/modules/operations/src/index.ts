@@ -1,1 +1,28 @@
 export const MODULE_NAME = "operations" as const;
+
+export {
+  OperationsError,
+  createReprocessRequest,
+  createSupportAccessForOps,
+  disableTenantAI,
+  getAiHealth,
+  getTenantHealth,
+  listSystemAlerts,
+  listTenantsForOperations,
+  requireOpsPermission,
+  setTenantFeatureFlag,
+  type OpsPermission,
+  type OperationsRepository
+} from "./application/operations.js";
+
+export {
+  DEFAULT_DEVICE_POLICY,
+  WINDOWS_NOTIFICATION_CONTRACT,
+  buildPackingSlipPayload,
+  evaluateClientVersion,
+  ingestCrashTelemetry,
+  revalidateOfflineDraft
+} from "./application/desktop.js";
+
+export { InMemoryOperationsRepository } from "./infrastructure/persistence/in-memory-operations.js";
+export { createOperationsController } from "./presentation/http/operations.controller.js";
