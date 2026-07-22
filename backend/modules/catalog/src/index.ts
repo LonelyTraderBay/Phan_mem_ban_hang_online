@@ -58,6 +58,7 @@ export {
 } from "./application/import-jobs.js";
 
 export { InMemoryCatalogRepository } from "./infrastructure/persistence/in-memory-catalog.js";
+export { PostgresCatalogRepository } from "./infrastructure/persistence/postgres-catalog.js";
 export {
   createInMemoryImportApplyPort,
   InMemoryImportRepository

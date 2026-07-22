@@ -41,4 +41,5 @@ export {
 } from "./application/inventory.js";
 
 export { InMemoryInventoryRepository } from "./infrastructure/persistence/in-memory-inventory.js";
+export { PostgresInventoryRepository } from "./infrastructure/persistence/postgres-inventory.js";
 export { createInventoryController } from "./presentation/http/inventory.controller.js";

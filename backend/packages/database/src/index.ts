@@ -91,6 +91,8 @@ export function createDatabase(databaseUrl: string): AppDatabase {
   });
 }
 
+export { adapterSecurityContext } from "./adapter-context.js";
+
 export async function withTenantTransaction<T>(
   db: AppDatabase,
   ctx: RequestSecurityContext,
