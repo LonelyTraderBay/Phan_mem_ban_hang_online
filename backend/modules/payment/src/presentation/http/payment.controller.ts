@@ -14,6 +14,7 @@ import {
 } from "@nestjs/common";
 import { DomainInvariantError, parseUuidV7, type UuidV7 } from "@ai-sales/domain-kernel";
 import { MissingSecurityContextError } from "@ai-sales/security";
+import type { IdempotencyStore } from "@ai-sales/idempotency";
 import {
   confirmPayment,
   createRefund,
@@ -85,6 +86,7 @@ function mapPaymentError(error: unknown): never {
 export function createPaymentController(options: {
   readonly repo: PaymentRepository;
   readonly orders: OrderLookupPort;
+  readonly idempotency?: IdempotencyStore;
 }) {
   @Controller("api/v1")
   class PaymentController {
@@ -111,6 +113,7 @@ export function createPaymentController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           amountMinor: body?.amount_minor ?? 0,
           currency: body?.currency ?? "VND",
           method: body?.method ?? "transfer",
@@ -151,6 +154,7 @@ export function createPaymentController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           expectedVersion: body?.expected_version ?? 1,
           ...(body?.provider_ref !== undefined ? { providerRef: body.provider_ref } : {})
         });
@@ -175,6 +179,7 @@ export function createPaymentController(options: {
           actorId: actor.actorId,
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
+          ...(options.idempotency ? { idempotency: options.idempotency } : {}),
           amountMinor: body?.amount_minor ?? 0,
           reason: body?.reason ?? ""
         });

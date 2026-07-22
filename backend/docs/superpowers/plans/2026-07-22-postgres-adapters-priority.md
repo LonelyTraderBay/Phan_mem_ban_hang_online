@@ -70,7 +70,8 @@ Apply at least migrations `000024`…`000027`.
 ## Gaps (v1)
 
 - **Ops:** desktop / hardening stay stub (application layer); health now DB-probed (`000027` AI snapshot)
-- Knowledge / AI / Order / Payment / …: process-local idempotency Maps (migrate `app.idempotency_records`) — Ops reprocess Map removed (DB unique only)
+- Knowledge / AI / Fulfillment / …: process-local idempotency Maps (migrate `app.idempotency_records`)
+- **Order / Payment HTTP idempotency:** migrated to `PostgresIdempotencyStore` (`order.*` / `payment.*` scopes); InMemory tests keep repo Maps as fallback; payment `providerEvents` Map remains for webhook event-id dedupe
 - AI: `tenant_ai_controls` stores full switch/budget JSON in `metadata`; column fields are denormalized
 - AI eval runs: GLOBAL table + `tenant_id` column (no RLS) — filter in adapter
 - Channel: OAuth tenant lookup + webhook dedupe (null-tenant) process-local Maps; idempotency Maps

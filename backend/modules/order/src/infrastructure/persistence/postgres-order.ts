@@ -122,16 +122,13 @@ function toOrder(row: OrderRow, items: readonly OrderItemRecord[]): OrderRecord 
   };
 }
 
-/** v1 process-local idempotency — migrate to app.idempotency_records when wired. */
+/**
+ * Order Postgres adapter.
+ * HTTP idempotency is via PostgresIdempotencyStore at application layer
+ * (get/remember below are no-ops kept for OrderRepository interface / InMemory parity).
+ */
 export class PostgresOrderRepository implements OrderRepository {
-  private readonly idempotentOrders = new Map<string, OrderRecord>();
-  private readonly idempotentCommands = new Map<string, OrderRecord>();
-
   constructor(private readonly db: AppDatabase) {}
-
-  private idemKey(tenantId: string, key: string): string {
-    return `${tenantId}:${key}`;
-  }
 
   /** Globally unique enough for multi-instance (uses UUIDv7, not process counter). */
   private nextOrderCode(): string {
@@ -698,19 +695,27 @@ export class PostgresOrderRepository implements OrderRepository {
     });
   }
 
-  async getIdempotentOrder(tenantId: string, key: string): Promise<OrderRecord | null> {
-    return this.idempotentOrders.get(this.idemKey(tenantId, key)) ?? null;
+  async getIdempotentOrder(_tenantId: string, _key: string): Promise<OrderRecord | null> {
+    return null;
   }
 
-  async rememberIdempotentOrder(tenantId: string, key: string, order: OrderRecord): Promise<void> {
-    this.idempotentOrders.set(this.idemKey(tenantId, key), order);
+  async rememberIdempotentOrder(
+    _tenantId: string,
+    _key: string,
+    _order: OrderRecord
+  ): Promise<void> {
+    /* no-op — use IdempotencyStore */
   }
 
-  async getIdempotentCommand(tenantId: string, key: string): Promise<OrderRecord | null> {
-    return this.idempotentCommands.get(this.idemKey(tenantId, key)) ?? null;
+  async getIdempotentCommand(_tenantId: string, _key: string): Promise<OrderRecord | null> {
+    return null;
   }
 
-  async rememberIdempotentCommand(tenantId: string, key: string, order: OrderRecord): Promise<void> {
-    this.idempotentCommands.set(this.idemKey(tenantId, key), order);
+  async rememberIdempotentCommand(
+    _tenantId: string,
+    _key: string,
+    _order: OrderRecord
+  ): Promise<void> {
+    /* no-op — use IdempotencyStore */
   }
 }

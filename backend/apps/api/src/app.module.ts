@@ -362,9 +362,14 @@ function buildControllers(): Type<unknown>[] {
       createOrderController({
         repo: orderRepoPg,
         catalog: catalogPricingPort,
-        reservation: reservationPort
+        reservation: reservationPort,
+        idempotency
       }),
-      createPaymentController({ repo: paymentRepoPg, orders: orderLookupPort }),
+      createPaymentController({
+        repo: paymentRepoPg,
+        orders: orderLookupPort,
+        idempotency
+      }),
       createFulfillmentController({
         repo: fulfillmentRepoPg,
         orders: orderEligibilityPort,
