@@ -21,13 +21,29 @@ export function sortMigrationFiles(names) {
 }
 
 async function ensureMigrationsTable(client) {
-  await client.query(`
-    CREATE SCHEMA IF NOT EXISTS app;
-    CREATE TABLE IF NOT EXISTS app.schema_migrations (
-      version TEXT PRIMARY KEY,
-      applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    );
-  `);
+  // Prefer existence checks so least-privilege roles (no CREATE on database)
+  // can still run migrate when schema/table already exist.
+  const schema = await client.query(
+    `SELECT 1 FROM pg_namespace WHERE nspname = 'app' LIMIT 1`,
+  );
+  if (schema.rowCount === 0) {
+    await client.query(`CREATE SCHEMA app`);
+  }
+  const table = await client.query(
+    `SELECT 1
+       FROM pg_catalog.pg_class c
+       JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = 'app' AND c.relname = 'schema_migrations' AND c.relkind = 'r'
+      LIMIT 1`,
+  );
+  if (table.rowCount === 0) {
+    await client.query(`
+      CREATE TABLE app.schema_migrations (
+        version TEXT PRIMARY KEY,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+  }
 }
 
 async function appliedVersions(client) {
