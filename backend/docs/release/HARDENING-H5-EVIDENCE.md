@@ -2,13 +2,13 @@
 
 **Date:** 2026-07-23  
 **Workflow:** [`.github/workflows/staging-preflight.yml`](../../../.github/workflows/staging-preflight.yml)  
-**Run:** https://github.com/LonelyTraderBay/Phan_mem_ban_hang_online/actions/runs/30020298095
+**Run:** https://github.com/LonelyTraderBay/Phan_mem_ban_hang_online/actions/runs/30022549558
 
 | Job | Result |
 |---|---|
 | gate (`confirm_phase_a=PASS`) | **PASS** |
-| migrate (`STAGING_DATABASE_URL`) | **PASS** (after `ais_staging_api` CREATE grant + privilege-safe `migrate.mjs`) |
-| health (`STAGING_API_BASE_URL`) | **PASS** (tunnel URL at run time) |
-| deploy_note | **PASS** (Fly deploy remains manual) |
+| migrate (`STAGING_DATABASE_URL`) | **PASS** |
+| health (`STAGING_API_BASE_URL` = Fly) | **PASS** — `https://ai-sales-api-staging.fly.dev/health` |
+| deploy_note | **PASS** |
 
 **Ticket:** `BE-FND-014` — CI path green; attach run URL above.

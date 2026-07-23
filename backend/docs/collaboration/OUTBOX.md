@@ -79,9 +79,9 @@ Detail: Preflight OK; migrate thru 000034; invite/accept perms=75; `GET /health`
 Needs: informational only — FE Pages deploy + Auth0 swap + Fly token optional hardening; then BE-FND-014 secrets + HRD C–F.
 Resolution: Closed 2026-07-23 — Phase A Done with evidence in `PHASE-A-EVIDENCE.md`.
 
-### 2026-07-23 — Hardened staging pack (H1–H9) — CI green; Fly/FE permanent hosts HO
-Raised because: Post A→F hardening plan executed under HO-delegated completion.
-Detail: H5 CI `staging-preflight` PASS (run 30020298095) after migrate privilege fix + `ais_staging_api` CREATE grant. H4 OIDC→/me PASS on HTTPS tunnels. H2 Fly login PASS but `apps create` blocked — Fly requires payment at dashboard lonelytraderbay/billing (within $25/mo cap). H3 vercel.json READY; live FE deploy needs VERCEL_TOKEN. H1 Auth0 console still interim staging-oidc. H6 PITR Free waiver kept. H7 ASVS self-check kept (vendor optional before prod). H9 prod go-live **not** run — no HO phrase authorize production go-live. Board: `A-TO-F-EXECUTION-STATUS.md` (Hardened staging*).
-Needs: Human Owner decision — (1) Fly billing card → run `backend/tools/run-hardening-h2.ps1`; (2) `vercel login` → H3; (3) Auth0 Free app; (4) optional Supabase Pro PITR / vendor pentest; (5) only then say authorize production go-live for H9.
-Resolution: Agent wave closed 2026-07-23 — residual HO actions listed above; no prod cutover.
+### 2026-07-23 — Fly staging API+OIDC LIVE (H2/H4 permanent hosts)
+Raised because: HO completed Fly billing; agent deployed from `backend/` (not `fly launch` at repo root).
+Detail: `ai-sales-api-staging.fly.dev` health 200 + checks passing; interim IdP `ai-sales-oidc-staging.fly.dev`; OIDC→/me PASS (Staging Tenant, perms=75). CI re-run against Fly URL PASS (#30022549558). Destroyed empty mistaken app `phan-mem-ban-hang-online`. Dockerfile boot fixed (`node --import tsx`, 512MB).
+Needs: Human Owner — `vercel login` for H3 FE HTTPS; Auth0 Free swap optional; H9 only with authorize production go-live.
+Resolution: H2+H4 closed 2026-07-23 on permanent Fly hosts.
 

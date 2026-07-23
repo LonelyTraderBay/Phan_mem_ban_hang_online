@@ -17,8 +17,12 @@ RUN pnpm install --frozen-lockfile
 
 FROM base AS runner
 ENV NODE_ENV=production
+ENV PNPM_HOME="/pnpm"
+ENV PATH="/app/node_modules/.bin:$PNPM_HOME:$PATH"
 WORKDIR /app
 COPY --from=deps /app /app
+# Avoid corepack re-download at boot (Fly health checks race cold start).
+RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
 EXPOSE 3000
 USER node
-CMD ["pnpm", "exec", "tsx", "apps/api/src/main.ts"]
+CMD ["node", "--import", "tsx", "apps/api/src/main.ts"]

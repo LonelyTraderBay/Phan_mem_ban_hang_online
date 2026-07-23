@@ -14,6 +14,10 @@ primary_region = "sin"
   PORT = "3000"
   LOG_LEVEL = "info"
 
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+
 [http_service]
   internal_port = 3000
   force_https = true
@@ -23,7 +27,7 @@ primary_region = "sin"
   processes = ["app"]
 
   [[http_service.checks]]
-    grace_period = "20s"
+    grace_period = "60s"
     interval = "30s"
     method = "GET"
     timeout = "5s"

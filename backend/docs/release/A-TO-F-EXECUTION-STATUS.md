@@ -20,9 +20,9 @@
 | ID | Status | Evidence |
 |----|--------|----------|
 | H1 Auth0 | **Interim READY*** | [`HARDENING-H1-AUTH0.md`](./HARDENING-H1-AUTH0.md) — staging mock IdP until Auth0 Free console |
-| H2 Fly API | **BLOCKED-HO*** | Auth PASS; app create needs billing — [`HARDENING-H2-EVIDENCE.md`](./HARDENING-H2-EVIDENCE.md) |
+| H2 Fly API | **PASS** | `https://ai-sales-api-staging.fly.dev` — [`HARDENING-H2-EVIDENCE.md`](./HARDENING-H2-EVIDENCE.md) |
 | H3 FE HTTPS | **Scaffold READY*** | vercel.json + runbook; deploy needs `VERCEL_TOKEN` — [`HARDENING-H3-EVIDENCE.md`](./HARDENING-H3-EVIDENCE.md) |
-| H4 Re-verify | **PASS*** | health+OIDC→/me on HTTPS tunnel — [`HARDENING-H4-EVIDENCE.md`](./HARDENING-H4-EVIDENCE.md) |
+| H4 Re-verify | **PASS** | health+OIDC→/me on Fly — [`HARDENING-H4-EVIDENCE.md`](./HARDENING-H4-EVIDENCE.md) |
 | H5 CI | **PASS** | [Actions run 30020298095](https://github.com/LonelyTraderBay/Phan_mem_ban_hang_online/actions/runs/30020298095) |
 | H6 PITR | **Waiver kept*** | Free; Pro not enabled within cap without HO card upgrade |
 | H7 Pentest | **Self-check kept*** | Vendor optional before prod go-live |
@@ -33,7 +33,7 @@
 
 ## HO one-liners to finish permanent hosts
 
-1. Fly billing: https://fly.io/dashboard/lonelytraderbay/billing → `backend\tools\run-hardening-h2.ps1`
+1. ~~Fly billing~~ **Done** — API + interim OIDC on Fly
 2. `vercel login` → [`HARDENING-H3-FE-DEPLOY.md`](../../../frontend/docs/runbooks/HARDENING-H3-FE-DEPLOY.md)
 3. Auth0 Free app → wire `.env.staging` / Fly secrets per [`HARDENING-H1-AUTH0.md`](./HARDENING-H1-AUTH0.md)
-4. Optional: Supabase Pro for PITR drill; vendor pentest before prod
+4. Optional: destroy empty app `phan-mem-ban-hang-online`; Supabase Pro PITR; vendor pentest before prod

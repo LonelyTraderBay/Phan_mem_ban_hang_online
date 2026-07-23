@@ -1,8 +1,8 @@
 # Phase A evidence — BE-FND-015 (staging cloud)
 
-**Status:** Phase A cutover **PASS** on managed Supabase + HTTPS (2026-07-23). Hardening re-verify: [`HARDENING-H4-EVIDENCE.md`](./HARDENING-H4-EVIDENCE.md).  
-**IdP:** Staging OIDC (`tools/staging-oidc-server.mjs`) behind Cloudflare quick tunnel (Auth0 Free still preferred; see [`HARDENING-H1-AUTH0.md`](./HARDENING-H1-AUTH0.md)).  
-**API HTTPS:** Cloudflare quick tunnel → local Nest + `.env.staging`. Fly auth OK but **app create BLOCKED** on Fly billing — [`HARDENING-H2-EVIDENCE.md`](./HARDENING-H2-EVIDENCE.md).
+**Status:** Phase A cutover **PASS** on managed Supabase + permanent Fly HTTPS (2026-07-23). Hardening re-verify: [`HARDENING-H4-EVIDENCE.md`](./HARDENING-H4-EVIDENCE.md).  
+**IdP:** Staging OIDC on Fly (`https://ai-sales-oidc-staging.fly.dev`) — Auth0 Free still preferred ([`HARDENING-H1-AUTH0.md`](./HARDENING-H1-AUTH0.md)).  
+**API HTTPS:** `https://ai-sales-api-staging.fly.dev` — [`HARDENING-H2-EVIDENCE.md`](./HARDENING-H2-EVIDENCE.md).
 
 ## Provision
 
@@ -14,9 +14,9 @@
 | Postgres | 17.6 · pooler `aws-0-ap-southeast-1.pooler.supabase.com:6543` |
 | DB role | `ais_staging_api` (login; secrets only in gitignored files) |
 | Schema | thru `000034` (34 migrations) |
-| API URL (H4 verify) | `https://refers-ceramic-northeast-illustrated.trycloudflare.com` |
-| OIDC issuer (H4 verify) | `https://gaming-near-configuration-rev.trycloudflare.com` |
-| CI | [staging-preflight #30020298095](https://github.com/LonelyTraderBay/Phan_mem_ban_hang_online/actions/runs/30020298095) **PASS** |
+| API URL | `https://ai-sales-api-staging.fly.dev` |
+| OIDC issuer | `https://ai-sales-oidc-staging.fly.dev` |
+| CI | [staging-preflight #30022549558](https://github.com/LonelyTraderBay/Phan_mem_ban_hang_online/actions/runs/30022549558) **PASS** (Fly health) |
 
 | Check | Command / proof | Result |
 |---|---|---|
