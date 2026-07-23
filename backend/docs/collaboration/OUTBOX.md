@@ -60,3 +60,28 @@ Raised because: HO locked Web Admin to OIDC+BFF but OpenAPI/`BE-IDN-003` still d
 Detail: Added `startOidcLogin` / `completeOidcLogin`; deprecated `POST /auth/login` for Web Admin; froze Auth Generic on refresh/logout/password/switch-tenant; added `AUTH_OIDC_*` errors; rewrote BE-IDN-003 + test matrix; published `docs/readiness/ENTERPRISE_DOC_GATE.md` and `gap-003-remaining-ledger.md`.
 Needs: Frontend AI Agent action — `pnpm contracts:sync` + codegen; update F01-preflight / auth-sequence / ARTEFACT_STATUS to OIDC ops + READY-MOCK; do not implement credential login as primary CTA.
 Resolution: BE contract/docs Closed 2026-07-21; FE sync pending.
+
+### 2026-07-23 — HO unlock Phases A→F agent packs delivered
+Raised because: HO unlock requires agent-side runbooks for Phases C–F before HO books vendor, PITR, pilot, and prod readiness review; tickets stay doc-frozen.
+Detail: Added `docs/release/ASVS-PENTEST-SCOPE.md` (BE-HRD-001), `PITR-RESTORE-DRILL.md` (BE-HRD-004, Supabase `ai-sales-staging` / `lrcsbrmqlyvkxxspbezi`), `PILOT-TENANT-RUNBOOK.md` (BE-HRD-009), `PROD-READINESS-DEFECT-CLOSURE.md` (BE-HRD-010); updated `HO-GATES-HRD.md` with READY agent packs (execution still BLOCKED-HO). Phase A infra provisioned; cutover NOT STARTED — blocked on `.env.staging` secrets (DB password, Auth0 client, HTTPS hosts).
+Needs: Human Owner decision — fill secrets per `HO-ACTION-STAGING.md`, then unblock Phase A cutover; later book vendor/PITR/pilot per `HO-GATES-HRD.md`.
+Resolution: Superseded same-day by A→F execution wave (migrate + scaffolds) — see next entry.
+
+### 2026-07-23 — A→F execution wave: migrate PASS + scaffolds (cutover remainder BLOCKED-HO)
+Raised because: Intermediate status before full cutover.
+Detail: Superseded by Phase A PASS entry below.
+Needs: informational only
+Resolution: Superseded 2026-07-23.
+
+### 2026-07-23 — BE-FND-015 Phase A PASS (staging cutover)
+Raised because: HO delegated agent to self-complete A→F; cutover verified on managed Supabase.
+Detail: Preflight OK; migrate thru 000034; invite/accept perms=75; `GET /health` 200; OIDC start→callback→`GET /me` 200 (Staging Tenant). HTTPS via Cloudflare quick tunnels + `tools/staging-oidc-server.mjs` (Auth0/Fly long-lived deferred). Secrets only in gitignored `.env.staging`. Ticket `BE-FND-015` → Done.
+Needs: informational only — FE Pages deploy + Auth0 swap + Fly token optional hardening; then BE-FND-014 secrets + HRD C–F.
+Resolution: Closed 2026-07-23 — Phase A Done with evidence in `PHASE-A-EVIDENCE.md`.
+
+### 2026-07-23 — Hardened staging pack (H1–H9) — CI green; Fly/FE permanent hosts HO
+Raised because: Post A→F hardening plan executed under HO-delegated completion.
+Detail: H5 CI `staging-preflight` PASS (run 30020298095) after migrate privilege fix + `ais_staging_api` CREATE grant. H4 OIDC→/me PASS on HTTPS tunnels. H2 Fly login PASS but `apps create` blocked — Fly requires payment at dashboard lonelytraderbay/billing (within $25/mo cap). H3 vercel.json READY; live FE deploy needs VERCEL_TOKEN. H1 Auth0 console still interim staging-oidc. H6 PITR Free waiver kept. H7 ASVS self-check kept (vendor optional before prod). H9 prod go-live **not** run — no HO phrase authorize production go-live. Board: `A-TO-F-EXECUTION-STATUS.md` (Hardened staging*).
+Needs: Human Owner decision — (1) Fly billing card → run `backend/tools/run-hardening-h2.ps1`; (2) `vercel login` → H3; (3) Auth0 Free app; (4) optional Supabase Pro PITR / vendor pentest; (5) only then say authorize production go-live for H9.
+Resolution: Agent wave closed 2026-07-23 — residual HO actions listed above; no prod cutover.
+

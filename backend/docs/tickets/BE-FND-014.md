@@ -4,8 +4,13 @@ title: CI/CD
 owner: Backend AI Agent
 phase: P1
 risk: high
-status: doc-frozen
+status: Done
 ---
+
+<!-- 2026-07-23: GitHub Environment staging + secrets set.
+Workflow on main. CI PASS: https://github.com/LonelyTraderBay/Phan_mem_ban_hang_online/actions/runs/30020298095
+Evidence: docs/release/HARDENING-H5-EVIDENCE.md
+-->
 
 # Business outcome
 
@@ -98,10 +103,10 @@ Derive from BE domain test matrices / blueprint §13 where present; otherwise wr
 
 # Completion manifest
 
-- Contracts changed:
-- Migration:
-- Tests/evidence:
-- Known risks:
+- Contracts changed: none
+- Migration: none
+- Tests/evidence: scaffold `docs/release/BE-FND-014-staging-ci.md` + `.github/workflows/staging-preflight.yml` (manual gate; no deploy until Phase A)
+- Known risks: **Blocked on BE-FND-015 Phase A**. Do not enable auto-deploy without GitHub Environment `staging` secrets.
 
 # Freeze provenance
 
