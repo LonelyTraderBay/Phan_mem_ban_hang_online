@@ -1,0 +1,8 @@
+FROM node:24-bookworm-slim
+WORKDIR /app
+COPY tools/staging-oidc-server.mjs ./staging-oidc-server.mjs
+ENV PORT=8080
+ENV MOCK_OIDC_PORT=8080
+EXPOSE 8080
+USER node
+CMD ["node", "staging-oidc-server.mjs"]

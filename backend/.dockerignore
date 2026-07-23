@@ -1,0 +1,21 @@
+# Node modules, git, and local junk — keep image small
+node_modules
+**/node_modules
+.git
+.github
+.env
+.env.*
+!.env.example
+!.env.staging.example
+coverage
+dist
+.pytest_cache
+__pycache__
+.venv
+*.md
+!package.json
+docs
+tools/mock-oidc-server.mjs
+graphify-out
+.understand-anything
+.gitnexus

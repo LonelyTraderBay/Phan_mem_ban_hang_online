@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://ai-sales-api-staging.fly.dev/api/v1/:path*"
+    },
+    {
+      "source": "/realtime/:path*",
+      "destination": "https://ai-sales-api-staging.fly.dev/api/v1/realtime/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+# Fly app: permanent staging OIDC (interim until Auth0)
+# Deploy from backend/: fly deploy -c fly.oidc.toml
+
+app = "ai-sales-oidc-staging"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile.oidc"
+
+[env]
+  PORT = "8080"
+  MOCK_OIDC_PORT = "8080"
+  MOCK_OIDC_EMAIL = "owner@staging.ai-sales.local"
+  MOCK_OIDC_CLIENT_ID = "web-admin-staging"
+  # MOCK_OIDC_ISSUER set via secrets after first deploy to https://ai-sales-oidc-staging.fly.dev
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "5s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"

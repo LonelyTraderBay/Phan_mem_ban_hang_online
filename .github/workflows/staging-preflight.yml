@@ -1,0 +1,96 @@
+# Staging pipeline (BE-FND-014) — workflow_dispatch only, no auto prod
+
+# Gate: HO sets confirm_phase_a=PASS only after HO-STAGING-CHECKLIST mục 4 PASS.
+# Requires GitHub Environment "staging" with secrets/vars (see BE-FND-014-staging-ci.md).
+
+name: staging-preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_phase_a:
+        description: "Type PASS only if BE-FND-015 Phase A already verified on managed staging"
+        required: true
+        default: "PENDING"
+      run_migrate:
+        description: "Run migrate.mjs against STAGING_DATABASE_URL"
+        type: boolean
+        default: true
+      run_health:
+        description: "GET STAGING_API_BASE_URL/health"
+        type: boolean
+        default: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require Phase A confirmation
+        run: |
+          if [ "${{ inputs.confirm_phase_a }}" != "PASS" ]; then
+            echo "Blocked: set confirm_phase_a=PASS only after HO-STAGING-CHECKLIST mục 4 PASS."
+            echo "See backend/docs/release/staging-cutover.md and BE-FND-015."
+            exit 1
+          fi
+          echo "Phase A confirmation OK for this run."
+
+  migrate:
+    needs: gate
+    if: ${{ inputs.run_migrate }}
+    runs-on: ubuntu-latest
+    environment: staging
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.18.0"
+      - name: Enable corepack pnpm
+        run: corepack enable && corepack prepare pnpm@11.9.0 --activate
+      - name: Install backend deps (migrate needs pg)
+        run: pnpm install --frozen-lockfile
+      - name: Migrate staging
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "Missing secrets.STAGING_DATABASE_URL on Environment staging"
+            exit 1
+          fi
+          node tools/migrate.mjs
+
+  health:
+    needs: [gate, migrate]
+    if: ${{ always() && inputs.run_health && needs.gate.result == 'success' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: GET /health
+        env:
+          STAGING_API_BASE_URL: ${{ secrets.STAGING_API_BASE_URL }}
+        run: |
+          if [ -z "$STAGING_API_BASE_URL" ]; then
+            echo "Missing secrets.STAGING_API_BASE_URL on Environment staging"
+            exit 1
+          fi
+          url="${STAGING_API_BASE_URL%/}/health"
+          echo "Checking $url"
+          code=$(curl -sS -o /tmp/health.body -w "%{http_code}" "$url")
+          echo "HTTP $code"
+          head -c 500 /tmp/health.body || true
+          test "$code" = "200"
+
+  # Deploy to Fly remains manual until FLY_API_TOKEN is in Environment staging.
+  # See backend/docs/release/staging-fly-deploy.md
+  deploy_note:
+    needs: [gate, migrate, health]
+    if: ${{ always() && needs.gate.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy status
+        run: |
+          echo "Migrate/health jobs finished. Fly deploy is still manual (fly secrets + fly deploy)."
+          echo "Docs: backend/docs/release/BE-FND-014-staging-ci.md"
+          echo "Optional next: add job with secrets.FLY_API_TOKEN after HO adds it."
