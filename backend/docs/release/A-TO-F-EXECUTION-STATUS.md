@@ -31,8 +31,9 @@
 - Super Admin: https://ai-sales-ops-staging.fly.dev
 - IdP (interim): https://ai-sales-oidc-staging.fly.dev
 
-## HO còn lại (không chặn staging)
+## HO còn lại
 
-1. Auth0 Free swap (optional, recommended before prod)
-2. Optional Supabase Pro PITR / vendor pentest
-3. Production: only *authorize production go-live*
+1. **Auth0 Free** — follow [`HARDENING-H1-AUTH0.md`](./HARDENING-H1-AUTH0.md); put secrets in `backend/.auth0-staging.env` then agent runs `wire-auth0-staging.mjs`
+2. **Supabase Pro ($25)** — unlock branch/daily-backup drill; **do not** enable PITR add-on (~$100) under hard cap — see [`PITR-PRO-COST-GATE.md`](./PITR-PRO-COST-GATE.md)
+3. **Vendor pentest** — book using [`VENDOR-PENTEST-HANDOFF.md`](./VENDOR-PENTEST-HANDOFF.md); self-check remains until report
+4. Production: only *authorize production go-live*

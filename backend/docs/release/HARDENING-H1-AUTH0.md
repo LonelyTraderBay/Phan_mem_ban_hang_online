@@ -1,28 +1,54 @@
-# Hardening H1 — Auth0 Free (HO console)
+# Hardening H1 — Auth0 Free (HO console + Agent wire)
 
-**Target callback (temporary until FE host exists):**  
-`https://ai-sales-api-staging.fly.dev/api/v1/auth/oidc/callback`
+**Status:** READY for HO console — interim IdP still `https://ai-sales-oidc-staging.fly.dev`
 
-**Final callback (after H3):**  
-`https://<web-admin>/api/v1/auth/oidc/callback`  
-(and keep Allowed Web Origins / Logout URLs in sync)
+## Exact URLs (current Fly staging)
 
-## Steps
+| Setting | Value |
+|---|---|
+| Allowed Callback URLs | `https://ai-sales-web-admin-staging.fly.dev/api/auth/oidc/callback` |
+| Allowed Logout URLs | `https://ai-sales-web-admin-staging.fly.dev/` |
+| Allowed Web Origins | `https://ai-sales-web-admin-staging.fly.dev` |
+| (optional) API direct callback | `https://ai-sales-api-staging.fly.dev/api/v1/auth/oidc/callback` |
 
-1. https://auth0.com → Free tenant
-2. Applications → Create → **Regular Web Application** → `AI Sales Web Admin (staging)`
-3. Settings → Allowed Callback / Logout / Web Origins as above → Save
-4. Copy Domain, Client ID, Client Secret into password manager
-5. Run (local, never paste secret in chat):
+## HO steps (browser, ~10 min)
+
+1. https://auth0.com → create **Free** tenant (or use existing).
+2. Applications → **Create Application** → name `AI Sales Web Admin (staging)` → type **Regular Web Applications**.
+3. Settings → paste Callback / Logout / Web Origins above → **Save**.
+4. Copy into password manager (never chat/git):
+   - Domain (e.g. `xxx.us.auth0.com`)
+   - Client ID
+   - Client Secret
+5. Tell agent: *“Auth0 staging credentials ready in `.auth0-staging.env`”* after creating the local file (next section).
+
+## Local file (gitignored) — HO or Agent on your machine
+
+Create `backend/.auth0-staging.env` (already in `.gitignore` patterns via `*.env` / add if needed):
+
+```env
+AUTH0_DOMAIN=YOUR_TENANT.auth0.com
+AUTH0_CLIENT_ID=...
+AUTH0_CLIENT_SECRET=...
+```
+
+Then:
 
 ```powershell
 cd backend
-# Edit .env.staging keys OIDC_* then:
+node tools/wire-auth0-staging.mjs
 node tools/preflight-staging-env.mjs
+# Apply to Fly (secrets not printed):
+Get-Content .env.staging | flyctl secrets import -a ai-sales-api-staging
 ```
 
-Or after Fly is up, agent will `fly secrets set` from your filled `.env.staging`.
+## Agent after wire
 
-## Interim if Auth0 not ready
+1. Redeploy not required if only secrets change (Fly rolls machines on secrets set).
+2. Probe: `node tools/probe-staging-oidc-me.mjs https://ai-sales-web-admin-staging.fly.dev`
+3. Expect IdP host = your Auth0 domain (not `ai-sales-oidc-staging.fly.dev`).
+4. Optional: scale down / destroy `ai-sales-oidc-staging` after Auth0 PASS.
 
-Agent may deploy `tools/staging-oidc-server.mjs` as a **Fly app** `ai-sales-oidc-staging` (HTTPS permanent) until Auth0 is wired — not production IdP.
+## Interim (current)
+
+Fly `ai-sales-oidc-staging` remains active until Auth0 wire PASS.
