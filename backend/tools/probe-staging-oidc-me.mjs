@@ -57,7 +57,9 @@ async function main() {
   }
 
   // Direct API uses /api/v1/...; FE BFF proxy (Vite/nginx) uses /api/... → /api/v1/...
-  const oidcPrefix = process.env.OIDC_PATH_PREFIX?.trim() || (api.includes("web-admin") ? "/api" : "/api/v1");
+  const oidcPrefix =
+    process.env.OIDC_PATH_PREFIX?.trim() ||
+    (api.includes("web-admin") || api.includes("phan-mem-ban-hang-online-web") ? "/api" : "/api/v1");
   const start = await fetch(`${api}${oidcPrefix}/auth/oidc/start?return_to=%2F`, {
     redirect: "manual",
     headers: { cookie: cookieHeader(jar) },

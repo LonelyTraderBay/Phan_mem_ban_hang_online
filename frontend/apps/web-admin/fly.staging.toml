@@ -1,11 +1,8 @@
-# Fly static Web Admin staging — deploy from frontend/ with:
-#   fly deploy -c apps/web-admin/fly.staging.toml --dockerfile apps/web-admin/Dockerfile.staging
-
-app = "ai-sales-web-admin-staging"
+app = "phan-mem-ban-hang-online-web"
 primary_region = "sin"
 
 [build]
-  dockerfile = "apps/web-admin/Dockerfile.staging"
+  dockerfile = "Dockerfile.staging"
 
 [http_service]
   internal_port = 8080
@@ -16,7 +13,7 @@ primary_region = "sin"
   processes = ["app"]
 
   [[http_service.checks]]
-    grace_period = "15s"
+    grace_period = "20s"
     interval = "30s"
     method = "GET"
     timeout = "5s"

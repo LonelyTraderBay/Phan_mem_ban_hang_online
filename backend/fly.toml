@@ -1,8 +1,8 @@
-# Fly.io staging API — app name fixed for Phase A2 scaffolding.
+# Fly.io staging API — Phan_mem_ban_hang_online
 # Deploy from backend/: fly deploy
-# Health: GET https://ai-sales-api-staging.fly.dev/health
+# Health: GET https://phan-mem-ban-hang-online-api.fly.dev/health
 
-app = "ai-sales-api-staging"
+app = "phan-mem-ban-hang-online-api"
 primary_region = "sin"
 
 [build]

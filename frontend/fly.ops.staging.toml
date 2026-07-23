@@ -1,7 +1,7 @@
 # Deploy from frontend/:
 #   fly deploy -c fly.ops.staging.toml --remote-only --yes
 
-app = "ai-sales-ops-staging"
+app = "phan-mem-ban-hang-online-ops"
 primary_region = "sin"
 
 [build]

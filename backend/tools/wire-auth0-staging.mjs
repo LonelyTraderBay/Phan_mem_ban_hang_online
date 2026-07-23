@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const auth0Path = path.join(root, ".auth0-staging.env");
 const envPath = path.join(root, ".env.staging");
-const webAdmin = "https://ai-sales-web-admin-staging.fly.dev";
+const webAdmin = "https://phan-mem-ban-hang-online-web.fly.dev";
 
 function parseEnv(raw) {
   const out = {};

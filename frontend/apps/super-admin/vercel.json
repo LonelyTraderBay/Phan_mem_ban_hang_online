@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/ops-api/:path*",
-      "destination": "https://ai-sales-api-staging.fly.dev/api/v1/:path*"
+      "destination": "https://phan-mem-ban-hang-online-api.fly.dev/api/v1/:path*"
     },
     {
       "source": "/(.*)",
