@@ -1,20 +1,33 @@
 # Hardening H3 — FE deploy evidence
 
-**Date:** 2026-07-23  
-**Scaffold:** PASS — `frontend/apps/web-admin/vercel.json`, `frontend/apps/super-admin/vercel.json`, [`HARDENING-H3-FE-DEPLOY.md`](../../../frontend/docs/runbooks/HARDENING-H3-FE-DEPLOY.md)
+**Date:** 2026-07-24  
+**Path:** Fly static (nginx) — Vercel skipped (no `VERCEL_TOKEN` in agent env)
 
-## Deploy
+## URLs (permanent HTTPS)
 
-| Step | Result |
+| App | URL |
 |---|---|
-| vercel.json SPA + API rewrites → Fly | **READY** in repo |
-| `vercel login` / `VERCEL_TOKEN` | **BLOCKED-HO** — CLI not installed / no token in agent env |
-| Live Web Admin HTTPS | **DEFERRED** |
-| Live Super Admin HTTPS | **DEFERRED** |
-| Auth0 callback URLs on FE hosts | **DEFERRED** (needs H3 hosts + Auth0 console) |
+| Web Admin | https://ai-sales-web-admin-staging.fly.dev |
+| Super Admin | https://ai-sales-ops-staging.fly.dev |
+| API (existing) | https://ai-sales-api-staging.fly.dev |
+| IdP interim | https://ai-sales-oidc-staging.fly.dev |
 
-## HO unblock
+## Results
 
-1. `npm i -g vercel` then `vercel login` (or set `VERCEL_TOKEN`).
-2. Follow [`HARDENING-H3-FE-DEPLOY.md`](../../../frontend/docs/runbooks/HARDENING-H3-FE-DEPLOY.md) after Fly API URL is live (H2 billing).
-3. Until then, FE live-local against tunnel API remains valid for BFF smoke.
+| Check | Result |
+|---|---|
+| Web Admin `/` | **200** |
+| Super Admin `/` | **200** |
+| `OIDC_REDIRECT_URI` → Web Admin `/api/auth/oidc/callback` | **Set** on Fly API |
+| Probe via Web Admin BFF OIDC→`/me` | **PASS** — Staging Tenant, perms=75 |
+
+## Deploy how
+
+From `frontend/`:
+
+```powershell
+fly deploy -c fly.web-admin.staging.toml --remote-only --yes
+fly deploy -c fly.ops.staging.toml --remote-only --yes
+```
+
+Runtime: `runtime-config.staging.json` copied in Docker build; MSW off.

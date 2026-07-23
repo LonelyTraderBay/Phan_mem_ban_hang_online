@@ -1,0 +1,10 @@
+{
+  "environment": "staging",
+  "apiBaseUrl": "/api",
+  "sseUrl": "/realtime/stream",
+  "oidcClientId": "web-admin-staging",
+  "releaseVersion": "0.1.0-staging",
+  "buildSha": "staging",
+  "telemetryEnabled": false,
+  "supportUrl": "/help"
+}

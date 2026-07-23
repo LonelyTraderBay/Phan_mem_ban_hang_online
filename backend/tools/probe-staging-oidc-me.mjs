@@ -56,13 +56,15 @@ async function main() {
     process.exit(1);
   }
 
-  const start = await fetch(`${api}/api/v1/auth/oidc/start?return_to=%2F`, {
+  // Direct API uses /api/v1/...; FE BFF proxy (Vite/nginx) uses /api/... → /api/v1/...
+  const oidcPrefix = process.env.OIDC_PATH_PREFIX?.trim() || (api.includes("web-admin") ? "/api" : "/api/v1");
+  const start = await fetch(`${api}${oidcPrefix}/auth/oidc/start?return_to=%2F`, {
     redirect: "manual",
     headers: { cookie: cookieHeader(jar) },
   });
   mergeCookies(jar, start.headers.getSetCookie?.() ?? []);
   const idp = start.headers.get("location");
-  report.push(`oidc_start=${start.status} idp_host=${idp ? new URL(idp).host : "none"}`);
+  report.push(`oidc_start=${start.status} idp_host=${idp ? new URL(idp).host : "none"} prefix=${oidcPrefix}`);
   if (!idp || start.status < 300 || start.status >= 400) {
     console.error(report.join("\n"));
     process.exit(1);
@@ -98,7 +100,7 @@ async function main() {
     }
   }
 
-  const me = await fetch(`${api}/api/v1/me`, {
+  const me = await fetch(`${api}${oidcPrefix === "/api" ? "/api/me" : "/api/v1/me"}`, {
     headers: { cookie: cookieHeader(jar), accept: "application/json" },
   });
   const meBody = await me.text();

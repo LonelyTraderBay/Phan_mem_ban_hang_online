@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+dist
+**/dist
+.git
+**/.git
+**/*.md
+apps/windows-client
+apps/web-admin/e2e
+**/.turbo
+**/.vite
+**/coverage
+**/*.log
+.DS_Store
+playwright-report
+test-results

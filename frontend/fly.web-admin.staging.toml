@@ -1,0 +1,27 @@
+# Deploy from frontend/:
+#   fly deploy -c fly.web-admin.staging.toml --remote-only --yes
+
+app = "ai-sales-web-admin-staging"
+primary_region = "sin"
+
+[build]
+  dockerfile = "apps/web-admin/Dockerfile.staging"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "20s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

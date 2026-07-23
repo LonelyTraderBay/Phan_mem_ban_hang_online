@@ -85,3 +85,9 @@ Detail: `ai-sales-api-staging.fly.dev` health 200 + checks passing; interim IdP 
 Needs: Human Owner — `vercel login` for H3 FE HTTPS; Auth0 Free swap optional; H9 only with authorize production go-live.
 Resolution: H2+H4 closed 2026-07-23 on permanent Fly hosts.
 
+### 2026-07-24 — FE staging HTTPS on Fly (H3) + BFF smoke PASS
+Raised because: Completion wave W1–W5; no VERCEL_TOKEN — deployed Web Admin + Super Admin as Fly nginx static apps.
+Detail: `ai-sales-web-admin-staging.fly.dev` + `ai-sales-ops-staging.fly.dev` 200; `OIDC_REDIRECT_URI` → Web Admin `/api/auth/oidc/callback`; probe OIDC→/me via FE BFF PASS (perms=75). Plan: `docs/superpowers/plans/2026-07-24-staging-hardening-completion.md`. H9 not run.
+Needs: informational — Auth0 Free optional; prod only on authorize production go-live.
+Resolution: H3 closed 2026-07-24 (Fly static, not Vercel).
+
