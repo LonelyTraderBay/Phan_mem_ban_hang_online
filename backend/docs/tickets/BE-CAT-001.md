@@ -120,8 +120,8 @@ Evidence: `packages/database/src/catalog-rls.integration.test.ts`.
   - `categories.status` lifecycle enum is not frozen anywhere — column is unconstrained
     `TEXT NOT NULL DEFAULT 'active'` with no `CHECK` (unlike `products`/`product_variants`,
     whose enums ARE frozen in blueprint §7.7.2/§7.7.3 and do have `CHECK` constraints).
-  - Category slug uniqueness scope (per-parent vs tenant-wide) is explicitly an open product
-    decision per blueprint §7.7.1 — added a lookup index only, no `UNIQUE` constraint yet.
+  - Category slug uniqueness: **HO 2026-07-24 Option A** — unique per `(tenant_id, parent_id)`
+    (root: unique `(tenant_id, slug)` where `parent_id IS NULL`); migration `000039`.
   - `product_variants.barcode` uniqueness is "if business requires it" per blueprint §7.7.3 —
     same treatment (index only, no `UNIQUE` yet).
   - `product_variants.currency` must match the owning tenant's currency at v1 (blueprint

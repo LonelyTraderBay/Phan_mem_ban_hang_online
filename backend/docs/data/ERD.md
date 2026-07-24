@@ -124,6 +124,8 @@ erDiagram
 Notes: `TENANT_MEMBERSHIPS` unique `(tenant_id, user_id)`. `MEMBERSHIP_ROLES` tenant-consistent —
 never assign a custom role from tenant A to a membership in tenant B. Full field list: §7.5.1–7.5.7.
 
+**Also migrated (not drawn):** `oidc_login_states` (`000006`), `password_reset_tokens`, `mfa_challenges` (`000009`) — see [`data-dictionary.md`](data-dictionary.md) + rls-intent-catalog §H.
+
 ## 2. Customer / CDP (blueprint §7.6)
 
 ```mermaid
@@ -197,7 +199,7 @@ erDiagram
   CATEGORIES {
     uuid id PK
     uuid parent_id FK "self-ref, no cycles"
-    text slug
+    text slug "UK with parent per HO Option A / 000039"
     text path
   }
   PRODUCTS {
@@ -245,6 +247,8 @@ erDiagram
 Notes: `PRODUCTS` does not carry inventory quantity — that lives entirely in the Inventory context
 below, linked only by `variant_id`. Import confirm requires job version/checksum match to prevent
 a changed file/mapping being applied silently after preview (§7.7.6).
+
+**Also migrated (not drawn):** `media_upload_intents` (`000028`) — pre-signed upload intent before `product_media` attach.
 
 ## 4. Inventory (blueprint §7.8)
 
@@ -306,6 +310,8 @@ derived value, not a stored column (§7.8.2, invariant §4.3.4: never negative a
 Unique `(tenant_id, warehouse_id, variant_id)` on `inventory_balances`. Reservation items change
 `reserved` only, never `on_hand` directly (§7.8.5).
 
+**Also migrated (not drawn):** `inventory_reconciliation_jobs` (`000029`) — durable reconciliation job body for multi-instance GET.
+
 ## 5. Knowledge / AI (blueprint §7.9)
 
 ```mermaid
@@ -362,6 +368,8 @@ erDiagram
 
 Notes: retrieval MUST filter tenant + published version only (§7.9.2, invariant §4.3.7). Active
 `prompt_versions` row is immutable — editing creates a new version, never an in-place update.
+
+**Also migrated (not drawn):** `ai_suggestions`, `tenant_ai_controls` (`000024`) — copilot lifecycle + per-tenant AI switch/budget.
 
 ## 6. Channel / Conversation (blueprint §7.10)
 
@@ -425,6 +433,8 @@ Notes: `conversations` deliberately splits state across 5 independent dimensions
 status enum (§7.10.4) — do not collapse these into a single "conversation status" field anywhere
 in FE or reporting. Webhook dedupe falls back to payload-hash + time bucket only when the provider
 gives no event ID (§7.10.3).
+
+**Also migrated (not drawn):** `channel_oauth_states` (`000017`, durable consume `000030`) — OAuth PKCE state per channel account.
 
 ## 7. Order / Payment / Fulfillment (blueprint §7.11)
 
@@ -503,6 +513,8 @@ catalog changes never rewrite order history. Amendments after confirm go through
 amendment flow, not a direct `order_items` update (§7.11.1). Prices are tax-**inclusive** at 10%
 VAT unless an ADR supersedes [`HO_DEFAULTS_v1`](../business/HO_DEFAULTS_v1.md).
 
+**Also migrated (not drawn):** `payment_attempts` (`000020`) — provider attempt log linked to `payments`.
+
 ## 8. Analytics / Billing / Ops (blueprint §7.12)
 
 ```mermaid
@@ -539,6 +551,8 @@ Notes: `event_logs` is an immutable projection, not a replacement for the outbox
 enforcement never blocks critical recovery/support flows (§4.2). `audit_logs` never contains raw
 secrets or full sensitive PII — only redacted before/after (§7.12.5). Over-limit: soft_warn →
 hard_block (HO_DEFAULTS). Skeleton `audit_events` ↔ domain `audit_logs` convergence: see §0.
+
+**Also migrated (not drawn):** `projection_watermarks`, `report_exports` (`000022`; export idempotency index `000024`) — worker cursors + async report export jobs.
 
 ## Source-of-truth matrix (copied from blueprint §7.13 — do not fork, edit there)
 
