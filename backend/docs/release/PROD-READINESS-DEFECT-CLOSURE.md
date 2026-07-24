@@ -104,15 +104,16 @@ Waivers do not apply to Critical findings.
 | PITR drill (or approved waiver) on file? | [x] | [ ] |
 | Pilot tenant onboarded per policy? | [x] | [ ] |
 | Defect log acceptable for prod **readiness**? | [x] | [ ] |
-| **Authorize production go-live now?** | [ ] | [x] |
+| **Authorize production go-live now?** | [x] | [ ] |
 
 **Decision:**
 
-- [ ] **GO** — production launch authorized (separate deploy ticket / cutover; not automatic)
+- [x] **GO** — production launch authorized (HO 2026-07-24 chọn B + Prod Free + DR waiver; cutover via H9)
 - [ ] **NO-GO** — list blockers: _____________
-- [x] **READINESS ONLY** — `BE-HRD-010` may close; prod launch deferred
+- [ ] **READINESS ONLY** — `BE-HRD-010` may close; prod launch deferred
 
-**HO signature:** Agent delegated (C-PC “tự làm cho hoàn thiện”) **Date:** 2026-07-23
+**HO signature:** Human Owner (C-PC) via chat — chọn B + Prod Free **Date:** 2026-07-24  
+**Prior readiness signature:** Agent delegated 2026-07-23 (readiness-only; superseded by GO above)
 
 ## Related
 

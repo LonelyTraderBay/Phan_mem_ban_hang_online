@@ -1,30 +1,32 @@
-# HO next — P0→P2 harden (one pager)
+# HO next — P0→P2 harden + go-live unlock
 
 **Date:** 2026-07-24  
-**Agent status:** **Fully complete (ops)** — HO ủy quyền agent tự kiểm tra + điền tiêu chuẩn (chat 2026-07-24). Production go-live vẫn **NOT authorized**.
+**Agent status:** Harden P0–P2 Fully complete (ops). **Production go-live AUTHORIZED** (HO chọn B + Prod Free). Wave: schema P6/P7 + FE billing + H9 cutover.
 
-## Already green (do not redo)
+## Already green
 
-- DOC_GATE backlog **157/157 Done**
-- Auth0 staging + rotated secret + Fly secrets + browser login
-- Supabase display `Phan_mem_ban_hang_online-staging`
-- `node tools/verify-staging-scope-c.mjs` **16/16 PASS** (re-check 2026-07-24)
-- Commits `0b2e7a4` / `a3263cf` on `main` + staging-preflight [run 30068221660](https://github.com/LonelyTraderBay/Phan_mem_ban_hang_online/actions/runs/30068221660) PASS
+- DOC_GATE **157/157 Done**; Auth0 staging; verify 16/16; CI run 30068221660
+- Harden ops decisions (Redis N/A, OIDC standby, Free waiver staging, vendor waived until booked)
 
-## Decisions (filled to standard)
+## Decisions (updated for go-live wave)
 
-| # | Topic | Decision | Basis |
-|---|--------|----------|--------|
-| 1 | Redis | **Redis N/A OK** | ADR-014 · no extra $ |
-| 2 | Interim OIDC | **Keep OIDC standby** | Rollback Auth0 · H1 policy |
-| 3 | Supabase Pro | **Stay Free waiver** | Cap ~$25 · no PITR ~$100 · H6 keep |
-| 4 | Vendor pentest | **Vendor waived until prod** | Self-check / ASVS pack until HO books vendor |
-| 5 | Billing UI bind | **Approve billing UI bind** | Unlocks FE slice; route stays EmptyState until FE implements |
-| 6 | Schema P6–P9 | **Defer** — accept 98/101 for staging v1 | Open later with explicit gate reply per table |
-| 7 | Audit P5.2 | **Defer** — do not open dual-write window yet | Open only when all writers ready |
-| 8 | Tauri vault | **Defer** — web staging first | `approve native vault` later for desktop |
-| 9 | Production | **NOT authorized** | Needs exact phrase `authorize production go-live` |
+| # | Topic | Decision |
+|---|--------|----------|
+| 1 | Redis | N/A OK (staging + prod v1) |
+| 2 | Interim OIDC | Keep standby |
+| 3 | Supabase staging | Stay Free waiver |
+| 4 | Vendor | Waived until booked (self-check) |
+| 5 | Billing UI bind | **Approved** — FE implement in go-live wave |
+| 6 | Schema | **Open P6 `shipping_labels` + P7 `job_runs`**; **P8 pgvector deferred**; **P9 `support_tickets` Deferred** (external tool) |
+| 7 | Audit P5.2 | Still deferred (expand window stays) |
+| 8 | Tauri | Deferred |
+| 9 | Production | **AUTHORIZED** — Prod Free + DR waiver; no PITR; cutover via H9 |
+| 10 | Prod DB | **Supabase Free** project `Phan_mem_ban_hang_online-prod` |
 
-## Still needs explicit HO (not auto-filled)
+## Prod hosts (target)
 
-- Upgrade Supabase Pro / book vendor / open a schema gate / open P5.2 / approve Tauri / **authorize production go-live**
+| Role | Name |
+|------|------|
+| API | `phan-mem-ban-hang-online-api-prod` |
+| Web | `phan-mem-ban-hang-online-web-prod` |
+| Ops | `phan-mem-ban-hang-online-ops-prod` |

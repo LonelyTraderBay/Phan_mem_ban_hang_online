@@ -1,5 +1,10 @@
 import { loadConfig } from "@ai-sales/config";
-import { createDatabase, purgeEphemeralRows } from "@ai-sales/database";
+import {
+  createDatabase,
+  purgeEphemeralRows,
+  recordJobRunFinish,
+  recordJobRunStart
+} from "@ai-sales/database";
 import { createLogger, startTracing } from "@ai-sales/observability";
 import { claimAndMarkOutboxPublished } from "@ai-sales/outbox";
 import { registerGracefulShutdown, type ShutdownHandle } from "./queueing.js";
@@ -26,10 +31,46 @@ export async function startWorker(): Promise<ShutdownHandle> {
     try {
       const claimed = await claimAndMarkOutboxPublished(db, 50);
       if (claimed.length > 0) {
-        logger.info({ count: claimed.length, ids: claimed.map((r) => r.id) }, "outbox_published");
+        let runId: string | null = null;
+        try {
+          runId = await recordJobRunStart(db, {
+            jobName: "outbox_publish",
+            queueName: "outbox",
+            metadata: { count: claimed.length }
+          });
+          logger.info({ count: claimed.length, ids: claimed.map((r) => r.id) }, "outbox_published");
+          await recordJobRunFinish(db, { id: runId, status: "succeeded" });
+        } catch (inner) {
+          if (runId) {
+            try {
+              await recordJobRunFinish(db, {
+                id: runId,
+                status: "failed",
+                errorRedacted: inner instanceof Error ? inner.message.slice(0, 500) : "unknown"
+              });
+            } catch {
+              /* ignore */
+            }
+          }
+          throw inner;
+        }
       }
     } catch (error) {
       logger.error({ err: error instanceof Error ? error.message : "unknown" }, "outbox_publish_failed");
+      try {
+        const failId = await recordJobRunStart(db, {
+          jobName: "outbox_publish",
+          queueName: "outbox",
+          metadata: { phase: "claim_failed" }
+        });
+        await recordJobRunFinish(db, {
+          id: failId,
+          status: "failed",
+          errorRedacted: error instanceof Error ? error.message.slice(0, 500) : "unknown"
+        });
+      } catch {
+        /* ignore job_runs write failure */
+      }
     }
 
     const now = Date.now();

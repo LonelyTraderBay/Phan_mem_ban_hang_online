@@ -29,3 +29,4 @@ W4 PASS — scope C DOC_GATE complete; 157/157 CSV Done (2026-07-24).
 W3/T7 PASS — Auth0 wired + Fly secrets; OIDC start 302 → Auth0 authorize (2026-07-24).
 Harden P0→P2 PASS — agent-complete (2026-07-24); CI run 30068221660; HO-NEXT gates remain BLOCKED-HO.
 Harden P0→P2 Fully complete (ops) — HO ủy quyền fill tiêu chuẩn (2026-07-24); verify 16/16; go-live NOT authorized.
+Go-live wave — AUTHORIZED (B+Free); staging P6/P7+billing Done; prod Supabase+Fly created; cutover BLOCKED-HO secrets (2026-07-24).

@@ -134,7 +134,7 @@ authoritative for AI coding agents — do not re-open without ADR.
 | `payment_reconciliations` | TENANT_OWNED | **Done** (`000020`) | |
 | `shipments` | TENANT_OWNED | **Done** (`000020`) | |
 | `shipment_items` | TENANT_OWNED | **Done** (`000020`) | |
-| `shipping_labels` | TENANT_OWNED | Not started | Gate: [`SCHEMA-GATES-P6-P9.md`](../release/SCHEMA-GATES-P6-P9.md) |
+| `shipping_labels` | TENANT_OWNED | **Done** (`000040`) | Gate closed — schema only; no HTTP until OpenAPI |
 | `returns` | TENANT_OWNED | **Done** (`000020`) | |
 | `return_items` | TENANT_OWNED | **Done** (`000020`) | |
 | `refunds` | TENANT_OWNED | **Done** (`000020`) | |
@@ -159,9 +159,9 @@ authoritative for AI coding agents — do not re-open without ADR.
 | `feature_flags` | GLOBAL | **Done** (`000023`) | |
 | `feature_flag_overrides` | TENANT_OVERRIDE | **Done** (`000023`) | Global key + `tenant_id` |
 | `system_alerts` | GLOBAL | **Done** (`000023`) | Platform SRE alert; `ops.*` only — never tenant role |
-| `support_tickets` | TENANT_OWNED | Not started | Gate: [`SCHEMA-GATES-P6-P9.md`](../release/SCHEMA-GATES-P6-P9.md) |
+| `support_tickets` | TENANT_OWNED | **Deferred** | External support tool (HO P9) — no migrate |
 | `reprocess_requests` | GLOBAL | **Done** (`000023`) | Ops API (`ops.reprocess`); optional nullable `target_tenant_id` filter column (not RLS ownership) |
-| `job_runs` | SYSTEM_INTERNAL | Not started | Not exposed through user APIs (§6.1); gate: [`SCHEMA-GATES-P6-P9.md`](../release/SCHEMA-GATES-P6-P9.md) |
+| `job_runs` | SYSTEM_INTERNAL | **Done** (`000041`) | Worker outbox path instruments runs; not exposed through user APIs (§6.1) |
 | `audit_logs` | TENANT_OWNED (nullable tenant) [ledger] | **Done** (`000038`) | Domain ledger (§7.12.5); backfilled from `audit_events`; dual-write expand — contract in P5.2 |
 
 ## Summary counts (W4 freeze baseline — update when migrations land)
@@ -169,14 +169,14 @@ authoritative for AI coding agents — do not re-open without ADR.
 | Class | Table count | RLS done |
 |---|---:|---:|
 | GLOBAL | 16 | 16 — incl. `password_reset_tokens`, `mfa_challenges` (`000009`) |
-| TENANT_OWNED (incl. ledgers) | 76 | 74 — Not started: `shipping_labels`, `support_tickets` |
+| TENANT_OWNED (incl. ledgers) | 76 | 75 — Deferred: `support_tickets` |
 | TENANT_OWNED (nullable tenant) | 3 (`user_sessions`, `refresh_tokens`, `audit_logs`) | 3 |
 | HYBRID | 2 (`roles`, `role_permissions`) | 2 (`000005`) |
 | TENANT_OVERRIDE | 1 | 1 (`000023`) |
 | TENANT_ROOT | 1 (`tenants`) | 1 (`000005`) |
-| SYSTEM_INTERNAL | 2 (`job_runs`, `oidc_login_states`) | 1 — `oidc_login_states` Done (`000006`); `job_runs` Not started |
+| SYSTEM_INTERNAL | 2 (`job_runs`, `oidc_login_states`) | 2 — `oidc_login_states` Done (`000006`); `job_runs` Done (`000041`) |
 | **Needs confirmation** | **0** | — |
-| **Total indexed** | **101** | **98 Done** / 3 Not started |
+| **Total indexed** | **101** | **100 Done** / 1 Deferred (`support_tickets`) |
 
 Coverage inventory: [`../enterprise-freeze/inventory/data_dictionary_coverage.csv`](../enterprise-freeze/inventory/data_dictionary_coverage.csv)  
 RLS templates: [`rls-intent-catalog.md`](rls-intent-catalog.md)

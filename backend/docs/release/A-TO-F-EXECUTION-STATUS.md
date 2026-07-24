@@ -1,11 +1,10 @@
 # A→F + Hardening execution status (2026-07-24)
 
 **Product name:** `Phan_mem_ban_hang_online`  
-**Naming map:** [`NAMING-PHAN-MEM-BAN-HANG-ONLINE.md`](./NAMING-PHAN-MEM-BAN-HANG-ONLINE.md)  
-**Production go-live:** **NOT authorized**.  
-**DOC_GATE scope C:** 157/157 Done; Auth0 PASS; harden P0–P2 **Fully complete (ops)** — decisions in [`HO-NEXT-P0-P2.md`](./HO-NEXT-P0-P2.md).
+**Production go-live:** **AUTHORIZED** — cutover **BLOCKED-HO (secrets)**; see [`HARDENING-H9-PROD.md`](./HARDENING-H9-PROD.md).  
+**DOC_GATE:** 157/157 · Staging: P6/P7 schema + FE billing bind Done.
 
-## Live staging (renamed)
+## Live staging
 
 | Role | URL |
 |------|-----|
@@ -13,13 +12,16 @@
 | Web Admin | https://phan-mem-ban-hang-online-web.fly.dev |
 | Super Admin | https://phan-mem-ban-hang-online-ops.fly.dev |
 | IdP | Auth0 Free · `dev-51apo48jpnewe6oa.us.auth0.com` |
-| IdP interim (standby) | https://phan-mem-ban-hang-online-oidc.fly.dev — **keep** |
-| DB | Supabase Free · ref `lrcsbrmqlyvkxxspbezi` · display **`Phan_mem_ban_hang_online-staging`** · Free waiver |
-| Redis | **N/A v1** — [`ADR-014-redis-staging-v1.md`](./ADR-014-redis-staging-v1.md) |
+| DB | Supabase Free · `Phan_mem_ban_hang_online-staging` |
+| Schema | thru `000041` (shipping_labels + job_runs) |
 
-Legacy Fly apps `ai-sales-*-staging` **đã destroy**.
+## Production (provisioned)
 
-## HO còn lại (optional / irreversible)
+| Role | Value |
+|------|------|
+| Supabase | `Phan_mem_ban_hang_online-prod` · `sppdnlpbkdasmjealhjm` |
+| Fly | `phan-mem-ban-hang-online-{api,web,ops}-prod` |
+| Migrate | 000001–000002 only until HO fills `.env.production` |
+| Next | HO: DB password + Auth0 Production → `prod secrets ready` |
 
-Only if you want more than staging ops complete: Pro upgrade · book vendor · open schema P6–P9 · P5.2 · Tauri vault · **`authorize production go-live`**.  
-See [`HO-NEXT-P0-P2.md`](./HO-NEXT-P0-P2.md).
+[`HO-ACTION-PROD.md`](./HO-ACTION-PROD.md) · [`HO-NEXT-P0-P2.md`](./HO-NEXT-P0-P2.md)

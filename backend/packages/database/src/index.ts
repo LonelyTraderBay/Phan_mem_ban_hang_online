@@ -107,6 +107,11 @@ export function createDatabase(databaseUrl: string): AppDatabase {
 
 export { adapterSecurityContext } from "./adapter-context.js";
 export { purgeEphemeralRows, type EphemeralPurgeCounts } from "./ephemeral-purge.js";
+export {
+  recordJobRunFinish,
+  recordJobRunStart,
+  type JobRunStatus
+} from "./job-runs.js";
 
 export async function withTenantTransaction<T>(
   db: AppDatabase,

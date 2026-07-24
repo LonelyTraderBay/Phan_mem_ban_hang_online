@@ -5,7 +5,9 @@ coverage/
 .env.*
 !.env.example
 !.env.staging.example
+!.env.production.example
 .auth0-staging.env
+.auth0-prod.env
 .staging-db-pass
 .staging-database-url
 tools/bin/

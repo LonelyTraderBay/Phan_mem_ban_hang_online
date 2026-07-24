@@ -121,3 +121,15 @@ Detail: Re-ran `verify-staging-scope-c.mjs` **16/16 PASS**. Filled HO-NEXT: Redi
 Needs: informational only — optional later: Pro / vendor / open schema / P5.2 / Tauri / `authorize production go-live`.
 Resolution: Closed 2026-07-24 — ops fully complete under cap; go-live still blocked.
 
+### 2026-07-24 — Authorize production go-live (B + Prod Free)
+Raised because: HO chọn B (schema + FE billing + real go-live) và option 1 Prod Free + DR waiver (no PITR; skip P8).
+Detail: Open schema gates P6 shipping_labels + P7 job_runs; P8 deferred; P9 support_tickets Deferred (external). H9 AUTHORIZED; HRD-010 go-live Yes/GO. Prod targets: Supabase Phan_mem_ban_hang_online-prod; Fly *-prod apps; Auth0 Production app.
+Needs: Human Owner — Supabase prod DB password + Auth0 Production client into gitignored `.env.production` when prompted (never chat).
+Resolution: Unlock recorded; Supabase prod `sppdnlpbkdasmjealhjm` + Fly `*-prod` apps created; migrate partial (000001–000002); cutover BLOCKED-HO secrets — see H9.
+
+### 2026-07-24 — Schema P6/P7 + FE billing staging
+Raised because: go-live wave W1–W2.
+Detail: Migrations `000040_shipping_labels` + `000041_job_runs` applied local+staging; worker outbox instruments `job_runs`; dictionary 100 Done / 1 Deferred; Web Admin BillingRoute binds plan + manual-update (`billing.manage`).
+Needs: informational only.
+Resolution: Closed 2026-07-24 staging green for schema/billing slice.
+
