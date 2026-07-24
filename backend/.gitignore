@@ -9,6 +9,11 @@ coverage/
 .staging-db-pass
 .staging-database-url
 tools/bin/
+tools/.mcp_*
+tools/.tmp_*
+tools/_mcp-*
+tools/.current*
+tools/.q5.json
 .staging-db-pass
 .staging-oidc-secret
 .staging-database-url

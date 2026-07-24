@@ -20,10 +20,6 @@ export interface ClassifierResult {
   readonly matchedRules: readonly string[];
 }
 
-export interface IntentClassifierPort {
-  classify(input: string): Promise<ClassifierResult>;
-}
-
 const ESCALATION_KEYWORDS: ReadonlyArray<{ readonly pattern: RegExp; readonly rule: string }> = [
   { pattern: /\b(refund|hoàn tiền|chargeback)\b/i, rule: "refund-keyword" },
   { pattern: /\b(luật sư|kiện|pháp lý|legal)\b/i, rule: "legal-keyword" },
@@ -63,8 +59,11 @@ export function deterministicClassifierFallback(input: string): ClassifierResult
   };
 }
 
-export class StubIntentClassifier implements IntentClassifierPort {
+export class StubIntentClassifier {
   async classify(input: string): Promise<ClassifierResult> {
     return deterministicClassifierFallback(input);
   }
 }
+
+/** Structural classifier shape — StubIntentClassifier until a model classifier lands. */
+export type IntentClassifier = Pick<StubIntentClassifier, "classify">;

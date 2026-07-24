@@ -1,5 +1,3 @@
-import type { PrintAdapter } from "@ai-sales/platform";
-
 /**
  * PDFs are generated server-side and are immutable (ADR-FE-015: "no font/layout drift"). This
  * package only previews/downloads/prints a signed URL the caller already fetched via
@@ -21,15 +19,6 @@ export function createWebPdfPreviewAdapter(): PdfPreviewAdapter {
       link.download = filename;
       link.rel = "noopener noreferrer";
       link.click();
-    },
-  };
-}
-
-/** Desktop native-print implementation is added once `apps/windows-client` needs it (F10). */
-export function createNativePrintAdapter(printAdapter: PrintAdapter): Pick<PdfPreviewAdapter, "preview"> {
-  return {
-    preview(signedUrl) {
-      void printAdapter.printPdf(signedUrl);
     },
   };
 }

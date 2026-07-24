@@ -4,7 +4,7 @@ export { transitionConnectionState } from "./connectionState";
 export type { SseConnectionState, SseConnectionEvent } from "./connectionState";
 export { computeBackoffDelay } from "./backoff";
 export type { BackoffOptions } from "./backoff";
-export { createEventRouter, EVENT_CATALOG } from "./router";
+export { EVENT_CATALOG } from "./router";
 export type { EventHandler, EventType } from "./router";
 export { createSseClient } from "./sseClient";
 export type { SseClient, SseClientOptions } from "./sseClient";

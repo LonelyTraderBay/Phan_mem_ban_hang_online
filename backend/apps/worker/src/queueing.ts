@@ -1,4 +1,5 @@
 import { Queue, Worker, type Processor, type RedisOptions } from "bullmq";
+import { redisConnectionFromUrl } from "@ai-sales/config";
 
 /** Queue topology per blueprint §9.6 — payloads carry IDs/refs, never full PII/content. */
 export const QUEUE_NAMES = [
@@ -35,12 +36,8 @@ export const DEFAULT_JOB_OPTIONS = {
 export const JOB_LOCK_DURATION_MS = 30_000;
 
 export function redisConnectionOptions(redisUrl: string): RedisOptions {
-  const parsed = new URL(redisUrl);
   return {
-    host: parsed.hostname,
-    port: parsed.port ? Number(parsed.port) : 6379,
-    ...(parsed.password ? { password: parsed.password } : {}),
-    ...(parsed.username ? { username: parsed.username } : {}),
+    ...redisConnectionFromUrl(redisUrl),
     // BullMQ requirement for blocking workers.
     maxRetriesPerRequest: null
   };

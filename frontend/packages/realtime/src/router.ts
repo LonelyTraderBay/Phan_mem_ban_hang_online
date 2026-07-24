@@ -1,37 +1,11 @@
 import type { EventEnvelope } from "./envelope";
 
-export type EventHandler = (envelope: EventEnvelope) => void;
-
-/**
- * F00 ships the router mechanism only — zero real handlers registered. Feature modules (F01+)
- * register their own handlers via `.on(eventType, handler)` from their own `state/` folder.
- */
-export function createEventRouter() {
-  const handlers = new Map<string, Set<EventHandler>>();
-
-  return {
-    on(eventType: string, handler: EventHandler): () => void {
-      let set = handlers.get(eventType);
-      if (!set) {
-        set = new Set();
-        handlers.set(eventType, set);
-      }
-      set.add(handler);
-      return () => set?.delete(handler);
-    },
-    dispatch(envelope: EventEnvelope): void {
-      for (const handler of handlers.get(envelope.type) ?? []) {
-        handler(envelope);
-      }
-    },
-  };
-}
-
 /**
  * Real event-type catalog, confirmed against contracts/asyncapi/tenant-events.yaml's
  * `x-event-type` values. Spec section 12.3 lists an illustrative dot-notation catalog
- * (`conversation.message_received`, `order.confirmed`, ...) that does NOT match these literal
- * strings — per spec section 28's own rule, the real AsyncAPI contract wins.
+ * that does NOT match these literal strings — the real AsyncAPI contract wins.
+ *
+ * Router: add createEventRouter when the first SSE handler registers.
  */
 export const EVENT_CATALOG = [
   "com.aisales.tenant.activated.v1",
@@ -67,3 +41,6 @@ export const EVENT_CATALOG = [
 ] as const;
 
 export type EventType = (typeof EVENT_CATALOG)[number];
+
+// Keep type export for upcoming handlers without shipping an unused router.
+export type EventHandler = (envelope: EventEnvelope) => void;

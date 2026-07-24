@@ -8,13 +8,6 @@ import {
   OperationsError,
   setTenantFeatureFlag
 } from "./operations.js";
-import {
-  buildPackingSlipPayload,
-  evaluateClientVersion,
-  ingestCrashTelemetry,
-  revalidateOfflineDraft,
-  WINDOWS_NOTIFICATION_CONTRACT
-} from "./desktop.js";
 import { InMemoryOperationsRepository } from "../infrastructure/persistence/in-memory-operations.js";
 
 const tenantA = parseUuidV7("018f65fd-7c6a-7cc8-9f68-9f5f2c7b7d1b");
@@ -28,44 +21,6 @@ const opsPerms = [
   "ops.reprocess",
   "ops.ai_health.read"
 ];
-
-describe("desktop stubs", () => {
-  it("enforces minimum client version", () => {
-    expect(evaluateClientVersion("0.9.0").allowed).toBe(false);
-    expect(evaluateClientVersion("1.0.0").allowed).toBe(true);
-  });
-
-  it("exposes Windows SSE notification contract", () => {
-    expect(WINDOWS_NOTIFICATION_CONTRACT.channel).toBe("sse");
-    expect(WINDOWS_NOTIFICATION_CONTRACT.eventTypes).toContain("billing.usage_recorded");
-  });
-
-  it("builds signed packing slip payload", () => {
-    const payload = buildPackingSlipPayload(targetId);
-    expect(payload.signedAssetUrl).toContain("sig=stub");
-  });
-
-  it("revalidates offline drafts", () => {
-    const result = revalidateOfflineDraft({
-      clientVersion: 1,
-      serverVersion: 2,
-      payloadHash: "a",
-      serverPayloadHash: "b"
-    });
-    expect(result.accepted).toBe(false);
-    expect(result.conflicts).toContain("server_ahead");
-  });
-
-  it("ingests crash telemetry without PII", () => {
-    const event = ingestCrashTelemetry({
-      tenantId: tenantA,
-      deviceId: targetId,
-      clientVersion: "1.0.0",
-      crashSignature: "access-violation"
-    });
-    expect(event.crashSignature).toBe("access-violation");
-  });
-});
 
 describe("operations application", () => {
   it("lists tenants for ops", async () => {

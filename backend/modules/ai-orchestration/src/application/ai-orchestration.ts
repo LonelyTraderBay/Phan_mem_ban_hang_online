@@ -22,7 +22,7 @@ import type { KnowledgeRetrievalPort } from "../infrastructure/clients/knowledge
 import {
   StubModelGateway,
   withTimeout,
-  type ModelGatewayPort
+  type ModelGateway
 } from "../infrastructure/gateway/model-gateway.js";
 import type {
   AiLogRecord,
@@ -156,7 +156,7 @@ export async function createAISuggestion(options: {
   readonly repo: AiOrchestrationRepository;
   readonly conversations: ConversationLookupPort;
   readonly knowledge: KnowledgeRetrievalPort;
-  readonly gateway?: ModelGatewayPort;
+  readonly gateway?: ModelGateway;
   readonly classifier?: StubIntentClassifier;
   readonly tenantId: string;
   readonly actorId: string;
@@ -495,7 +495,7 @@ export async function evaluateAIResponse(options: {
 
 export async function testAIMessage(options: {
   readonly repo: AiOrchestrationRepository;
-  readonly gateway?: ModelGatewayPort;
+  readonly gateway?: ModelGateway;
   readonly tenantId: string;
   readonly actorId: string;
   readonly actorPermissions: readonly string[];

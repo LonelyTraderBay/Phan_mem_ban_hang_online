@@ -28,12 +28,7 @@ export interface ModelCompletionResult {
   readonly model: string;
 }
 
-export interface ModelGatewayPort {
-  complete(request: ModelCompletionRequest): Promise<ModelCompletionResult>;
-  healthCheck(): Promise<{ readonly ok: boolean; readonly provider: string }>;
-}
-
-export class StubModelGateway implements ModelGatewayPort {
+export class StubModelGateway {
   constructor(private readonly config: ModelGatewayConfig = DEFAULT_GATEWAY_CONFIG) {}
 
   async healthCheck(): Promise<{ readonly ok: boolean; readonly provider: string }> {
@@ -58,6 +53,9 @@ export class StubModelGateway implements ModelGatewayPort {
     };
   }
 }
+
+/** Structural gateway shape — StubModelGateway until a second provider lands. */
+export type ModelGateway = Pick<StubModelGateway, "complete" | "healthCheck">;
 
 export function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return new Promise((resolve, reject) => {
