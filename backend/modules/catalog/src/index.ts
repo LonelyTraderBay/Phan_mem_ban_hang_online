@@ -57,7 +57,6 @@ export {
   type ImportSourceType
 } from "./application/import-jobs.js";
 
-export { InMemoryCatalogRepository } from "./infrastructure/persistence/in-memory-catalog.js";
 export { PostgresCatalogRepository } from "./infrastructure/persistence/postgres-catalog.js";
 export {
   createInMemoryImportApplyPort,
@@ -65,3 +64,4 @@ export {
 } from "./infrastructure/persistence/in-memory-import.js";
 export { PostgresImportRepository } from "./infrastructure/persistence/postgres-import.js";
 export { createCatalogController } from "./presentation/http/catalog.controller.js";
+

@@ -22,11 +22,6 @@ export {
 } from "./application/oidc-types.js";
 
 export {
-  InMemoryOidcStateStore,
-  InMemorySessionAuthRepository,
-  MemoryOidcTokenClient
-} from "./infrastructure/persistence/in-memory-oidc.js";
-export {
   PostgresOidcStateStore,
   PostgresSessionAuthRepository
 } from "./infrastructure/persistence/postgres-oidc.js";

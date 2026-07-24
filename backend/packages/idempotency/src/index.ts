@@ -1,6 +1,7 @@
 import type { RequestSecurityContext } from "@ai-sales/auth-context";
 import type { AppDatabase, AppTransaction } from "@ai-sales/database";
 import { withTenantTransaction } from "@ai-sales/database";
+import { parseUuidV7 } from "@ai-sales/domain-kernel";
 import { redactValue } from "@ai-sales/observability";
 
 export type IdempotencyStatus = "processing" | "completed" | "failed_retryable" | "failed_final";
@@ -272,3 +273,173 @@ export class PostgresIdempotencyStore implements IdempotencyStore {
 
 /** Exported for unit tests of the pure decision table. */
 export const __test = { decideReserve };
+
+export function moduleIdempotencyContext(
+  tenantId: string,
+  actorId: string,
+  correlationId: string
+): RequestSecurityContext {
+  return {
+    actorType: "user",
+    actorId: parseUuidV7(actorId),
+    tenantId: parseUuidV7(tenantId),
+    permissions: [],
+    tenantTimezone: "UTC",
+    correlationId
+  };
+}
+
+export async function runModuleIdempotent<TResult>(options: {
+  readonly idempotency: IdempotencyStore | undefined;
+  readonly tenantId: string;
+  readonly actorId: string;
+  readonly scope: string;
+  readonly key: string;
+  readonly requestHash: string;
+  readonly ttlSeconds: number;
+  readonly correlationId: string;
+  readonly loadCached: () => Promise<TResult | null>;
+  readonly rememberCached: (result: TResult) => Promise<void>;
+  readonly execute: () => Promise<TResult>;
+  readonly resourceId?: (result: TResult) => string | undefined;
+  readonly loadByResourceId?: (resourceId: string) => Promise<TResult | null>;
+  readonly mapInProgress: () => Error;
+  readonly mapKeyReused: () => Error;
+  readonly mapMissingReplay: () => Error;
+  readonly isDomainError: (error: unknown) => boolean;
+}): Promise<TResult> {
+  if (!options.idempotency) {
+    const cached = await options.loadCached();
+    if (cached !== null && cached !== undefined) return cached;
+    const result = await options.execute();
+    await options.rememberCached(result);
+    return result;
+  }
+
+  const ctx = moduleIdempotencyContext(
+    options.tenantId,
+    options.actorId,
+    options.correlationId
+  );
+  const idemReq = {
+    scope: options.scope,
+    key: options.key,
+    requestHash: options.requestHash,
+    ttlSeconds: options.ttlSeconds
+  };
+
+  let acquired = false;
+  try {
+    const reserve = await options.idempotency.reserve(ctx, idemReq);
+    if (reserve.outcome === "replay") {
+      if (reserve.record.responseBody && typeof reserve.record.responseBody === "object") {
+        return reserve.record.responseBody as TResult;
+      }
+      if (options.loadByResourceId && reserve.record.resourceId) {
+        const loaded = await options.loadByResourceId(reserve.record.resourceId);
+        if (loaded !== null && loaded !== undefined) return loaded;
+      }
+      throw options.mapMissingReplay();
+    }
+    acquired = true;
+    const result = await options.execute();
+    const resourceId = options.resourceId?.(result);
+    await options.idempotency.complete(ctx, idemReq, {
+      ...(resourceId !== undefined ? { resourceId } : {}),
+      responseStatus: 200,
+      responseBody: result
+    });
+    return result;
+  } catch (error) {
+    if (error instanceof IdempotencyInProgressError) {
+      throw options.mapInProgress();
+    }
+    if (error instanceof IdempotencyKeyReusedError) {
+      throw options.mapKeyReused();
+    }
+    if (acquired) {
+      const retryable = !options.isDomainError(error);
+      await options.idempotency.fail(ctx, idemReq, { retryable }).catch(() => undefined);
+    }
+    throw error;
+  }
+}
+
+/** Resource-first variant (order/payment/customer/fulfillment). */
+export async function runResourceIdempotent<
+  TResource extends { readonly id: string },
+  TResult
+>(options: {
+  readonly idempotency: IdempotencyStore | undefined;
+  readonly tenantId: string;
+  readonly actorId: string;
+  readonly scope: string;
+  readonly key: string;
+  readonly requestHash: string;
+  readonly ttlSeconds: number;
+  readonly correlationId: string;
+  readonly loadCached: () => Promise<TResource | null>;
+  readonly rememberCached: (resource: TResource) => Promise<void>;
+  readonly loadById: (resourceId: string) => Promise<TResource | null>;
+  readonly toResult: (resource: TResource) => TResult;
+  readonly execute: () => Promise<{ readonly resource: TResource; readonly result: TResult }>;
+  readonly mapInProgress: () => Error;
+  readonly mapKeyReused: () => Error;
+  readonly mapMissingReplay: () => Error;
+  readonly isDomainError: (error: unknown) => boolean;
+}): Promise<TResult> {
+  if (!options.idempotency) {
+    const cached = await options.loadCached();
+    if (cached) return options.toResult(cached);
+    const { resource, result } = await options.execute();
+    await options.rememberCached(resource);
+    return result;
+  }
+
+  const ctx = moduleIdempotencyContext(
+    options.tenantId,
+    options.actorId,
+    options.correlationId
+  );
+  const idemReq = {
+    scope: options.scope,
+    key: options.key,
+    requestHash: options.requestHash,
+    ttlSeconds: options.ttlSeconds
+  };
+
+  let acquired = false;
+  try {
+    const reserve = await options.idempotency.reserve(ctx, idemReq);
+    if (reserve.outcome === "replay") {
+      if (reserve.record.resourceId) {
+        const resource = await options.loadById(reserve.record.resourceId);
+        if (resource) return options.toResult(resource);
+      }
+      if (reserve.record.responseBody && typeof reserve.record.responseBody === "object") {
+        return reserve.record.responseBody as TResult;
+      }
+      throw options.mapMissingReplay();
+    }
+    acquired = true;
+    const { resource, result } = await options.execute();
+    await options.idempotency.complete(ctx, idemReq, {
+      resourceId: resource.id,
+      responseStatus: 200,
+      responseBody: result
+    });
+    return result;
+  } catch (error) {
+    if (error instanceof IdempotencyInProgressError) {
+      throw options.mapInProgress();
+    }
+    if (error instanceof IdempotencyKeyReusedError) {
+      throw options.mapKeyReused();
+    }
+    if (acquired) {
+      const retryable = !options.isDomainError(error);
+      await options.idempotency.fail(ctx, idemReq, { retryable }).catch(() => undefined);
+    }
+    throw error;
+  }
+}

@@ -26,7 +26,6 @@ import {
   enableAI,
   evaluateAIResponse,
   getAILog,
-  getAIQualityReport,
   getEvaluationRun,
   listAIBlockedOutputs,
   listAILogs,
@@ -41,7 +40,7 @@ import {
 } from "../../application/ai-orchestration.js";
 import type { KnowledgeRetrievalPort } from "../../infrastructure/clients/knowledge-retrieval.js";
 import type { AiOrchestrationRepository } from "../../infrastructure/persistence/in-memory-ai-orchestration.js";
-import type { ModelGatewayPort } from "../../infrastructure/gateway/model-gateway.js";
+import type { ModelGateway } from "../../infrastructure/gateway/model-gateway.js";
 
 type HeaderBag = Record<string, string | string[] | undefined>;
 
@@ -122,7 +121,7 @@ export function createAiOrchestrationController(options: {
   readonly conversations: ConversationLookupPort;
   readonly knowledge: KnowledgeRetrievalPort;
   readonly outbound: OutboundSendPort;
-  readonly gateway?: ModelGatewayPort;
+  readonly gateway?: ModelGateway;
   readonly idempotency?: IdempotencyStore;
 }) {
   @Controller("api/v1")
@@ -472,20 +471,6 @@ export function createAiOrchestrationController(options: {
           actorPermissions: actor.permissions,
           idempotencyKey: optionalHeader(headers, "idempotency-key"),
           ...withIdempotency(options.idempotency)
-        });
-      } catch (error) {
-        mapAiError(error);
-      }
-    }
-
-    @Get("reports/ai-quality")
-    async aiQualityReport(@Headers() headers: HeaderBag) {
-      try {
-        const actor = parseActor(headers);
-        return await getAIQualityReport({
-          repo: options.repo,
-          tenantId: actor.tenantId,
-          actorPermissions: actor.permissions
         });
       } catch (error) {
         mapAiError(error);

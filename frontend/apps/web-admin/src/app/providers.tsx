@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { AppIntlProvider, type SupportedLocale } from "@ai-sales/i18n";
 import { PermissionsProvider } from "@ai-sales/permissions";
-import { FeatureFlagsProvider, type FeatureFlagState } from "@ai-sales/feature-flags";
 import { ToastProvider } from "@ai-sales/ui";
 import type { TelemetryAdapter } from "@ai-sales/telemetry";
 import type { ApiClient } from "@ai-sales/api-client";
@@ -16,7 +15,6 @@ interface AppProvidersProps {
   tenantScope: string;
   locale: SupportedLocale;
   permissions: string[];
-  featureFlags: Record<string, FeatureFlagState>;
   children: ReactNode;
 }
 
@@ -27,7 +25,6 @@ export function AppProviders({
   tenantScope,
   locale,
   permissions,
-  featureFlags,
   children,
 }: AppProvidersProps) {
   return (
@@ -37,9 +34,7 @@ export function AppProviders({
           <ApiClientProvider apiClient={apiClient}>
             <TenantScopeProvider tenantId={tenantScope}>
               <PermissionsProvider permissions={permissions}>
-                <FeatureFlagsProvider flags={featureFlags}>
-                  <ToastProvider>{children}</ToastProvider>
-                </FeatureFlagsProvider>
+                <ToastProvider>{children}</ToastProvider>
               </PermissionsProvider>
             </TenantScopeProvider>
           </ApiClientProvider>

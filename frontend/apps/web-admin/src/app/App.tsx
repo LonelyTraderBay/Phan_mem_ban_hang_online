@@ -8,6 +8,7 @@ import { SUPPORTED_LOCALES, DEFAULT_LOCALE, type SupportedLocale } from "@ai-sal
 import { Skeleton } from "@ai-sales/ui";
 import { AppProviders } from "./providers";
 import { AuthProvider, useAuth } from "./AuthProvider";
+import { AppConfigProvider } from "./AppConfigContext";
 import { routeManifest } from "../routes/routeManifest";
 
 interface AppProps {
@@ -25,25 +26,27 @@ const router = createBrowserRouter(routeManifest);
 function AppShell({
   config,
   queryClient,
+  telemetry,
 }: {
   config: RuntimeConfig;
   queryClient: ReturnType<typeof createQueryClient>;
+  telemetry: ReturnType<typeof createConsoleAdapter>;
 }) {
   const { session, authenticatedClient } = useAuth();
-  const [telemetry] = useState(() => createConsoleAdapter());
 
   return (
-    <AppProviders
-      queryClient={queryClient}
-      telemetry={telemetry}
-      apiClient={authenticatedClient}
-      tenantScope={session?.tenant.id ?? "anonymous"}
-      locale={resolveLocale(session?.user.locale)}
-      permissions={session?.permissions ?? []}
-      featureFlags={session?.feature_flags ?? {}}
-    >
-      <RouterProvider router={router} />
-    </AppProviders>
+    <AppConfigProvider config={config}>
+      <AppProviders
+        queryClient={queryClient}
+        telemetry={telemetry}
+        apiClient={authenticatedClient}
+        tenantScope={session?.tenant.id ?? "anonymous"}
+        locale={resolveLocale(session?.user.locale)}
+        permissions={session?.permissions ?? []}
+      >
+        <RouterProvider router={router} />
+      </AppProviders>
+    </AppConfigProvider>
   );
 }
 
@@ -58,7 +61,7 @@ export function App({ config }: AppProps) {
       queryClient={queryClient}
       fallback={<Skeleton width="100%" height="100vh" aria-label="Đang tải ứng dụng" />}
     >
-      <AppShell config={config} queryClient={queryClient} />
+      <AppShell config={config} queryClient={queryClient} telemetry={telemetry} />
     </AuthProvider>
   );
 }

@@ -15,7 +15,6 @@ const ConfigSchema = z
     WALKING_SKELETON_ENABLED: boolFromEnv,
     REDIS_URL: z.string().url().optional(),
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
-    AI_SERVICE_URL: z.string().url().optional(),
     /** When false, OIDC routes return 503. */
     OIDC_ENABLED: boolFromEnv,
     OIDC_ISSUER: z.string().url().optional(),
@@ -25,7 +24,6 @@ const ConfigSchema = z
     OIDC_SCOPES: z.string().min(1).default("openid profile email"),
     OIDC_AUTHORIZATION_ENDPOINT: z.string().url().optional(),
     OIDC_TOKEN_ENDPOINT: z.string().url().optional(),
-    OIDC_USERINFO_ENDPOINT: z.string().url().optional(),
     SESSION_COOKIE_NAME: z.string().min(1).default("ais_session"),
     SESSION_COOKIE_SECURE: z
       .enum(["true", "false"])
@@ -110,4 +108,20 @@ export function isJwtConfigured(config: AppConfig): boolean {
       config.JWT_ACTIVE_KID &&
       config.JWT_ACTIVE_PRIVATE_KEY_PEM
   );
+}
+
+/** Shared Redis connection fields for BullMQ (worker + scheduler). */
+export function redisConnectionFromUrl(redisUrl: string): {
+  readonly host: string;
+  readonly port: number;
+  readonly password?: string;
+  readonly username?: string;
+} {
+  const parsed = new URL(redisUrl);
+  return {
+    host: parsed.hostname,
+    port: parsed.port ? Number(parsed.port) : 6379,
+    ...(parsed.password ? { password: parsed.password } : {}),
+    ...(parsed.username ? { username: parsed.username } : {})
+  };
 }

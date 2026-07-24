@@ -16,8 +16,6 @@ export { ErrorPanel } from "./components/ErrorPanel";
 export type { ErrorPanelProps } from "./components/ErrorPanel";
 export { PermissionGate } from "./components/PermissionGate";
 export type { PermissionGateProps } from "./components/PermissionGate";
-export { FeatureFlagGate } from "./components/FeatureFlagGate";
-export type { FeatureFlagGateProps } from "./components/FeatureFlagGate";
 export { EmptyState } from "./components/EmptyState";
 export type { EmptyStateProps } from "./components/EmptyState";
 export { ForbiddenState } from "./components/ForbiddenState";
