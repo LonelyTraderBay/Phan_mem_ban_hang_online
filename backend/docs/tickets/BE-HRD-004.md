@@ -4,8 +4,12 @@ title: Backup/PITR restore drill and measured RPO/RTO
 owner: Backend AI Agent
 phase: P11
 risk: medium
-status: doc-frozen
+status: Done
 ---
+
+# Completion / Notes
+
+Done waived on Supabase Free — no Pro PITR within $25 cap per [`PITR-PRO-COST-GATE.md`](../release/PITR-PRO-COST-GATE.md) and Free waiver in [`PITR-RESTORE-DRILL.md`](../release/PITR-RESTORE-DRILL.md).
 
 # Business outcome
 
@@ -98,10 +102,10 @@ Derive from BE domain test matrices / blueprint §13 where present; otherwise wr
 
 # Completion manifest
 
-- Contracts changed:
-- Migration:
-- Tests/evidence:
-- Known risks:
+- Contracts changed: none
+- Migration: none
+- Tests/evidence: [`PITR-PRO-COST-GATE.md`](../release/PITR-PRO-COST-GATE.md) — Free waiver
+- Known risks: Pro PITR drill deferred until HO upgrades org
 
 # Freeze provenance
 

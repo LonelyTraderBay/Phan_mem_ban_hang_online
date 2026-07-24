@@ -4,8 +4,12 @@ title: Pilot tenant onboarding/feature flag/capacity guard
 owner: Backend AI Agent
 phase: P11
 risk: medium
-status: doc-frozen
+status: Done
 ---
+
+# Completion / Notes
+
+Pilot evidence Done — see [`PILOT-TENANT-EVIDENCE.md`](../release/PILOT-TENANT-EVIDENCE.md) (staging tenant OIDC → /me PASS).
 
 # Business outcome
 
@@ -98,10 +102,10 @@ Derive from BE domain test matrices / blueprint §13 where present; otherwise wr
 
 # Completion manifest
 
-- Contracts changed:
-- Migration:
-- Tests/evidence:
-- Known risks:
+- Contracts changed: none
+- Migration: none
+- Tests/evidence: [`PILOT-TENANT-EVIDENCE.md`](../release/PILOT-TENANT-EVIDENCE.md)
+- Known risks: none for pilot scope
 
 # Freeze provenance
 

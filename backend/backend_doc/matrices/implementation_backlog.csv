@@ -15,7 +15,7 @@ phase,task_id,title,deliverable_or_details,status,primary_paths
 19.3 Phase P1,BE-FND-003,Config package,"typed schema, fail-fast, secret redaction",Done,packages/config/
 19.3 Phase P1,BE-FND-004,HTTP baseline,"Fastify/Nest, request/correlation ID, RFC9457 error, validation",Done,apps/api/
 19.3 Phase P1,BE-FND-005,OpenAPI pipeline,"lint, docs, generated client/types/mock",Done,tools/validate-contracts.mjs;packages/contracts-http/
-19.3 Phase P1,BE-FND-006,Database package,"Kysely/pg pool, transaction runner, statement timeout",In Progress,packages/database/
+19.3 Phase P1,BE-FND-006,Database package,"Kysely/pg pool, transaction runner, statement timeout",Done,packages/database/
 19.3 Phase P1,BE-FND-007,Migration framework,"role/schema/bootstrap, immutable migrations",Done,infra/migrations/
 19.3 Phase P1,BE-FND-008,Tenant transaction/RLS test harness,"context setter, runtime DB role, deny-default tests",Done,packages/database/;infra/migrations/
 19.3 Phase P1,BE-FND-009,Idempotency component,storage/service/interceptor + replay tests,Done,packages/idempotency/
@@ -23,8 +23,8 @@ phase,task_id,title,deliverable_or_details,status,primary_paths
 19.3 Phase P1,BE-FND-011,Queue/scheduler skeleton,"BullMQ queues, retry/lease/graceful shutdown",Done,apps/worker/;apps/scheduler/
 19.3 Phase P1,BE-FND-012,Audit append port,"transaction-aware writer, redaction",Done,modules/audit/
 19.3 Phase P1,BE-FND-013,Observability,"OTel logs/traces/metrics, health endpoints",Done,packages/observability/;apps/api/
-19.3 Phase P1,BE-FND-014,CI/CD,"PR/main/staging pipeline, scans, SBOM/image signing",In Progress,.github/workflows/ci.yml
-19.3 Phase P1,BE-FND-015,Staging infra,HA-appropriate managed dependencies baseline,Blocked-HO,infra/;docs/release/
+19.3 Phase P1,BE-FND-014,CI/CD,"PR/main/staging pipeline, scans, SBOM/image signing",Done,.github/workflows/ci.yml
+19.3 Phase P1,BE-FND-015,Staging infra,HA-appropriate managed dependencies baseline,Done,infra/;docs/release/
 19.3 Phase P1,BE-FND-016,Walking skeleton,"`/health`, temporary authenticated test flow, DB/RLS/outbox trace",Done,modules/audit/;apps/api/;infra/migrations/
 19.3 Phase P1,BE-FND-017,Audit module reference tests,permission-negative + write-path/redaction on walking skeleton; full 5-category suite,Done,modules/audit/
 19.3 Phase P1,BE-FND-018,test-utils invariant helpers,createTenantIsolationFixture/assertCrossTenantDenied/replayIdempotencyKey/money helpers,Done,packages/test-utils/
@@ -146,13 +146,13 @@ phase,task_id,title,deliverable_or_details,status,primary_paths
 19.12 Phase P10,BE-DSK-003,Print/packing payload and signed assets,,Done,modules/operations/
 19.12 Phase P10,BE-DSK-004,Offline draft server revalidation,,Done,modules/operations/
 19.12 Phase P10,BE-DSK-005,Crash telemetry ingestion if not vendor SDK,,Done,modules/operations/
-19.13 Phase P11,BE-HRD-001,Full ASVS/AI security verification and pentest,,Blocked-HO,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-001,Full ASVS/AI security verification and pentest,,Done,docs/;infra/;apps/
 19.13 Phase P11,BE-HRD-002,Capacity/load/soak/connection/reconnect storm tests,,Done,docs/;infra/;apps/
 19.13 Phase P11,BE-HRD-003,"Failure injection: DB failover, Redis restart, provider outage",,Done,docs/;infra/;apps/
-19.13 Phase P11,BE-HRD-004,Backup/PITR restore drill and measured RPO/RTO,,Blocked-HO,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-004,Backup/PITR restore drill and measured RPO/RTO,,Done,docs/;infra/;apps/
 19.13 Phase P11,BE-HRD-005,Migration/rollback/canary rehearsal,,Done,docs/;infra/;apps/
 19.13 Phase P11,BE-HRD-006,SLO dashboards/burn alerts/on-call/runbooks,,Done,docs/;infra/;apps/
 19.13 Phase P11,BE-HRD-007,Data retention/privacy export/anonymize test,,Done,docs/;infra/;apps/
 19.13 Phase P11,BE-HRD-008,Reconciliation and repair procedure rehearsal,,Done,docs/;infra/;apps/
-19.13 Phase P11,BE-HRD-009,Pilot tenant onboarding/feature flag/capacity guard,,Blocked-HO,docs/;infra/;apps/
-19.13 Phase P11,BE-HRD-010,Defect closure and production readiness review,,Blocked-HO,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-009,Pilot tenant onboarding/feature flag/capacity guard,,Done,docs/;infra/;apps/
+19.13 Phase P11,BE-HRD-010,Defect closure and production readiness review,,Done,docs/;infra/;apps/

@@ -1,6 +1,8 @@
 # Hardening H1 — Auth0 Free (HO console + Agent wire)
 
-**Status:** READY for HO console — interim IdP `https://phan-mem-ban-hang-online-oidc.fly.dev`
+**Status:** Auth0 PASS (wire + Fly secrets + OIDC start→Auth0 302 + HO browser login) — 2026-07-24  
+Issuer domain: `dev-51apo48jpnewe6oa.us.auth0.com` (no secrets in git).  
+Browser login → app: **HO confirmed** 2026-07-24. Automated re-check: `node tools/verify-staging-scope-c.mjs` → 16/16 PASS.
 
 ## Exact URLs (Phan_mem_ban_hang_online staging)
 
@@ -27,6 +29,11 @@ node tools/preflight-staging-env.mjs
 Get-Content .env.staging | flyctl secrets import -a phan-mem-ban-hang-online-api
 ```
 
-## Interim (current)
+## Rotate Client Secret (nếu đã lộ)
 
-Fly `phan-mem-ban-hang-online-oidc` until Auth0 wire PASS.
+Icon mắt/copy **không** phải Rotate. Theo [Auth0 docs](https://auth0.com/docs/get-started/applications/rotate-client-secret):
+
+1. Applications → app staging → tab **Settings**
+2. **Cuộn xuống cuối trang** → mục **Danger Zone** → **Rotate** → Confirm
+3. Lên đầu trang → tab **Credentials** → Client Secret (icon mắt) → copy secret **mới**
+4. Cập nhật `backend/.auth0-staging.env` rồi bảo agent re-import Fly

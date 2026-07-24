@@ -1,29 +1,22 @@
-# Task 4 brief — Delete stray file + verify success criteria
+### Task 4: Refresh staging CI/deploy docs to new Fly names
 
-**Work from:** `c:\Users\C-PC\Documents\Phan_mem_ban_hang_online`
-**Do NOT commit** unless Human Owner already asked (they have not).
+**Files:**
+- Modify: `backend/docs/release/BE-FND-014-staging-ci.md`
+- Modify: `backend/docs/release/staging-fly-deploy.md`
+- Modify: `backend/docs/release/HARDENING-H5-EVIDENCE.md` (add note that API host is now `phan-mem-ban-hang-online-api.fly.dev`; keep historical run URL)
 
-## Steps
+- [ ] **Step 1:** Replace source-of-truth mentions of `ai-sales-api-staging` / `ai-sales-*-staging` with `phan-mem-ban-hang-online-api` (and sibling web/ops/oidc names) in the three files above. Keep a one-line “legacy destroyed” note where helpful.
 
-1. Confirm `backend/console.error(e))` is already gone (deleted in Task 1 fix). If present, delete it.
-2. Try again to remove empty `backend_phan_mem_ban_hang_online` if it still exists. If locked, note in report — do not fail the whole task.
-3. Run:
+- [ ] **Step 2:** In `BE-FND-014-staging-ci.md`, document optional secret `FLY_API_TOKEN` and that deploy job skips when absent.
+
+- [ ] **Step 3:** Grep check
+
 ```powershell
-pnpm -C frontend contracts:sync
-pnpm -C backend contracts:validate
+cd backend
+Select-String -Path docs/release/BE-FND-014-staging-ci.md,docs/release/staging-fly-deploy.md -Pattern "ai-sales-api-staging" 
 ```
-If backend needs `pnpm install` first, run it (CI=true ok on Windows), then validate.
-4. Layout check:
-```powershell
-Get-ChildItem -Name | Sort-Object
-```
-Expect `backend`, `frontend`, `README.md`, `.gitignore`. Note if empty old backend shell remains.
-5. Success criteria checklist — mark each true/false in report:
-   - Disk: backend/ and frontend/ exist
-   - Long-named folders gone (or only empty locked shell remains — document)
-   - pnpm -C frontend contracts:sync works without BACKEND_CONTRACTS_ROOT
-   - README documents 1 repo + 2 short workspaces
-   - backend/console.error(e)) gone
 
-## Report
-`.superpowers/sdd/task-4-report.md`
+Expected: no remaining *instructional* uses (historical evidence lines OK if labeled historical).
+
+---
+

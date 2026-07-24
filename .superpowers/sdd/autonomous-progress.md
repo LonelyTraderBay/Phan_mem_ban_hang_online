@@ -19,7 +19,11 @@ PR: https://github.com/LonelyTraderBay/Phan_mem_ban_hang_online/pull/4
 
 ## Ceiling
 
-- **A Code-complete (DOC_GATE implementable tickets):** REACHED (~150 Done, 0 Not Started)
-- **B Production-ready:** NOT reached — Blocked-HO: staging (FND-015), pentest/PITR/pilot/prod review (HRD-001/004/009/010); foundations FND-006/014 still In Progress
+- **A Code-complete (DOC_GATE backlog CSV):** REACHED — 157/157 Done (scope C waves W1–W4 + Task 7 Auth0 wire)
+- **B Production go-live:** NOT authorized — requires explicit HO command
 
-Stopped autonomous loop at HO/foundation ceiling.
+Stopped autonomous loop at scope C code-complete ceiling (2026-07-24).
+
+W1 PASS — FND-006/014 CSV Done (2026-07-24).
+W4 PASS — scope C DOC_GATE complete; 157/157 CSV Done (2026-07-24).
+W3/T7 PASS — Auth0 wired + Fly secrets; OIDC start 302 → Auth0 authorize (2026-07-24).

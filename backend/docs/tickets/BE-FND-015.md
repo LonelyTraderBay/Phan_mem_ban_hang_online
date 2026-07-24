@@ -4,8 +4,12 @@ title: Staging infra
 owner: Backend AI Agent
 phase: P1
 risk: high
-status: doc-frozen
+status: Done
 ---
+
+# Completion / Notes
+
+Staging Fly + Supabase live per [`A-TO-F-EXECUTION-STATUS.md`](../release/A-TO-F-EXECUTION-STATUS.md): API `https://phan-mem-ban-hang-online-api.fly.dev`, Web Admin `https://phan-mem-ban-hang-online-web.fly.dev`, Super Admin `https://phan-mem-ban-hang-online-ops.fly.dev`, interim IdP `https://phan-mem-ban-hang-online-oidc.fly.dev`; Supabase ref `lrcsbrmqlyvkxxspbezi`. Auth0 wire **deferred** — pending HO `backend/.auth0-staging.env` per [`HARDENING-H1-AUTH0.md`](../release/HARDENING-H1-AUTH0.md) (interim IdP remains in use; not PASS). Supabase dashboard display rename → `Phan_mem_ban_hang_online-staging` still HO housekeeping.
 
 # Business outcome
 
@@ -99,9 +103,9 @@ Derive from BE domain test matrices / blueprint §13 where present; otherwise wr
 # Completion manifest
 
 - Contracts changed: none (OpenAPI frozen)
-- Migration: none — requires managed staging dependencies (RDS/Redis/object store HA)
-- Tests/evidence: n/a
-- Known risks: **BLOCKED-HO** — Human Owner cloud spend + staging topology signoff required. Do not fake staging infra.
+- Migration: none — managed staging on Supabase + Fly
+- Tests/evidence: [`A-TO-F-EXECUTION-STATUS.md`](../release/A-TO-F-EXECUTION-STATUS.md), [`staging-fly-deploy.md`](../release/staging-fly-deploy.md)
+- Known risks: Auth0 deferred (HO `.auth0-staging.env`); Supabase display rename HO housekeeping
 
 # Freeze provenance
 

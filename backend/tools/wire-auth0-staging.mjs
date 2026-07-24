@@ -70,4 +70,4 @@ console.log("Wired Auth0 into .env.staging (secrets not printed)");
 console.log(`issuer=${issuer}`);
 console.log(`redirect=${pairs.OIDC_REDIRECT_URI}`);
 console.log("Next: node tools/preflight-staging-env.mjs");
-console.log("Then: Get-Content .env.staging | flyctl secrets import -a ai-sales-api-staging");
+console.log("Then: Get-Content .env.staging | flyctl secrets import -a phan-mem-ban-hang-online-api");

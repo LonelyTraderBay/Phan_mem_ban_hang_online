@@ -3,20 +3,30 @@
 **Status:** Scaffold only. Running these steps does **not** mark `BE-FND-015` Done until
 [`staging-cutover.md`](./staging-cutover.md) PASS on managed infra.
 
+> **Legacy Fly apps** `ai-sales-*-staging` (including `ai-sales-api-staging`) were **destroyed**. Use the canonical names below — see [`NAMING-PHAN-MEM-BAN-HANG-ONLINE.md`](./NAMING-PHAN-MEM-BAN-HANG-ONLINE.md).
+
 **Prerequisites**
 
 1. Human Owner completed [`A1-SECRETS-FILL-GUIDE.md`](./A1-SECRETS-FILL-GUIDE.md) → `backend/.env.staging` exists locally (gitignored).
 2. `node tools/preflight-staging-env.mjs` exits **0**.
 3. [flyctl](https://fly.io/docs/hands-on/install-flyctl/) installed.
 
-**Target**
+**Target (API — this runbook)**
 
 | Item | Value |
 |---|---|
-| Fly app | `ai-sales-api-staging` |
+| Fly app | `phan-mem-ban-hang-online-api` |
 | Region | `sin` (Singapore, near Supabase `ap-southeast-1`) |
 | Internal port | `3000` |
-| Public health URL | `https://ai-sales-api-staging.fly.dev/health` |
+| Public health URL | `https://phan-mem-ban-hang-online-api.fly.dev/health` |
+
+**Sibling staging apps** (separate deploy runbooks / configs):
+
+| Role | App | URL |
+|---|---|---|
+| Web Admin | `phan-mem-ban-hang-online-web` | https://phan-mem-ban-hang-online-web.fly.dev |
+| Super Admin | `phan-mem-ban-hang-online-ops` | https://phan-mem-ban-hang-online-ops.fly.dev |
+| IdP interim | `phan-mem-ban-hang-online-oidc` | https://phan-mem-ban-hang-online-oidc.fly.dev |
 
 ---
 
@@ -33,7 +43,7 @@ fly auth whoami
 Skip if the app already exists (`fly apps list`).
 
 ```powershell
-fly apps create ai-sales-api-staging --org personal
+fly apps create phan-mem-ban-hang-online-api --org personal
 ```
 
 > Use your Fly org slug instead of `personal` if different. App name must match [`fly.toml`](../../fly.toml).
@@ -61,10 +71,10 @@ fly secrets list
 |---|---|
 | `DATABASE_URL` | Supabase Postgres connection string |
 | `OIDC_ENABLED` | Must be `true` on staging |
-| `OIDC_ISSUER` | Auth0 tenant URL (`https://<tenant>.auth0.com/`) |
+| `OIDC_ISSUER` | Auth0 tenant URL (`https://<tenant>.auth0.com/`) or interim `https://phan-mem-ban-hang-online-oidc.fly.dev` |
 | `OIDC_CLIENT_ID` | Auth0 Regular Web App |
 | `OIDC_CLIENT_SECRET` | Auth0 client secret |
-| `OIDC_REDIRECT_URI` | `https://<web-admin-host>/api/auth/oidc/callback` |
+| `OIDC_REDIRECT_URI` | `https://phan-mem-ban-hang-online-web.fly.dev/api/auth/oidc/callback` (or custom web-admin host) |
 | `OIDC_SCOPES` | `openid profile email` |
 | `SESSION_COOKIE_SECURE` | Must be `true` |
 | `SESSION_COOKIE_NAME` | `ais_session` |
@@ -102,7 +112,7 @@ fly logs
 ## 5) Health check
 
 ```powershell
-curl.exe -fsS https://ai-sales-api-staging.fly.dev/health
+curl.exe -fsS https://phan-mem-ban-hang-online-api.fly.dev/health
 ```
 
 Expected: HTTP **200** with JSON health payload (`service: api`).
@@ -110,7 +120,7 @@ Expected: HTTP **200** with JSON health payload (`service: api`).
 Readiness (same payload today):
 
 ```powershell
-curl.exe -fsS https://ai-sales-api-staging.fly.dev/ready
+curl.exe -fsS https://phan-mem-ban-hang-online-api.fly.dev/ready
 ```
 
 ## 6) Post-deploy (not automatic)
@@ -126,7 +136,7 @@ curl.exe -fsS https://ai-sales-api-staging.fly.dev/ready
 - **Migrations** are not run inside the Docker image; run `node tools/migrate.mjs` with staging env before smoke.
 - **CORS / cookie `SameSite` tuning** for cross-origin Web Admin → API may need follow-up once real HTTPS hosts are known.
 - **Custom domain** (e.g. `api.staging.example.com`) not configured — using default `*.fly.dev` hostname.
-- **CI deploy** (`BE-FND-014`) not wired; this is manual `fly deploy` only.
+- **CI deploy** (`BE-FND-014`): optional in `staging-preflight` when `run_fly_deploy=true` and `FLY_API_TOKEN` is set on Environment `staging` (skips when absent); see [`BE-FND-014-staging-ci.md`](./BE-FND-014-staging-ci.md).
 
 ## Related
 

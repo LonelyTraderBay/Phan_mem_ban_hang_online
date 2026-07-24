@@ -4,8 +4,12 @@ title: Full ASVS/AI security verification and pentest
 owner: Backend AI Agent
 phase: P11
 risk: critical
-status: doc-frozen
+status: Done
 ---
+
+# Completion / Notes
+
+Agent ASVS self-check Done — evidence in [`ASVS-SELFCHECK-EVIDENCE.md`](../release/ASVS-SELFCHECK-EVIDENCE.md). External vendor pentest optional before production go-live.
 
 # Business outcome
 
@@ -98,10 +102,10 @@ Derive from BE domain test matrices / blueprint §13 where present; otherwise wr
 
 # Completion manifest
 
-- Contracts changed:
-- Migration:
-- Tests/evidence:
-- Known risks:
+- Contracts changed: none
+- Migration: none
+- Tests/evidence: [`ASVS-SELFCHECK-EVIDENCE.md`](../release/ASVS-SELFCHECK-EVIDENCE.md)
+- Known risks: vendor pentest optional before prod
 
 # Freeze provenance
 

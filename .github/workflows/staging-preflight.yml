@@ -20,6 +20,10 @@ on:
         description: "GET STAGING_API_BASE_URL/health"
         type: boolean
         default: true
+      run_fly_deploy:
+        description: "Deploy Fly API if FLY_API_TOKEN is set"
+        type: boolean
+        default: false
 
 jobs:
   gate:
@@ -82,15 +86,39 @@ jobs:
           head -c 500 /tmp/health.body || true
           test "$code" = "200"
 
-  # Deploy to Fly remains manual until FLY_API_TOKEN is in Environment staging.
-  # See backend/docs/release/staging-fly-deploy.md
+  deploy:
+    needs: [gate, health]
+    if: ${{ inputs.run_fly_deploy }}
+    runs-on: ubuntu-latest
+    environment: staging
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy staging API to Fly
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "Skipping Fly deploy: secrets.FLY_API_TOKEN not set on Environment staging"
+            exit 0
+          fi
+          flyctl deploy --remote-only -a phan-mem-ban-hang-online-api
+
+  # Summarize migrate/health/deploy outcomes. See backend/docs/release/staging-fly-deploy.md
   deploy_note:
-    needs: [gate, migrate, health]
+    needs: [gate, migrate, health, deploy]
     if: ${{ always() && needs.gate.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Deploy status
         run: |
-          echo "Migrate/health jobs finished. Fly deploy is still manual (fly secrets + fly deploy)."
+          echo "Migrate/health jobs finished."
+          echo "Optional Fly deploy job: set workflow input run_fly_deploy=true."
+          echo "Requires secrets.FLY_API_TOKEN on Environment staging (skips with exit 0 if missing)."
+          echo "Target app: phan-mem-ban-hang-online-api"
           echo "Docs: backend/docs/release/BE-FND-014-staging-ci.md"
-          echo "Optional next: add job with secrets.FLY_API_TOKEN after HO adds it."
+          echo "Fly runbook: backend/docs/release/staging-fly-deploy.md"

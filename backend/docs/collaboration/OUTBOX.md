@@ -89,5 +89,23 @@ Resolution: H2+H4 closed 2026-07-23 on permanent Fly hosts.
 Raised because: HO asked to continue Auth0, PITR Pro, vendor pentest.
 Detail: Auth0 wire script + URL checklist READY (`HARDENING-H1-AUTH0.md`, `tools/wire-auth0-staging.mjs`) — blocked on HO console + `.auth0-staging.env`. PITR: org still Free; true PITR add-on ~$100/mo **exceeds $25 hard cap**; Pro org $25 enables daily backups + branching (~$0.01344/hr) — see `PITR-PRO-COST-GATE.md`. Branch create still requires Pro. Vendor pack READY with live Fly URLs (`VENDOR-PENTEST-HANDOFF.md`); booking HO-only; self-check remains active.
 Needs: Human Owner — (1) create Auth0 Free app + local `.auth0-staging.env`; (2) upgrade org to Pro **or** keep Free waiver (do not enable $100 PITR add-on under cap); (3) book vendor with handoff doc.
-Resolution: Agent packs delivered 2026-07-24; execution gated on HO actions above.
+Resolution: Auth0 portion closed 2026-07-24 — see next entry. PITR/vendor still HO.
+
+### 2026-07-24 — Auth0 staging wire PASS (H1)
+Raised because: HO provided Auth0 app + URIs; agent completed Task 7 wire.
+Detail: `wire-auth0-staging.mjs` + preflight OK; Fly secrets imported to `phan-mem-ban-hang-online-api` (rolling machine update OK). Smoke: API `/health` 200; Web Admin `/api/auth/oidc/start` 302 → Auth0 authorize on `dev-51apo48jpnewe6oa.us.auth0.com` with correct callback. No secrets in git. Interim Fly OIDC kept as standby. Docs: `HARDENING-H1-AUTH0.md`, `A-TO-F-EXECUTION-STATUS.md`.
+Needs: Human Owner — (1) browser login at Web Admin confirm session/`/me`; (2) **rotate Client Secret** (was pasted in chat) then re-run wire + secrets import; (3) optional Supabase display rename.
+Resolution: Agent wire PASS 2026-07-24; browser confirm + secret rotate still HO.
+
+### 2026-07-24 — Auth0 Client Secret rotated + Fly re-import
+Raised because: HO rotated secret after chat exposure; agent re-wired staging.
+Detail: Updated gitignored `.auth0-staging.env`; wire + preflight OK; Fly secrets re-imported to `phan-mem-ban-hang-online-api`; `/health` 200; OIDC start 302 → Auth0. Supabase display name confirmed `Phan_mem_ban_hang_online-staging`. No secrets in git.
+Needs: Human Owner — browser login smoke at Web Admin confirm `/me`.
+Resolution: Rotate + re-import PASS 2026-07-24; browser login confirmed by HO same day — see next.
+
+### 2026-07-24 — Staging scope-C automated re-check PASS
+Raised because: HO confirmed Web login works; asked agent to re-verify against standard.
+Detail: `node tools/preflight-staging-env.mjs` OK; `node tools/verify-staging-scope-c.mjs` **16/16 PASS** (CSV 157/157, Auth0 issuer/callback, API health 200, Web/Ops 200, OIDC start 302→Auth0, `/api/me` unauthenticated 401). DB unit tests 3/3 PASS. Supabase display `Phan_mem_ban_hang_online-staging` ACTIVE_HEALTHY. Production go-live still NOT authorized.
+Needs: informational only.
+Resolution: Closed 2026-07-24 — staging Auth0 + DOC_GATE scope C standard check green.
 

@@ -1,71 +1,42 @@
-# Task 3 brief — Update remaining long-name path strings
+### Task 3: Mark BE-FND-006 Done + sync both CSVs for FND-006 and FND-014
 
-**Work from:** `c:\Users\C-PC\Documents\Phan_mem_ban_hang_online`
-**Do NOT commit**
+**Files:**
+- Modify: `backend/docs/tickets/BE-FND-006.md`
+- Modify: `backend/backend_doc/matrices/implementation_backlog.csv`
+- Modify: `backend/docs/enterprise-freeze/inventory/backlog_coverage.csv`
+- Modify: `.superpowers/sdd/autonomous-progress.md` (W1 note)
 
-## Global Constraints
-- Use short names `backend/` and `frontend/` only
-- Do not refactor apps/packages beyond path string updates listed below
-- Do not hand-edit frontend/contracts content except incidental sync already done
-
-## Files to modify
-
-### 1. README.md (umbrella root)
-- Replace freeze path that still uses long backend name with:
-  `backend/docs/enterprise-freeze/FULL_PRODUCT_DOC_FREEZE.md`
-- Ensure this section exists near the top (after title / team model). Add if missing:
+- [ ] **Step 1:** In `BE-FND-006.md`, set frontmatter `status: Done`. Fill Completion manifest:
 
 ```markdown
-## Workspace layout (canonical)
+# Completion manifest
 
-One git repository (umbrella). Two independent pnpm workspaces — do not mix code across them:
-
-| Path | Owner | Contents |
-|------|-------|----------|
-| `backend/` | Backend AI Agent | NestJS/FastAPI apps, modules, infra, `backend_doc/`, BE docs |
-| `frontend/` | Frontend AI Agent | Web/desktop apps, UI packages, synced `contracts/`, FE docs |
-
-Contract source of truth lives under `backend/`. Frontend refreshes copies with `pnpm -C frontend contracts:sync`.
+- Contracts changed: none
+- Migration: none (package only)
+- Tests/evidence: `pnpm --filter @ai-sales/database exec vitest run src/with-tenant-transaction.test.ts src/migration-files.test.ts` PASS; deliverable = createDatabase + statement_timeout 10s + withTenantTransaction
+- Known risks: none for package surface; live RLS suites still skip without DATABASE_URL
 ```
 
-### 2. frontend/CLAUDE.md
-Replace long-name freeze + sync lines with:
+Tick acceptance criteria that apply (happy path deliverable, tenant context assertion); mark N/A with note for OpenAPI/idempotency items that do not apply to a library package.
 
-```markdown
-- Canonical **what AI may code now** gate (sibling backend):
-  `backend/docs/enterprise-freeze/FULL_PRODUCT_DOC_FREEZE.md` — **PASS
-  (2026-07-22)**. Follow `backend/docs/readiness/ENTERPRISE_DOC_GATE.md`: kickoff **BE-IDN-001**, then FE F01
-  MSW/READY-MOCK; no phase jumping. Mirror: `docs/enterprise-freeze/FE_FREEZE_CHECKLIST.md`.
-  Sync contracts with `pnpm contracts:sync` (resolves sibling `../backend`; override with
-  `BACKEND_CONTRACTS_ROOT` only in CI).
-```
+- [ ] **Step 2:** In `implementation_backlog.csv`, set status column to `Done` for `BE-FND-006` and `BE-FND-014` (FND-014 ticket already Done with H5 evidence).
 
-### 3. backend/docs/enterprise-freeze/FULL_PRODUCT_DOC_FREEZE.md
-Replace FE sync bullet with:
-```markdown
-- FE `pnpm contracts:sync` + `contracts:validate` pass (sibling `backend/`; CI may set `BACKEND_CONTRACTS_ROOT`)
-```
+- [ ] **Step 3:** In `backlog_coverage.csv`, set `backlog_status` to `Done` for the same two task_ids.
 
-### 4. backend/docs/enterprise-freeze/waves/W6_fe_design_specs.md
-Replace tool path with:
-```markdown
-- Tool: `frontend/tools/w6-freeze-design-specs.mjs`
-```
+- [ ] **Step 4:** Verify counts
 
-### 5. frontend/tools/w6-freeze-design-specs.mjs
-Change beInventory to:
-```javascript
-const beInventory = path.resolve(
-  root,
-  "../backend/docs/enterprise-freeze/inventory/fe_screen_inventory.csv",
-);
-```
-
-### 6. Grep leftover live paths
 ```powershell
-rg -n "backend_phan_mem_ban_hang_online|frontend_phan_mem_ban_hang_online" --glob "!**/node_modules/**" --glob "!**/.git/**" --glob "!**/.superpowers/**"
+cd backend
+node -e "const fs=require('fs');const t=fs.readFileSync('backend_doc/matrices/implementation_backlog.csv','utf8');const rows=t.trim().split(/\r?\n/).slice(1).filter(Boolean);const c={};for(const r of rows){const s=r.split(',')[4];c[s]=(c[s]||0)+1;} console.log(c);"
 ```
-Expected: no live path references in tracked docs/scripts. Historical mentions inside design/plan "was …" prose may remain; prefer updating those to past tense if easy. Spec/plan under backend/docs/superpowers may mention old names as history — OK if clearly past tense.
 
-## Report
-Write `.superpowers/sdd/task-3-report.md`. Include grep results.
+Expected after W1: `Done` ≥ 152, `In Progress` = 0, `Blocked-HO` = 5.
+
+- [ ] **Step 5:** Append one line to `.superpowers/sdd/autonomous-progress.md`: `W1 PASS — FND-006/014 CSV Done (date)`.
+
+**Wave 1 exit:** In Progress = 0 on CSV.
+
+---
+
+## Wave 2 — Staging CI optional Fly deploy + URL refresh
+

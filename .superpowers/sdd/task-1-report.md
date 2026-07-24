@@ -1,193 +1,160 @@
-# Task 1 Report — Rename folders with git mv
+# Task 1 Report — Audit BE-FND-006 against backlog deliverable
 
-**Date:** 2026-07-22
-**Work directory:** c:\Users\C-PC\Documents\Phan_mem_ban_hang_online
-**Brief:** .superpowers/sdd/task-1-brief.md
+**Date:** 2026-07-24  
+**Plan:** `backend/docs/superpowers/plans/2026-07-24-doc-gate-code-complete-to-100.md` (Wave 1, Task 1)  
+**Scope:** Read-only audit of `@ai-sales/database` vs backlog row `BE-FND-006`  
+**Commits:** none (by instruction)
 
-## Status: BLOCKED
+---
 
-## Commits: none
+## What was audited
 
-## Step 1 (PASS)
-Command: Test-Path on backend_phan_mem_ban_hang_online, frontend_phan_mem_ban_hang_online, backend, frontend
-Output: True, True, False, False
+Backlog deliverable for **BE-FND-006** (`implementation_backlog.csv`):
 
-## Step 2 (FAIL)
-git mv backend_phan_mem_ban_hang_online backend
-fatal: renaming 'backend_phan_mem_ban_hang_online' failed: Permission denied
+> Kysely/pg pool, transaction runner, statement timeout
 
-## Step 3 (FAIL)
-git mv frontend_phan_mem_ban_hang_online frontend
-fatal: renaming 'frontend_phan_mem_ban_hang_online' failed: Permission denied
+Expected implementation surface (per plan):
 
-## Step 4 (FAIL — renames not applied)
-Output: False, False, True, True (expected True, True, False, False)
+| Deliverable | Expected symbol / behavior |
+|-------------|---------------------------|
+| Kysely + pg pool | `createDatabase()` → `Kysely` + `PostgresDialect` + `pg.Pool` |
+| Transaction runner | `withTenantTransaction()` |
+| Statement timeout | `statement_timeout: 10_000` on pool |
+| Tenant context guard | `assertTenantSecurityContext()` (supporting export) |
 
-## Diagnosis
-Rename-Item: The process cannot access the file because it is being used by another process.
+Primary file: `backend/packages/database/src/index.ts`
 
-## Self-review
-Steps 1-4 attempted as specified; no commit; no unrelated staging; BLOCKED documented per brief.
+---
+
+## Step 1 — Confirm exports exist
+
+**Command (from `backend/`):**
+
+```powershell
+Select-String -Path packages/database/src/index.ts -Pattern "createDatabase|statement_timeout|withTenantTransaction|assertTenantSecurityContext"
+```
+
+**Result:** PASS — all four patterns matched.
+
+```
+packages\database\src\index.ts:91:export function assertTenantSecurityContext(ctx: RequestSecurityContext): void {
+packages\database\src\index.ts:97:export function createDatabase(databaseUrl: string): AppDatabase {
+packages\database\src\index.ts:102:        statement_timeout: 10_000
+packages\database\src\index.ts:111:export async function withTenantTransaction<T>(
+packages\database\src\index.ts:116:  assertTenantSecurityContext(ctx);
+```
+
+**Code evidence:**
+
+- `createDatabase` builds `Kysely<Database>` with `PostgresDialect({ pool: new Pool({ connectionString, statement_timeout: 10_000 }) })`.
+- `withTenantTransaction` opens `db.transaction().execute`, sets `app.tenant_id`, `app.actor_id`, `app.correlation_id` via `set_config`, then runs the callback.
+- `assertTenantSecurityContext` validates non-empty `tenantId`, `actorId`, `correlationId`.
+
+---
+
+## Step 2 — Run unit tests
+
+**Command (verbatim from brief/plan):**
+
+```powershell
+cd backend
+pnpm --filter @ai-sales/database exec vitest run src/with-tenant-transaction.test.ts src/migration-files.test.ts
+```
+
+**Result:** FAIL (exit code 1) — **not a code/test failure**; vitest cwd/config mismatch.
+
+```
+No test files found, exiting with code 1
+filter: src/with-tenant-transaction.test.ts, src/migration-files.test.ts
+include: apps/**/*.spec.ts, packages/**/*.test.ts, modules/**/*.test.ts
+```
+
+**Cause:** `pnpm --filter @ai-sales/database exec vitest` runs vitest with CWD `packages/database/`, but `backend/vitest.config.ts` `include` globs are relative to `backend/` root (`packages/**/*.test.ts`). Paths `src/...` from the filtered package CWD do not resolve.
+
+**Equivalent command (from `backend/` root):**
+
+```powershell
+pnpm exec vitest run packages/database/src/with-tenant-transaction.test.ts packages/database/src/migration-files.test.ts
+```
+
+**Result:** PASS
+
+```
+Test Files  2 passed (2)
+     Tests  3 passed (3)
+  Duration  434ms
+```
+
+**Tests covered:**
+
+| File | Tests |
+|------|-------|
+| `with-tenant-transaction.test.ts` | `assertTenantSecurityContext` accepts valid ctx; rejects empty tenantId/actorId/correlationId |
+| `migration-files.test.ts` | Migration filenames ordered `000NNN_*.sql` without sort gaps |
+
+**Integration coverage (requires `DATABASE_URL`, skip otherwise):**
+
+- `rls.integration.test.ts` — `withTenantTransaction` validation + cross-tenant RLS on `audit_events`
+- Domain RLS suites (`catalog`, `channel`, `customer`, `identity`, `inventory`, `knowledge`, etc.) exercise `createDatabase` + `withTenantTransaction` against live Postgres when `DATABASE_URL` is set.
+
+No unit test asserts `statement_timeout: 10_000` on the Pool config; deliverable is present in source, not separately unit-tested.
+
+---
+
+## Step 3 — Gap assessment
+
+### Code gaps (Task 2 scope)
+
+**Empty.** All three backlog deliverables are implemented in `packages/database/src/index.ts`. Task 2 should be **skipped**.
+
+### Documentation / process gaps (Task 3 scope — not Task 2)
+
+1. **Ticket status:** `backend/docs/tickets/BE-FND-006.md` frontmatter still `status: doc-frozen`; Completion manifest fields empty.
+2. **Backlog CSV:** `implementation_backlog.csv` row `BE-FND-006` still `In Progress` (expected Done after Task 3).
+3. **Plan verification command:** prescribed `pnpm --filter @ai-sales/database exec vitest run src/...` fails; Task 3 completion manifest should record working command: `pnpm exec vitest run packages/database/src/with-tenant-transaction.test.ts packages/database/src/migration-files.test.ts` from `backend/`.
+4. **Known risk (for Task 3 manifest):** live RLS integration suites skip without `DATABASE_URL` — env blocker, not package code gap (consistent with `P1_F01_READINESS.md`).
+
+---
+
+## Files read (not changed)
+
+| Path | Purpose |
+|------|---------|
+| `.superpowers/sdd/task-1-brief.md` | Task instructions |
+| `backend/docs/superpowers/plans/2026-07-24-doc-gate-code-complete-to-100.md` | Plan context |
+| `backend/packages/database/src/index.ts` | Primary deliverable surface |
+| `backend/packages/database/src/with-tenant-transaction.test.ts` | Unit tests |
+| `backend/packages/database/src/migration-files.test.ts` | Migration naming tests |
+| `backend/packages/database/package.json` | Package metadata |
+| `backend/vitest.config.ts` | Test include paths (explains Step 2 command failure) |
+| `backend/docs/tickets/BE-FND-006.md` | Ticket status + acceptance criteria |
+| `backend/backend_doc/matrices/implementation_backlog.csv` | Backlog row BE-FND-006 |
+| `backend/packages/database/src/rls.integration.test.ts` | Integration skip pattern |
+| `backend/docs/readiness/P1_F01_READINESS.md` | Prior RLS skip note |
+
+---
 
 ## Concerns
-Release file locks (IDE, terminals cwd, dev servers) and retry Steps 2-4.
-## Retry after unlock
 
-**Status:** BLOCKED
+1. **Runbook command mismatch:** Plan/brief Step 2 command will always fail until vitest is invoked from `backend/` with full `packages/database/src/...` paths (or a package-local vitest config is added). Recommend fixing in Task 3 completion manifest / plan, not code.
+2. **No dedicated unit test for `statement_timeout`:** Low risk; value is hard-coded and visible in `createDatabase`. Optional hardening only.
+3. **RLS integration tests env-dependent:** Expected; document in Task 3 Known risks.
 
-### Process scan (folder lock candidates)
+---
 
-No running dev servers found (no vite/nest/pnpm dev/webpack/nodemon processes targeting this repo).
+## Recommendation
 
-| PID | Name | Role / command line (truncated) |
-|-----|------|----------------------------------|
-| 4340 | node.exe | Cursor agent worker; `--worker-dir c:\Users\C-PC\Documents\Phan_mem_ban_hang_online` |
-| 29244, 27300, 29364, 39116 | node.exe | Cursor TypeScript tsserver (helper) |
-| 11836, 13088 | node.exe | Cursor Pyright language server (helper) |
-| 5596, 34144, 12372 | node.exe | Cursor esbuild-wasm service (helper) |
-| 7204, 39204, 30820, 41648, 33136 | node.exe | gitnexus MCP (`gitnexus ... mcp`) |
-| (many) | Cursor.exe | Cursor IDE / file watchers (not enumerated individually) |
+- **Task 2:** Skip (no code gaps).
+- **Task 3:** Mark BE-FND-006 Done; sync CSVs; fill Completion manifest with corrected test command and RLS skip note.
 
-**Processes killed:** none (no dev-server/watchers identified; Cursor helpers and Cursor main excluded per brief; gitnexus not confirmed as directory lock holder).
+---
 
-### Lock narrowing
+## Self-review
 
-- Nested file move under `backend_phan_mem_ban_hang_online` (`.cursorignore`): **OK**
-- Subdirectory rename (`apps`): **OK**
-- Top-level `Rename-Item` on `backend_phan_mem_ban_hang_online`: **FAIL** — *The process cannot access the file because it is being used by another process.*
-- Top-level `Rename-Item` on `frontend_phan_mem_ban_hang_online`: **FAIL** — *Access to the path ... is denied.*
-- `openfiles /query`: requires admin (not available).
-- `handle64.exe`: not installed locally; Sysinternals download not performed.
-
-**Likely lock holder:** Cursor workspace infrastructure (agent worker PID **4340** and/or Cursor directory watchers on the two top-level folder names). Cannot stop without closing Cursor or stopping agent worker (excluded as Cursor-related).
-
-### Retry commands
-
-```powershell
-git mv backend_phan_mem_ban_hang_online backend
-```
-Output: `fatal: renaming 'backend_phan_mem_ban_hang_online' failed: Permission denied`
-
-```powershell
-git mv frontend_phan_mem_ban_hang_online frontend
-```
-Output: `fatal: renaming 'frontend_phan_mem_ban_hang_online' failed: Permission denied`
-
-### Verify (Step 1 layout)
-
-```powershell
-Test-Path .\backend_phan_mem_ban_hang_online; Test-Path .\frontend_phan_mem_ban_hang_online; Test-Path .\backend; Test-Path .\frontend
-```
-Output: `True, True, False, False` (unchanged — renames not applied)
-
-### Verify (Step 4 layout)
-
-```powershell
-Test-Path .\backend\package.json; Test-Path .\frontend\package.json; Test-Path .\backend_phan_mem_ban_hang_online; Test-Path .\frontend_phan_mem_ban_hang_online
-```
-Output: `False, False, True, True` (expected after success: `True, True, False, False`)
-
-**Commits:** none
-
-
-## Content-move workaround
-
-**Status: BLOCKED** (empty `backend_phan_mem_ban_hang_online` directory remains; process lock — likely Cursor — prevents `Remove-Item`)
-
-### Approach
-1. `mkdir backend` / `mkdir frontend` (if missing)
-2. Moved each immediate child from `backend_phan_mem_ban_hang_online/*` → `backend/*` and `frontend_phan_mem_ban_hang_online/*` → `frontend/*` via `git mv`, falling back to `Move-Item` for untracked/empty-git dirs.
-3. Removed ignored `node_modules` leftovers under old roots (regenerate with `pnpm install`).
-4. Repaired partial `frontend/packages` rename: per-file `git mv` / `git checkout HEAD` + `git mv` / `git add`+`git rm` for stale index paths; migrated remaining `tooling/scripts/*.mjs` index entries to `frontend/tooling/...`.
-
-### Verify (2026-07-22 15:45:19)
-```powershell
-Test-Path .\backend\package.json                 # True
-Test-Path .\frontend\package.json                # True
-Test-Path .\backend_phan_mem_ban_hang_online     # True
-Test-Path .\frontend_phan_mem_ban_hang_online    # False
-Test-Path .\backend\apps                         # True
-Test-Path .\frontend\apps                        # True
-Test-Path .\frontend\packages                    # True
-```
-
-### Backend child moves (summary)
-- Most tracked children: `git mv` OK (apps, docs, packages, package.json, etc.).
-- Fallback `Move-Item`: `.gitnexus`, `.pytest_cache`, `.cursorrules`, `console.error(e))`.
-- `node_modules`: deleted from old path (ignored; broken pnpm symlinks blocked move).
-- Old root: empty; delete blocked (in use).
-
-### Frontend child moves (summary)
-- Most tracked children: `git mv` OK.
-- Fallback `Move-Item`: `.gitnexus`, `.headroom`, `.turbo`, `playwright-report`, `test-results`, `tools`; `tooling` partial then fixed via index cleanup.
-- `packages`: initial `git mv` permission/symlink failures; completed via per-file git operations (216 tracked under `frontend/packages`; 0 under old prefix).
-- `node_modules`: deleted from old path (ignored).
-- `frontend_phan_mem_ban_hang_online`: removed after cleanup.
-
-### Git index
-- `git ls-files backend_phan_mem_ban_hang_online`: 0
-- `git ls-files frontend_phan_mem_ban_hang_online`: 0
-
-### Concerns
-- Run `pnpm install` in `backend` and `frontend` (`node_modules` not relocated).
-- Manually delete empty `backend_phan_mem_ban_hang_online` after closing Cursor lock, or ignore empty shell.
-- Stray untracked `frontend/packages/packages/auth` may remain from partial move (review).
-
-**Commits:** none
-
-
-## Post-move verification
-
-**Verified:** 2026-07-22 (agent post-move pass)
-
-### 1. `backend_phan_mem_ban_hang_online`
-
-- `Get-ChildItem -Force`: **0 entries** (empty directory shell).
-- `Remove-Item -Force -Recurse`: **FAILED** — *The process cannot access the file ... because it is being used by another process.* (likely Cursor / workspace lock on the old folder name).
-- `git ls-files backend_phan_mem_ban_hang_online`: **0** (no tracked paths under old root).
-
-### 2. `frontend/packages/packages` (nested move artifact)
-
-- **Existed:** `frontend/packages/packages/auth/` contained **only** ignored `node_modules` symlinks (no `package.json`, no tracked source).
-- **Correct location already present:** `frontend/packages/auth` (and sibling packages: api-client, config, ui, etc.).
-- **Fix applied:** removed `frontend/packages/packages` recursively (orphan `node_modules` only; no source code deleted).
-- **After fix:** `Test-Path frontend/packages/packages` → **False**.
-
-### 3. Required layout files
-
-| Path | Exists |
-|------|--------|
-| `backend/package.json` | Yes |
-| `backend/pnpm-workspace.yaml` | Yes |
-| `frontend/package.json` | Yes |
-| `frontend/pnpm-workspace.yaml` | Yes |
-| `frontend/tooling/scripts/sync-backend-contracts.mjs` | Yes |
-
-### 4. Layout checks
-
-```powershell
-Test-Path .\backend_phan_mem_ban_hang_online     # True (empty shell)
-Test-Path .\frontend_phan_mem_ban_hang_online    # False
-Test-Path .\backend\package.json                 # True
-Test-Path .\frontend\package.json                # True
-```
-
-### 5. Git status sample (`git status -sb`, first 40 matching `backend_phan|frontend_phan|renamed:|backend/|frontend/`)
-
-Mostly **`R`** rename entries from `backend_phan_mem_ban_hang_online/...` → `backend/...` and `frontend_phan_mem_ban_hang_online/...` → `frontend/...` (content-move workaround reflected in index). No `frontend_phan_mem_ban_hang_online` path on disk.
-
-### Task 1 end-state assessment
-
-| Question | Answer |
-|----------|--------|
-| Effectively complete? | **Yes** (functional `backend/` + `frontend/` layout; index reflects moves) |
-| `packages/packages` needed fixing? | **Yes** — cleaned orphan nested folder; real packages live under `frontend/packages/<pkg>` |
-| Leftover issues | (1) Empty locked `backend_phan_mem_ban_hang_online` — delete after releasing Cursor lock. (2) Run `pnpm install` in `backend` and `frontend` (`node_modules` not relocated). (3) Large unstaged rename set still uncommitted (per brief: no commit yet). |
-
-**Commits:** none
-## Fix after review
-
-- Deleted stray artifact `backend/console.error(e))` (untracked; removed with `Remove-Item`, not committed).
-- Empty `backend_phan_mem_ban_hang_online` directory removal **waived** — still locked by Cursor workspace; no tracked paths remain under that name.
-- README and contracts diffs were **pre-existing WIP**, not introduced by the rename / content-move workaround.
-
+- [x] Read brief and plan Task 1 steps verbatim
+- [x] Ran Step 1 command — PASS
+- [x] Ran Step 2 plan command — documented failure + root cause + working alternative — tests PASS via alternative
+- [x] Assessed deliverable vs backlog — all three items present
+- [x] Gap list for Task 2 is empty
+- [x] No code or ticket file modifications (report only)
+- [x] No commits

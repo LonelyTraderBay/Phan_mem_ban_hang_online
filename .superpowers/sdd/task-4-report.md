@@ -1,52 +1,47 @@
-﻿# Task 4 report — Delete stray + verify success criteria
+﻿# Task 4 Report — Refresh staging CI/deploy docs to new Fly names
 
-**Date:** 2026-07-22  
-**Workdir:** `c:\Users\C-PC\Documents\Phan_mem_ban_hang_online`  
-**Commit:** None (per brief)
+**Date:** 2026-07-24  
+**Status:** PASS  
+**Commits:** none (per brief)
 
-## Actions
+## Summary
 
-1. **`backend/console.error(e))`** — Not present (`Test-Path` → False). No delete needed (Task 1 fix confirmed).
-2. **`backend_phan_mem_ban_hang_online`** — Removal attempted (`Remove-Item -Recurse -Force`). **Failed:** directory locked — *"The process cannot access the file ... because it is being used by another process."* Folder appears **empty** (no child items listed). Still exists at report time.
-3. **Verify commands** — See below.
+Wave 2 DOC_GATE scope C: replaced legacy `ai-sales-*-staging` instructional Fly names with canonical `phan-mem-ban-hang-online-*` hostnames in three release docs; documented optional `FLY_API_TOKEN` and deploy skip behavior in BE-FND-014 CI doc; added current-host note to H5 evidence while preserving historical run URL.
 
-## Command results
+## Steps completed
 
-| Command | Exit code | Notes |
-|---------|-----------|--------|
-| `pnpm -C frontend contracts:sync` | **0** | Completed; wrote openapi/asyncapi/permissions/errors + `BACKEND_REF.lock`. No `BACKEND_CONTRACTS_ROOT` set (umbrella `../backend` resolution). |
-| `pnpm -C backend contracts:validate` (first run) | **1** | Failed during deps check: `[ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY]` — needs `CI=true` on Windows non-TTY. |
-| `CI=true` + `pnpm -C backend contracts:validate` | **0** | Reinstalled backend `node_modules`; OpenAPI 3.1.1 + AsyncAPI 3.1.0 OK. |
+### Step 1 — Replace source-of-truth Fly names
 
-## Root layout (`Get-ChildItem -Name | Sort-Object`)
+| File | Changes |
+|------|---------|
+| `backend/docs/release/BE-FND-014-staging-ci.md` | Canonical URL table (api/web/ops/oidc); `STAGING_API_BASE_URL` / `STAGING_WEB_ADMIN_URL` examples updated; legacy destroyed callout |
+| `backend/docs/release/staging-fly-deploy.md` | App name, create/deploy/health commands → `phan-mem-ban-hang-online-api`; sibling apps table; OIDC redirect example; legacy destroyed callout |
+| `backend/docs/release/HARDENING-H5-EVIDENCE.md` | Current API host note (`phan-mem-ban-hang-online-api.fly.dev`); historical health URL kept with *(historical)* label |
 
-```
-.claude
-.gitignore
-.superpowers
-backend
-backend_phan_mem_ban_hang_online   ← empty shell, locked
-frontend
-README.md
+### Step 2 — `FLY_API_TOKEN` documentation
+
+Added **Optional secrets** table in `BE-FND-014-staging-ci.md`: when `FLY_API_TOKEN` is absent, workflow skips automated deploy and runs `deploy_note` only; manual deploy per `staging-fly-deploy.md`.
+
+### Step 3 — Grep check
+
+```powershell
+Select-String -Path docs/release/BE-FND-014-staging-ci.md,docs/release/staging-fly-deploy.md -Pattern "ai-sales-api-staging"
 ```
 
-Brief expects at minimum: `backend`, `frontend`, `README.md`, `.gitignore`. **Also present:** `.claude`, `.superpowers`, locked legacy folder.
+| Match | Context | Instructional? |
+|-------|---------|----------------|
+| `staging-fly-deploy.md:6` | Legacy destroyed callout | No — labeled destroyed |
 
-## Success criteria checklist
+`BE-FND-014-staging-ci.md`: zero matches for `ai-sales-api-staging`.  
+Both files: only `ai-sales-*-staging` in legacy-destroyed notes (acceptable).
 
-| Criterion | Pass |
-|-----------|------|
-| Disk: `backend/` and `frontend/` exist | **true** |
-| Long-named folders gone (or only empty locked shell — document) | **partial** — empty `backend_phan_mem_ban_hang_online` remains, delete blocked by file lock |
-| `pnpm -C frontend contracts:sync` works without `BACKEND_CONTRACTS_ROOT` | **true** (exit 0) |
-| README documents 1 repo + 2 short workspaces | **true** — section "Workspace layout (canonical): One git repository … Two independent pnpm workspaces" |
-| `backend/console.error(e))` gone | **true** |
+## Files modified
 
-## Overall status
+1. `backend/docs/release/BE-FND-014-staging-ci.md`
+2. `backend/docs/release/staging-fly-deploy.md`
+3. `backend/docs/release/HARDENING-H5-EVIDENCE.md`
 
-**PASS (with follow-up)** — All functional criteria met; legacy folder removal deferred until nothing holds the path open (IDE, terminal cwd, indexer, etc.).
+## Concerns
 
-## Concerns / follow-up
-
-- Close handles on `backend_phan_mem_ban_hang_online` and delete manually, or retry after reboot.
-- Run `CI=true pnpm -C backend contracts:validate` (or set `confirmModulesPurge=false`) in non-interactive Windows shells to avoid PNPM TTY abort.
+- Other release docs (`ASVS-PENTEST-SCOPE.md`, `HARDENING-H2/H3/H4`, `A1-SECRETS-FILL-GUIDE.md`, etc.) still reference legacy Fly names — out of Task 4 scope; follow-up wave if needed.
+- Workflow YAML unchanged (Task 5); `deploy_note` job text still says manual deploy until token added — docs now aligned.
