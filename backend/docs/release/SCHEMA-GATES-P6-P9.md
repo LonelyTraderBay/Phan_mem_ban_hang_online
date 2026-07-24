@@ -1,6 +1,6 @@
 # Schema gates P6–P9 (feature / HO)
 
-**Status:** BLOCKED until Human Owner opens a gate  
+**Status:** **DEFERRED (staging v1)** — HO ủy quyền tiêu chuẩn 2026-07-24: accept dictionary **98/101**; do not migrate until an explicit open-gate reply.  
 **Dictionary:** 98/101 Done — Not started: `shipping_labels`, `support_tickets`, `job_runs`  
 **Related plan:** `docs/superpowers/plans/2026-07-24-db-schema-completion.md` (P6–P9)
 

@@ -113,5 +113,11 @@ Resolution: Closed 2026-07-24 — staging Auth0 + DOC_GATE scope C standard chec
 Raised because: HO asked detailed plan + auto-run P0 then P1–P2 until agent-complete.
 Detail: Commit `0b2e7a4` on main; staging-preflight run https://github.com/LonelyTraderBay/Phan_mem_ban_hang_online/actions/runs/30068221660 PASS (gate/migrate/health). ADR-014 Redis N/A v1; OIDC interim standby policy; HO-NEXT-P0-P2 + SCHEMA-GATES-P6-P9 handoffs; billing contract gap marked ready for HO approve. Pro/vendor/billing/schema/P5.2/Tauri/go-live remain BLOCKED-HO.
 Needs: Human Owner — reply using templates in `docs/release/HO-NEXT-P0-P2.md`.
-Resolution: Agent-complete 2026-07-24; full complete awaits HO gates.
+Resolution: Agent-complete 2026-07-24; superseded same day by HO ủy quyền fill — see next.
+
+### 2026-07-24 — HO ủy quyền: tự kiểm tra + điền tiêu chuẩn (Fully complete ops)
+Raised because: HO agreed agent may auto-run checks and fill decisions to standard for completion.
+Detail: Re-ran `verify-staging-scope-c.mjs` **16/16 PASS**. Filled HO-NEXT: Redis N/A OK; Keep OIDC standby; Stay Free waiver; Vendor waived until prod; Approve billing UI bind; Schema P6–P9 deferred (98/101); P5.2/Tauri deferred; production **NOT** authorized. CONTRACT_GAP billing → HO-APPROVED bind. Ledger → Fully complete (ops).
+Needs: informational only — optional later: Pro / vendor / open schema / P5.2 / Tauri / `authorize production go-live`.
+Resolution: Closed 2026-07-24 — ops fully complete under cap; go-live still blocked.
 

@@ -1,7 +1,7 @@
 # Contract Gaps — Billing and notification preferences
 
-**Status:** OPEN for UI integration — **Ready for HO approve bind** (2026-07-24)  
-**HO unlock:** reply *“approve billing UI bind”* — see [`HO-NEXT-P0-P2.md`](../../../backend/docs/release/HO-NEXT-P0-P2.md)  
+**Status:** HO-APPROVED bind (2026-07-24) — FE may implement UI bind when scheduling the slice; keep EmptyState until then.  
+**HO unlock:** filled via HO ủy quyền tiêu chuẩn — see [`HO-NEXT-P0-P2.md`](../../../backend/docs/release/HO-NEXT-P0-P2.md)  
 **Scope:** `/billing` and `/settings/notifications`
 
 ## Billing
