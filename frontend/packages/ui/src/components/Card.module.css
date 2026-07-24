@@ -1,0 +1,18 @@
+.card {
+  background: var(--ai-sales-color-surface-base);
+  border: 1px solid var(--ai-sales-color-border-default);
+  border-radius: var(--ai-sales-radius-lg);
+  box-shadow: var(--ai-sales-shadow-sm);
+}
+
+.sm {
+  padding: var(--ai-sales-spacing-3);
+}
+
+.md {
+  padding: var(--ai-sales-spacing-4);
+}
+
+.lg {
+  padding: var(--ai-sales-spacing-6);
+}

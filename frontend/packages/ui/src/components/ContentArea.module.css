@@ -1,0 +1,6 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ai-sales-spacing-4);
+  max-width: 1200px;
+}

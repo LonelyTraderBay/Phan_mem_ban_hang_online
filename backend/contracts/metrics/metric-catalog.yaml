@@ -1,0 +1,105 @@
+version: 1
+metrics:
+  - id: orders_today
+    label: Đơn hàng hôm nay
+    description: Số đơn chuyển sang confirmed trong business date hiện tại của tenant.
+    value_type: integer
+    unit: count
+    source: app.daily_tenant_metrics.orders_count
+    event_time: occurred_at
+    timezone: tenant
+    metric_version: 1
+    reconciliation: Đối chiếu với số order.confirmed theo business date của tenant.
+    permissions:
+      - report.read
+      - report.revenue.read
+  - id: conversations_today
+    label: Hội thoại hôm nay
+    description: Số hội thoại được ghi nhận trong business date hiện tại của tenant.
+    value_type: integer
+    unit: count
+    source: app.daily_tenant_metrics.conversations_count
+    event_time: occurred_at
+    timezone: tenant
+    metric_version: 1
+    reconciliation: Đối chiếu với số conversation events theo business date của tenant.
+    permissions:
+      - report.read
+  - id: revenue_minor
+    label: Giá trị đơn xác nhận (minor units)
+    description: Tổng giá trị minor units từ các order.confirmed trong business date của tenant.
+    value_type: integer
+    unit: minor_unit
+    currency: tenant_currency
+    source: app.daily_tenant_metrics.revenue_minor
+    event_time: occurred_at
+    timezone: tenant
+    metric_version: 1
+    reconciliation: Đối chiếu với revenue_minor của các order.confirmed theo business date.
+    permissions:
+      - report.read
+      - report.revenue.read
+  - id: sla_breaches_today
+    label: Vi phạm SLA hôm nay
+    description: Số vi phạm SLA trong business date hiện tại của tenant.
+    value_type: integer
+    unit: count
+    source: app.daily_tenant_metrics.sla_breach_count
+    event_time: occurred_at
+    timezone: tenant
+    metric_version: 1
+    reconciliation: Đối chiếu với các SLA breach transitions theo business date của tenant.
+    permissions:
+      - report.read
+      - report.sla.read
+  - id: orders_count
+    label: Số đơn trong báo cáo
+    description: Số đơn được tổng hợp trong khoảng thời gian của report.
+    value_type: integer
+    unit: count
+    source: app.daily_tenant_metrics.orders_count
+    event_time: occurred_at
+    timezone: tenant
+    metric_version: 1
+    reconciliation: Đối chiếu với order facts của khoảng thời gian báo cáo.
+    permissions:
+      - report.revenue.read
+      - report.profit.read
+      - report.sla.read
+  - id: gross_profit_minor
+    label: Lợi nhuận gộp (minor units)
+    description: Recognized net item sales trừ locked cost of goods trong basis v1.
+    value_type: integer
+    unit: minor_unit
+    currency: tenant_currency
+    source: app.daily_tenant_metrics.gross_profit_minor
+    event_time: occurred_at
+    timezone: tenant
+    metric_version: 1
+    reconciliation: Đối chiếu recognized net item sales với locked COGS snapshot.
+    permissions:
+      - report.profit.read
+  - id: sla_breach_count
+    label: Số vi phạm SLA
+    description: Số vi phạm SLA trong khoảng thời gian của report.
+    value_type: integer
+    unit: count
+    source: app.daily_tenant_metrics.sla_breach_count
+    event_time: occurred_at
+    timezone: tenant
+    metric_version: 1
+    reconciliation: Đối chiếu với SLA breach facts của khoảng thời gian báo cáo.
+    permissions:
+      - report.sla.read
+  - id: conversations_count
+    label: Số hội thoại
+    description: Số hội thoại được tổng hợp trong khoảng thời gian của report.
+    value_type: integer
+    unit: count
+    source: app.daily_tenant_metrics.conversations_count
+    event_time: occurred_at
+    timezone: tenant
+    metric_version: 1
+    reconciliation: Đối chiếu với conversation facts của khoảng thời gian báo cáo.
+    permissions:
+      - report.sla.read

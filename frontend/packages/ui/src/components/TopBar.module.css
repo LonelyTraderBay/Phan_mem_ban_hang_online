@@ -1,0 +1,28 @@
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ai-sales-spacing-4);
+  min-height: 56px;
+  padding: 0 var(--ai-sales-spacing-6);
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: var(--ai-sales-spacing-3);
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--ai-sales-font-size-sm);
+  font-weight: var(--ai-sales-font-weight-medium);
+  color: var(--ai-sales-color-text-secondary);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ai-sales-spacing-2);
+}
