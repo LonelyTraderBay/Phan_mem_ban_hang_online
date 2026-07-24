@@ -1,0 +1,31 @@
+.root {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ai-sales-spacing-4);
+  margin-bottom: var(--ai-sales-spacing-6);
+}
+
+.text {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--ai-sales-font-size-2xl);
+  font-weight: var(--ai-sales-font-weight-semibold);
+  color: var(--ai-sales-color-text-primary);
+  line-height: var(--ai-sales-line-height-tight);
+}
+
+.description {
+  margin: var(--ai-sales-spacing-2) 0 0;
+  color: var(--ai-sales-color-text-secondary);
+  font-size: var(--ai-sales-font-size-base);
+}
+
+.actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--ai-sales-spacing-2);
+}

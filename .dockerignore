@@ -1,0 +1,18 @@
+# Keep Fly Launch root context small
+.git
+**/.git
+**/node_modules
+**/dist
+**/.turbo
+**/.vite
+frontend
+backend/tools
+backend/.claude
+backend/docs
+backend/infra
+**/*.md
+**/.env
+**/.env.*
+cloudflared*
+**/playwright-report
+**/coverage

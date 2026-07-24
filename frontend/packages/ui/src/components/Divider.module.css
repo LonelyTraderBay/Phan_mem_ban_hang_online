@@ -1,0 +1,24 @@
+.line {
+  border: none;
+  border-top: 1px solid var(--ai-sales-color-border-default);
+  margin: var(--ai-sales-spacing-4) 0;
+}
+
+.labeled {
+  display: flex;
+  align-items: center;
+  gap: var(--ai-sales-spacing-3);
+  margin: var(--ai-sales-spacing-4) 0;
+}
+
+.rule {
+  flex: 1;
+  height: 1px;
+  background: var(--ai-sales-color-border-default);
+}
+
+.label {
+  font-size: var(--ai-sales-font-size-sm);
+  color: var(--ai-sales-color-text-muted);
+  white-space: nowrap;
+}

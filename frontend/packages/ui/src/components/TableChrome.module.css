@@ -1,0 +1,72 @@
+.wrap {
+  overflow: auto;
+  border: 1px solid var(--ai-sales-color-border-default);
+  border-radius: var(--ai-sales-radius-lg);
+  background: var(--ai-sales-color-surface-base);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--ai-sales-font-size-base);
+}
+
+.table th,
+.table td {
+  padding: var(--ai-sales-spacing-3) var(--ai-sales-spacing-4);
+  text-align: left;
+  border-bottom: 1px solid var(--ai-sales-color-border-default);
+}
+
+.table th {
+  font-weight: var(--ai-sales-font-weight-semibold);
+  color: var(--ai-sales-color-text-secondary);
+  background: var(--ai-sales-color-background-muted);
+  font-size: var(--ai-sales-font-size-sm);
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.dataList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--ai-sales-color-border-default);
+  border-radius: var(--ai-sales-radius-lg);
+  background: var(--ai-sales-color-surface-base);
+  overflow: hidden;
+}
+
+.dataItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ai-sales-spacing-4);
+  padding: var(--ai-sales-spacing-3) var(--ai-sales-spacing-4);
+  border-bottom: 1px solid var(--ai-sales-color-border-default);
+}
+
+.dataItem:last-child {
+  border-bottom: none;
+}
+
+.dataText {
+  min-width: 0;
+}
+
+.dataPrimary {
+  font-weight: var(--ai-sales-font-weight-medium);
+  color: var(--ai-sales-color-text-primary);
+}
+
+.dataSecondary {
+  margin-top: 2px;
+  font-size: var(--ai-sales-font-size-sm);
+  color: var(--ai-sales-color-text-muted);
+}
+
+.dataMeta {
+  flex-shrink: 0;
+}

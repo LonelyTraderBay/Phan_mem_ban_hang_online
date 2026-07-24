@@ -1,0 +1,20 @@
+.link {
+  color: var(--ai-sales-color-action-primary);
+  text-decoration: none;
+  font-weight: var(--ai-sales-font-weight-medium);
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--ai-sales-color-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--ai-sales-radius-sm);
+}
+
+.muted {
+  color: var(--ai-sales-color-text-muted);
+  font-weight: var(--ai-sales-font-weight-regular);
+}

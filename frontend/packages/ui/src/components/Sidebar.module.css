@@ -1,0 +1,88 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--ai-sales-spacing-4) var(--ai-sales-spacing-3);
+  gap: var(--ai-sales-spacing-4);
+}
+
+.brand {
+  display: block;
+  padding: var(--ai-sales-spacing-2) var(--ai-sales-spacing-3);
+  font-family: var(--ai-sales-font-display);
+  font-size: var(--ai-sales-font-size-lg);
+  font-weight: var(--ai-sales-font-weight-bold);
+  color: var(--ai-sales-color-sidebar-text);
+  text-decoration: none;
+  letter-spacing: var(--ai-sales-letter-spacing-tight);
+}
+
+.brand:hover {
+  color: var(--ai-sales-color-text-inverse);
+}
+
+.nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ai-sales-spacing-4);
+  overflow-y: auto;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ai-sales-spacing-1);
+}
+
+.sectionLabel {
+  margin: 0;
+  padding: 0 var(--ai-sales-spacing-3);
+  font-size: var(--ai-sales-font-size-xs);
+  font-weight: var(--ai-sales-font-weight-semibold);
+  letter-spacing: var(--ai-sales-letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--ai-sales-color-sidebar-textMuted);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.item {
+  display: block;
+  padding: var(--ai-sales-spacing-2) var(--ai-sales-spacing-3);
+  border-radius: var(--ai-sales-radius-md);
+  color: var(--ai-sales-color-sidebar-text);
+  text-decoration: none;
+  font-size: var(--ai-sales-font-size-base);
+  font-weight: var(--ai-sales-font-weight-medium);
+  transition: background-color var(--ai-sales-motion-durationFast) var(--ai-sales-motion-easingStandard);
+}
+
+.item:hover {
+  background: var(--ai-sales-color-sidebar-hover);
+}
+
+.itemActive {
+  background: var(--ai-sales-color-sidebar-active);
+  color: var(--ai-sales-color-text-inverse);
+}
+
+.footer {
+  padding: var(--ai-sales-spacing-3);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: var(--ai-sales-font-size-xs);
+  color: var(--ai-sales-color-sidebar-textMuted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item {
+    transition: none;
+  }
+}
