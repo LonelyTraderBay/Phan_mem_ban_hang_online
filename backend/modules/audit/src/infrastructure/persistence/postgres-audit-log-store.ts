@@ -54,8 +54,8 @@ function toEntry(row: AuditRow): AuditLogEntry {
 }
 
 /**
- * Reads/writes app.audit_events under tenant RLS.
- * Export jobs are sync (no jobs table) — results cached process-locally for getExport.
+ * Dual-writes app.audit_events + app.audit_logs under tenant RLS (expand window).
+ * Reads (list/export) use audit_logs only. Export jobs are sync — cached in-process for getExport.
  */
 export class PostgresAuditLogStore implements AuditLogStore {
   private readonly exports = new Map<string, AuditExportJob>();
@@ -70,7 +70,8 @@ export class PostgresAuditLogStore implements AuditLogStore {
     const ctx = adapterSecurityContext(entry.tenant_id, actorId);
     return withTenantTransaction(this.db, ctx, async (trx) => {
       const createdAt = entry.created_at ?? new Date().toISOString();
-      const result = await sql<AuditRow>`
+      const payloadJson = JSON.stringify(entry.payload);
+      await sql`
         insert into app.audit_events (
           id, tenant_id, action, actor_id, correlation_id, payload, created_at
         ) values (
@@ -79,7 +80,20 @@ export class PostgresAuditLogStore implements AuditLogStore {
           ${entry.action},
           ${actorId}::uuid,
           ${entry.correlation_id},
-          ${JSON.stringify(entry.payload)}::jsonb,
+          ${payloadJson}::jsonb,
+          ${createdAt}::timestamptz
+        )
+      `.execute(trx);
+      const result = await sql<AuditRow>`
+        insert into app.audit_logs (
+          id, tenant_id, action, actor_id, correlation_id, payload, created_at
+        ) values (
+          ${entry.id}::uuid,
+          ${entry.tenant_id}::uuid,
+          ${entry.action},
+          ${actorId}::uuid,
+          ${entry.correlation_id},
+          ${payloadJson}::jsonb,
           ${createdAt}::timestamptz
         )
         returning id, tenant_id, action, actor_id, correlation_id, payload, created_at
@@ -93,7 +107,7 @@ export class PostgresAuditLogStore implements AuditLogStore {
     return withTenantTransaction(this.db, ctx, async (trx) => {
       const result = await sql<AuditRow>`
         select id, tenant_id, action, actor_id, correlation_id, payload, created_at
-        from app.audit_events
+        from app.audit_logs
         where tenant_id = ${tenantId}::uuid
         order by created_at desc, id desc
         limit ${limit}
@@ -113,7 +127,7 @@ export class PostgresAuditLogStore implements AuditLogStore {
     const rows = await withTenantTransaction(this.db, ctx, async (trx) => {
       const result = await sql<AuditRow>`
         select id, tenant_id, action, actor_id, correlation_id, payload, created_at
-        from app.audit_events
+        from app.audit_logs
         where tenant_id = ${args.tenantId}::uuid
           and created_at >= ${args.from.toISOString()}::timestamptz
           and created_at <= ${args.to.toISOString()}::timestamptz

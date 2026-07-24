@@ -13,6 +13,19 @@ export interface AuditEventsTable {
   created_at: Generated<Date>;
 }
 
+export interface AuditLogsTable {
+  id: string;
+  tenant_id: string | null;
+  action: string;
+  actor_id: string | null;
+  correlation_id: string;
+  resource_type: string | null;
+  resource_id: string | null;
+  payload: Record<string, unknown>;
+  integrity_hash: string | null;
+  created_at: Generated<Date>;
+}
+
 export interface OutboxEventsTable {
   id: string;
   tenant_id: string;
@@ -52,6 +65,7 @@ export interface InboxEventsTable {
 
 export interface Database {
   "app.audit_events": AuditEventsTable;
+  "app.audit_logs": AuditLogsTable;
   "app.outbox_events": OutboxEventsTable;
   "app.idempotency_records": IdempotencyRecordsTable;
   "app.inbox_events": InboxEventsTable;
@@ -92,6 +106,7 @@ export function createDatabase(databaseUrl: string): AppDatabase {
 }
 
 export { adapterSecurityContext } from "./adapter-context.js";
+export { purgeEphemeralRows, type EphemeralPurgeCounts } from "./ephemeral-purge.js";
 
 export async function withTenantTransaction<T>(
   db: AppDatabase,

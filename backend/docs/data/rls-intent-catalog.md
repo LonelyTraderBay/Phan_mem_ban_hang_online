@@ -85,13 +85,26 @@ Tables marked `[ledger]` in the dictionary: no hard DELETE; corrections via comp
 | `orders.prices_tax_inclusive` | **true** |
 | `plans.id` | `plan_free` \| `plan_pro` \| `plan_business` |
 
+### H. Ephemeral pre-auth / user-scoped GLOBAL (no tenant RLS)
+
+Tables without `tenant_id` that are **not** platform catalogs — access via SECURITY DEFINER helpers only:
+
+| Table | Class | Migration | RLS |
+|-------|-------|-----------|-----|
+| `oidc_login_states` | SYSTEM_INTERNAL / ephemeral | `000006` | No RLS; runtime insert/consume via `oidc_save_login_state` / callback helpers |
+| `password_reset_tokens` | GLOBAL (user-scoped) | `000009` | No RLS; hash-only; keyed by `user_id` |
+| `mfa_challenges` | GLOBAL (user-scoped) | `000009` | No RLS; keyed by `user_id`; consumed on verify |
+
+Do **not** apply template A/E blindly — see migration SECURITY DEFINER functions.
+
 ## Foundation tables already migrated (P1)
 
 | Table | Class | Migration | RLS |
 |-------|-------|-----------|-----|
-| `audit_events` | TENANT_OWNED | `000002` | Done (skeleton; domain `audit_logs` is the full ledger name in §7) |
+| `audit_events` | TENANT_OWNED | `000002` | Done (skeleton; dual-write expand with `audit_logs` in `000038`; contract in P5.2) |
+| `audit_logs` | TENANT_OWNED (nullable tenant) [ledger] | `000038` | Done — backfill + nullable-tenant RLS; SELECT/INSERT only for runtime |
 | `outbox_events` | TENANT_OWNED | `000002` | Done (+ worker publisher policy in `000004`) |
 | `idempotency_records` | TENANT_OWNED | `000003` | Done |
 | `inbox_events` | TENANT_OWNED | `000004` | Done |
 
-`audit_events` (skeleton) and `audit_logs` (blueprint §7.12.5) must converge in a later expand/contract migration — do not invent a third name.
+`audit_events` (skeleton) and `audit_logs` (blueprint §7.12.5) are in **expand** (`000038`): dual-write both tables; reads use `audit_logs`. Contract (drop `audit_events`) is P5.2 — do not invent a third name.
