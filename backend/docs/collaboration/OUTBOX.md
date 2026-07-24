@@ -109,3 +109,9 @@ Detail: `node tools/preflight-staging-env.mjs` OK; `node tools/verify-staging-sc
 Needs: informational only.
 Resolution: Closed 2026-07-24 — staging Auth0 + DOC_GATE scope C standard check green.
 
+### 2026-07-24 — Harden staging P0→P2 agent-complete
+Raised because: HO asked detailed plan + auto-run P0 then P1–P2 until agent-complete.
+Detail: Commit `0b2e7a4` on main; staging-preflight run https://github.com/LonelyTraderBay/Phan_mem_ban_hang_online/actions/runs/30068221660 PASS (gate/migrate/health). ADR-014 Redis N/A v1; OIDC interim standby policy; HO-NEXT-P0-P2 + SCHEMA-GATES-P6-P9 handoffs; billing contract gap marked ready for HO approve. Pro/vendor/billing/schema/P5.2/Tauri/go-live remain BLOCKED-HO.
+Needs: Human Owner — reply using templates in `docs/release/HO-NEXT-P0-P2.md`.
+Resolution: Agent-complete 2026-07-24; full complete awaits HO gates.
+

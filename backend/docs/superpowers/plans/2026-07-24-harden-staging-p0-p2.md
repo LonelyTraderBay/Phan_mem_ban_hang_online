@@ -61,18 +61,18 @@ flowchart LR
 
 **Files:** Include product/docs/tools/workflow/CSV/tickets; exclude `.cursor/`, secrets, optional noisy `.superpowers/sdd/task-*-review-pkg.md` if policy is scratch-only — **do** include `progress-doc-gate-c.md`, plans/specs under `backend/docs/superpowers/`, `verify-staging-scope-c.mjs`. Review `pnpm-lock.yaml` — include only if change is intentional/required.
 
-- [ ] **Step 1:** `git status` / `git diff --stat` — classify files
-- [ ] **Step 2:** Stage allowed paths; leave secrets untracked
-- [ ] **Step 3:** Commit with message focusing on why (scope C close + Auth0 staging + verify)
-- [ ] **Step 4:** `git status` clean for staged set (or only intentional leftovers)
-- [ ] **Step 5:** Append ledger Task 1 complete
+- [x] **Step 1:** `git status` / `git diff --stat` — classify files
+- [x] **Step 2:** Stage allowed paths; leave secrets untracked
+- [x] **Step 3:** Commit with message focusing on why (scope C close + Auth0 staging + verify)
+- [x] **Step 4:** `git status` clean for staged set (or only intentional leftovers)
+- [x] **Step 5:** Append ledger Task 1 complete
 
 ### Task 2: Push + staging-preflight evidence (agent-auto; HO if secrets missing)
 
-- [ ] **Step 1:** `git push -u` if branch tracking needs it (main: push if ahead; do not force)
-- [ ] **Step 2:** Trigger `gh workflow run staging-preflight.yml -f confirm_phase_a=PASS -f run_migrate=true -f run_health=true -f run_fly_deploy=false` (or document BLOCKED if no `gh` auth / missing GH Environment secrets)
-- [ ] **Step 3:** Record run URL in `HARDENING-H5-EVIDENCE.md` + OUTBOX (no secrets)
-- [ ] **Step 4:** Ledger Task 2
+- [x] **Step 1:** `git push -u` if branch tracking needs it (main: push if ahead; do not force)
+- [x] **Step 2:** Trigger `gh workflow run staging-preflight.yml -f confirm_phase_a=PASS -f run_migrate=true -f run_health=true -f run_fly_deploy=false` (or document BLOCKED if no `gh` auth / missing GH Environment secrets)
+- [x] **Step 3:** Record run URL in `HARDENING-H5-EVIDENCE.md` + OUTBOX (no secrets)
+- [x] **Step 4:** Ledger Task 2
 
 ---
 
@@ -82,22 +82,22 @@ flowchart LR
 
 **Decision default (no HO reply yet):** Staging v1 = Redis **optional / N/A** — API Auth0 path does not require Redis; worker/scheduler remain best-effort when unset. Preflight keeps warn, not fail.
 
-- [ ] **Step 1:** Create `backend/docs/release/ADR-014-redis-staging-v1.md` with Context / Decision / Consequences
-- [ ] **Step 2:** Link from A-TO-F + update preflight comment or docs note “warn expected”
-- [ ] **Step 3:** OUTBOX one line; ledger
+- [x] **Step 1:** Create `backend/docs/release/ADR-014-redis-staging-v1.md` with Context / Decision / Consequences
+- [x] **Step 2:** Link from A-TO-F + update preflight comment or docs note “warn expected”
+- [x] **Step 3:** OUTBOX one line; ledger
 
 ### Task 4: Interim OIDC standby policy (agent-auto; destroy = HO)
 
 **Decision default:** Keep `phan-mem-ban-hang-online-oidc` as **rollback standby**; do **not** destroy without HO. Document how to scale to zero / destroy later.
 
-- [ ] **Step 1:** Add section to `HARDENING-H1-AUTH0.md` or A-TO-F: standby policy + optional destroy command for HO
-- [ ] **Step 2:** OUTBOX; ledger
+- [x] **Step 1:** Add section to `HARDENING-H1-AUTH0.md` or A-TO-F: standby policy + optional destroy command for HO
+- [x] **Step 2:** OUTBOX; ledger
 
 ### Task 5: Pro / vendor HO pack refresh (agent-auto; spend = HO-gate)
 
-- [ ] **Step 1:** Write `backend/docs/release/HO-NEXT-P0-P2.md` — one page: Pro ($25) vs Free waiver; no PITR $100; vendor optional; Billing/Tauri/schema gates
-- [ ] **Step 2:** Point A-TO-F “HO còn lại” at this file
-- [ ] **Step 3:** Ledger — mark Pro/vendor **BLOCKED-HO** (not agent-done as spent)
+- [x] **Step 1:** Write `backend/docs/release/HO-NEXT-P0-P2.md` — one page: Pro ($25) vs Free waiver; no PITR $100; vendor optional; Billing/Tauri/schema gates
+- [x] **Step 2:** Point A-TO-F “HO còn lại” at this file
+- [x] **Step 3:** Ledger — mark Pro/vendor **BLOCKED-HO** (not agent-done as spent)
 
 ---
 
@@ -105,21 +105,21 @@ flowchart LR
 
 ### Task 6: Billing / notifications handoff (agent-auto)
 
-- [ ] **Step 1:** Update `frontend/docs/collaboration/CONTRACT_GAP_BILLING_NOTIFICATIONS.md` status section with “Ready for HO approve bind” + link HO-NEXT
-- [ ] **Step 2:** OUTBOX: needs HO approve bind
-- [ ] **Step 3:** Ledger BLOCKED-HO for implementation
+- [x] **Step 1:** Update `frontend/docs/collaboration/CONTRACT_GAP_BILLING_NOTIFICATIONS.md` status section with “Ready for HO approve bind” + link HO-NEXT
+- [x] **Step 2:** OUTBOX: needs HO approve bind
+- [x] **Step 3:** Ledger BLOCKED-HO for implementation
 
 ### Task 7: Schema P6–P9 handoff (agent-auto)
 
-- [ ] **Step 1:** Short `backend/docs/release/SCHEMA-GATES-P6-P9.md` listing `shipping_labels`, `support_tickets`, `job_runs` (+ note pgvector) and “open gate = HO reply”
-- [ ] **Step 2:** Link data-dictionary Not started rows to this doc
-- [ ] **Step 3:** Ledger BLOCKED-HO
+- [x] **Step 1:** Short `backend/docs/release/SCHEMA-GATES-P6-P9.md` listing `shipping_labels`, `support_tickets`, `job_runs` (+ note pgvector) and “open gate = HO reply”
+- [x] **Step 2:** Link data-dictionary Not started rows to this doc
+- [x] **Step 3:** Ledger BLOCKED-HO
 
 ### Task 8: P5.2 audit + Tauri handoff (agent-auto)
 
-- [ ] **Step 1:** Note in HO-NEXT: P5.2 dual-write contract window; Tauri ADR-FE-014 CTA → native needs HO
-- [ ] **Step 2:** Ledger BLOCKED-HO for both
-- [ ] **Step 3:** Final `verify-staging-scope-c.mjs` still 16/16; append Agent-complete to `progress-harden-p0-p2.md` + autonomous-progress
+- [x] **Step 1:** Note in HO-NEXT: P5.2 dual-write contract window; Tauri ADR-FE-014 CTA → native needs HO
+- [x] **Step 2:** Ledger BLOCKED-HO for both
+- [x] **Step 3:** Final `verify-staging-scope-c.mjs` still 16/16; append Agent-complete to `progress-harden-p0-p2.md` + autonomous-progress
 
 ---
 

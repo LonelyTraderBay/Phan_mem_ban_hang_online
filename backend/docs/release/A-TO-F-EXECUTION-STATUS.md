@@ -3,7 +3,7 @@
 **Product name:** `Phan_mem_ban_hang_online`  
 **Naming map:** [`NAMING-PHAN-MEM-BAN-HANG-ONLINE.md`](./NAMING-PHAN-MEM-BAN-HANG-ONLINE.md)  
 **Production go-live:** **NOT authorized**.  
-**DOC_GATE scope C (W1–W4 + T7):** 157/157 backlog CSV Done; Auth0 wire PASS (OIDC start → Auth0 authorize 302).
+**DOC_GATE scope C:** 157/157 Done; Auth0 PASS; harden P0–P2 **agent-complete** — see [`HO-NEXT-P0-P2.md`](./HO-NEXT-P0-P2.md).
 
 ## Live staging (renamed)
 
@@ -13,11 +13,12 @@
 | Web Admin | https://phan-mem-ban-hang-online-web.fly.dev |
 | Super Admin | https://phan-mem-ban-hang-online-ops.fly.dev |
 | IdP | Auth0 Free · `dev-51apo48jpnewe6oa.us.auth0.com` |
-| IdP interim (standby) | https://phan-mem-ban-hang-online-oidc.fly.dev |
-| DB | Supabase Free · ref `lrcsbrmqlyvkxxspbezi` · display name **`Phan_mem_ban_hang_online-staging`** (confirmed 2026-07-24) |
+| IdP interim (standby) | https://phan-mem-ban-hang-online-oidc.fly.dev — keep until HO destroys |
+| DB | Supabase Free · ref `lrcsbrmqlyvkxxspbezi` · display **`Phan_mem_ban_hang_online-staging`** |
+| Redis | **N/A v1** — [`ADR-014-redis-staging-v1.md`](./ADR-014-redis-staging-v1.md) |
 
 Legacy Fly apps `ai-sales-*-staging` **đã destroy**.
 
 ## HO còn lại
 
-1. Pro / vendor / prod gates như trước
+Full checklist: [`HO-NEXT-P0-P2.md`](./HO-NEXT-P0-P2.md) (Pro / vendor / billing bind / schema gates / P5.2 / Tauri / go-live).

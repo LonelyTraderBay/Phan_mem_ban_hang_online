@@ -27,3 +27,4 @@ Stopped autonomous loop at scope C code-complete ceiling (2026-07-24).
 W1 PASS — FND-006/014 CSV Done (2026-07-24).
 W4 PASS — scope C DOC_GATE complete; 157/157 CSV Done (2026-07-24).
 W3/T7 PASS — Auth0 wired + Fly secrets; OIDC start 302 → Auth0 authorize (2026-07-24).
+Harden P0→P2 PASS — agent-complete (2026-07-24); CI run 30068221660; HO-NEXT gates remain BLOCKED-HO.

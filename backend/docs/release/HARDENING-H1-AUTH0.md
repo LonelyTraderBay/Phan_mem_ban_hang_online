@@ -37,3 +37,15 @@ Icon mắt/copy **không** phải Rotate. Theo [Auth0 docs](https://auth0.com/do
 2. **Cuộn xuống cuối trang** → mục **Danger Zone** → **Rotate** → Confirm
 3. Lên đầu trang → tab **Credentials** → Client Secret (icon mắt) → copy secret **mới**
 4. Cập nhật `backend/.auth0-staging.env` rồi bảo agent re-import Fly
+
+## Interim OIDC standby policy
+
+**Default (2026-07-24):** Keep Fly app `phan-mem-ban-hang-online-oidc` as **rollback standby**. Active IdP = Auth0.
+
+- Do **not** destroy without HO reply `Destroy interim OIDC`.
+- Optional cost save (HO): scale machines to zero or destroy after confirming Auth0-only for ≥7 days.
+
+```powershell
+# HO only — destroy standby (irreversible for that app)
+flyctl apps destroy phan-mem-ban-hang-online-oidc
+```

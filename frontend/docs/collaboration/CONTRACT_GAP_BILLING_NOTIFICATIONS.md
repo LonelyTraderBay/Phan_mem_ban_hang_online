@@ -1,6 +1,7 @@
 # Contract Gaps — Billing and notification preferences
 
-**Status:** OPEN for UI integration  
+**Status:** OPEN for UI integration — **Ready for HO approve bind** (2026-07-24)  
+**HO unlock:** reply *“approve billing UI bind”* — see [`HO-NEXT-P0-P2.md`](../../../backend/docs/release/HO-NEXT-P0-P2.md)  
 **Scope:** `/billing` and `/settings/notifications`
 
 ## Billing

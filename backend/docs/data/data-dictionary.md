@@ -134,7 +134,7 @@ authoritative for AI coding agents — do not re-open without ADR.
 | `payment_reconciliations` | TENANT_OWNED | **Done** (`000020`) | |
 | `shipments` | TENANT_OWNED | **Done** (`000020`) | |
 | `shipment_items` | TENANT_OWNED | **Done** (`000020`) | |
-| `shipping_labels` | TENANT_OWNED | Not started | |
+| `shipping_labels` | TENANT_OWNED | Not started | Gate: [`SCHEMA-GATES-P6-P9.md`](../release/SCHEMA-GATES-P6-P9.md) |
 | `returns` | TENANT_OWNED | **Done** (`000020`) | |
 | `return_items` | TENANT_OWNED | **Done** (`000020`) | |
 | `refunds` | TENANT_OWNED | **Done** (`000020`) | |
@@ -159,9 +159,9 @@ authoritative for AI coding agents — do not re-open without ADR.
 | `feature_flags` | GLOBAL | **Done** (`000023`) | |
 | `feature_flag_overrides` | TENANT_OVERRIDE | **Done** (`000023`) | Global key + `tenant_id` |
 | `system_alerts` | GLOBAL | **Done** (`000023`) | Platform SRE alert; `ops.*` only — never tenant role |
-| `support_tickets` | TENANT_OWNED | Not started | |
+| `support_tickets` | TENANT_OWNED | Not started | Gate: [`SCHEMA-GATES-P6-P9.md`](../release/SCHEMA-GATES-P6-P9.md) |
 | `reprocess_requests` | GLOBAL | **Done** (`000023`) | Ops API (`ops.reprocess`); optional nullable `target_tenant_id` filter column (not RLS ownership) |
-| `job_runs` | SYSTEM_INTERNAL | Not started | Not exposed through user APIs (§6.1) |
+| `job_runs` | SYSTEM_INTERNAL | Not started | Not exposed through user APIs (§6.1); gate: [`SCHEMA-GATES-P6-P9.md`](../release/SCHEMA-GATES-P6-P9.md) |
 | `audit_logs` | TENANT_OWNED (nullable tenant) [ledger] | **Done** (`000038`) | Domain ledger (§7.12.5); backfilled from `audit_events`; dual-write expand — contract in P5.2 |
 
 ## Summary counts (W4 freeze baseline — update when migrations land)
